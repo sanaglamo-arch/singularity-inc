@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Singularity Inc.</title>
+<link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <header id="topbar">
+    <div id="brand"><span id="brandIcon">🌐</span><span id="brandName">Singularity Inc.</span></div>
+    <div id="cashBox">
+      <div id="cashVal">0</div>
+      <div id="cpsVal">0/sec</div>
+    </div>
+    <div id="boostBadge" class="hidden"></div>
+  </header>
+
+  <!-- Content tabs -->
+  <main id="content">
+    <section class="tab active" data-tab="company">
+      <div id="tapZone">
+        <button id="tapBtn" aria-label="train">
+          <span id="tapIcon">🧠</span>
+          <span id="tapLabel">TRAIN</span>
+          <span id="tapValue"></span>
+        </button>
+        <div id="tapHint"></div>
+        <div id="riskMini">
+          <div id="riskMiniLabel"></div>
+          <div class="bar"><div id="riskMiniFill"></div></div>
+        </div>
+      </div>
+      <div class="scroll" id="genList"></div>
+    </section>
+
+    <section class="tab" data-tab="upgrades">
+      <div class="scroll" id="upgradesPane">
+        <h2 id="upgradesTitle"></h2>
+        <div id="upgradeList"></div>
+        <h2 id="managersTitle"></h2>
+        <div id="managerList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="research">
+      <div class="scroll" id="researchPane">
+        <h2 id="researchTitle"></h2>
+        <p id="researchDesc" class="muted"></p>
+        <div id="prestigeBox">
+          <div id="prestigeGain"></div>
+          <button id="prestigeBtn"></button>
+          <div id="rpHave" class="muted"></div>
+          <div id="currentBonus" class="accent"></div>
+        </div>
+        <h2 id="prestigeUpTitle"></h2>
+        <div id="prestigeUpList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="alignment">
+      <div class="scroll" id="alignPane">
+        <h2 id="alignTitle"></h2>
+        <p id="alignIntro" class="muted"></p>
+        <div id="incidentBox" class="hidden"></div>
+        <div id="riskPanel">
+          <div class="meterRow"><span id="riskLabel"></span><span id="riskPct"></span></div>
+          <div class="bar big"><div id="riskFill"></div></div>
+          <div id="riskGainTxt" class="muted small"></div>
+          <div class="meterRow" style="margin-top:14px"><span id="alignLabel"></span><span id="alignOwned"></span></div>
+          <div id="alignSuppressTxt" class="muted small"></div>
+          <button id="buyAlignBtn"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="stats">
+      <div class="scroll" id="statsPane">
+        <h2 id="statsTitle"></h2>
+        <div id="statList"></div>
+        <h2 id="achTitle"></h2>
+        <div id="achProgress" class="muted"></div>
+        <div id="achList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="settings">
+      <div class="scroll" id="settingsPane">
+        <h2 id="settingsTitle"></h2>
+        <div class="setting-row"><span id="langLabel"></span>
+          <div class="seg" id="langSeg">
+            <button data-lang="en">EN</button><button data-lang="ru">RU</button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="soundLabel"></span>
+          <div class="seg" id="soundSeg">
+            <button data-sound="on"></button><button data-sound="off"></button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="adBoostLabel"></span><button id="adBoostBtn" class="adbtn"></button></div>
+        <div class="setting-row"><span id="adCashLabel"></span><button id="adCashBtn" class="adbtn"></button></div>
+        <button id="saveBtn" class="wide"></button>
+        <button id="resetBtn" class="wide danger"></button>
+        <p id="creditsTxt" class="muted small"></p>
+        <p id="versionTxt" class="muted small"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Buy-mode selector (floats above tab bar on Lab/Alignment) -->
+  <div id="buyModeBar" class="hidden">
+    <button data-mode="1">x1</button>
+    <button data-mode="10">x10</button>
+    <button data-mode="100">x100</button>
+    <button data-mode="max">Max</button>
+  </div>
+
+  <!-- Bottom tab nav -->
+  <nav id="tabbar">
+    <button data-tab="company" class="active"><span class="ti">🏭</span><span class="tl" id="nav_company"></span></button>
+    <button data-tab="upgrades"><span class="ti">⬆️</span><span class="tl" id="nav_upgrades"></span></button>
+    <button data-tab="research"><span class="ti">🔬</span><span class="tl" id="nav_research"></span></button>
+    <button data-tab="alignment"><span class="ti">🛡️</span><span class="tl" id="nav_alignment"></span></button>
+    <button data-tab="stats"><span class="ti">📊</span><span class="tl" id="nav_stats"></span></button>
+    <button data-tab="settings"><span class="ti">⚙️</span><span class="tl" id="nav_settings"></span></button>
+  </nav>
+</div>
+
+<div id="toastRoot"></div>
+<div id="modalRoot" class="hidden"></div>
+<div id="fxRoot"></div>
+
+<script src="js/config.js?v=1"></script>
+<script src="js/format.js?v=1"></script>
+<script src="js/i18n.js?v=1"></script>
+<script src="js/sdk.js?v=1"></script>
+<script src="js/ads.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+<script src="js/main.js?v=1"></script>
+</body>
+</html>

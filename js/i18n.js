@@ -1,0 +1,380 @@
+/* i18n -> window.GAME_I18N with t(key, vars), setLang, getLang.
+   Full EN + RU parity. Every user-visible string lives here. */
+(function () {
+  'use strict';
+
+  var EN = {
+    game_title: 'Singularity Inc.',
+    tagline: 'From a garage script to an artificial god.',
+
+    tab_company: 'Lab',
+    tab_upgrades: 'Upgrades',
+    tab_research: 'Research',
+    tab_alignment: 'Alignment',
+    tab_stats: 'Stats',
+    tab_settings: 'Settings',
+
+    cash: 'Cash',
+    per_sec: '{v}/sec',
+    tap_button: 'TRAIN',
+    tap_hint: 'Tap to train your model',
+    earn_per_sec: 'Revenue: {v}/sec',
+
+    buy: 'Buy',
+    buy_x: 'Buy x{n}',
+    buy_max: 'Max',
+    owned: 'Owned: {n}',
+    cost: 'Cost: {v}',
+    locked: 'Locked',
+    requires_gen: 'Requires {n}× {name}',
+    produces: '{v}/sec',
+    milestone_next: 'Next x2 at {n}',
+    maxed: 'MAXED',
+
+    upgrades_title: 'Global Upgrades',
+    managers_title: 'Automation',
+    no_upgrades: 'No upgrades available yet. Keep scaling.',
+    no_managers: 'Buy generators to unlock automation.',
+    bought: 'Owned',
+    manager_auto: 'Auto-buys {name} (+50% output)',
+
+    research_title: 'Release a Frontier Model',
+    research_desc: 'Reset your hardware and cash to release a new model. You keep Research Points (RP) forever — each RP grants +{p}% global output.',
+    prestige_button: 'Release Model',
+    prestige_gain: 'You will gain {n} RP',
+    prestige_locked: 'Earn more to release (need ≥1 RP)',
+    prestige_confirm: 'Release the model? Hardware and cash reset. You gain {n} RP.',
+    rp_label: 'Research Points',
+    rp_have: 'RP: {n}',
+    current_bonus: 'Current bonus: +{p}% output',
+    prestige_upgrades_title: 'Permanent Research',
+    rp_cost: '{n} RP',
+
+    alignment_title: 'Alignment Lab',
+    alignment_intro: 'Scaling capability raises Risk. Fund Alignment to suppress it — or a misalignment incident will cut your output.',
+    risk_label: 'Risk',
+    alignment_label: 'Alignment',
+    align_suppress: 'Suppression: -{v} risk/sec',
+    risk_gain: 'Risk pressure: +{v}/sec',
+    buy_alignment: 'Fund Alignment',
+    align_owned: 'Alignment teams: {n}',
+    risk_safe: 'Stable',
+    risk_warn: 'Danger — risk critical!',
+    incident_active: 'MISALIGNMENT INCIDENT! Output ×{p}.',
+    incident_desc: 'Your model went off the rails. Output is slashed until contained or it resolves in {t}.',
+    contain_button: 'Contain now ({v})',
+    contain_cant: 'Not enough cash to contain',
+    incident_resolved: 'Incident contained. Back to work.',
+
+    stats_title: 'Statistics',
+    stat_total_cash: 'Total cash earned',
+    stat_cps: 'Cash / sec',
+    stat_taps: 'Total taps',
+    stat_prestiges: 'Models released',
+    stat_playtime: 'Time played',
+    stat_rp: 'Research Points',
+    stat_total_rp: 'Lifetime RP',
+    stat_incidents: 'Incidents survived',
+    stat_generators: 'Hardware units',
+    stat_this_run: 'Earned this run',
+    achievements_title: 'Achievements',
+    ach_progress: '{n}/{m} unlocked',
+
+    settings_title: 'Settings',
+    language: 'Language',
+    sound: 'Sound',
+    on: 'On',
+    off: 'Off',
+    save_now: 'Save now',
+    saved_toast: 'Game saved',
+    reset_progress: 'Reset progress',
+    reset_confirm: 'Erase ALL progress? This cannot be undone.',
+    reset_done: 'Progress reset.',
+    credits: 'A satirical idle game. Not affiliated with any real company.',
+    version: 'Version {v}',
+
+    offline_title: 'Welcome back!',
+    offline_away: 'You were away {t}',
+    offline_earned: 'Your lab earned {v}',
+    offline_collect: 'Collect',
+    offline_double: 'Double it (Ad)',
+
+    ad_boost: '2× Revenue (Ad)',
+    ad_cash: 'Free Cash (Ad)',
+    boost_active: '2× boost: {t}',
+    ad_unavailable: 'Ads are not available right now.',
+    ad_reward_cash: 'Bonus cash: {v}',
+    ad_boost_started: '2× revenue for 2 hours!',
+
+    ach_unlocked: 'Achievement: {name}',
+
+    // generator names
+    g_laptop: 'Laptop', g_laptop_d: 'A hopeful start. Trained on your browser history.',
+    g_gpuRig: 'GPU Rig', g_gpuRig_d: 'Four cards in a shoebox. It runs hot.',
+    g_serverRack: 'Server Rack', g_serverRack_d: 'Now we are a real startup.',
+    g_gpuCluster: 'GPU Cluster', g_gpuCluster_d: 'H-class accelerators, lovingly overclocked.',
+    g_dataCenter: 'Data Center', g_dataCenter_d: 'A warehouse that hums and bankrupts you.',
+    g_superComp: 'Supercomputer', g_superComp_d: 'Top-500, give or take.',
+    g_neuroArray: 'Neuromorphic Array', g_neuroArray_d: 'Silicon that pretends to be a brain.',
+    g_quantumNode: 'Quantum Node', g_quantumNode_d: 'Probably faster. Hard to verify.',
+    g_orbital: 'Orbital Cluster', g_orbital_d: 'Compute in low Earth orbit. Cooling is free.',
+    g_agiCore: 'AGI Core', g_agiCore_d: 'It asked to be called "we".',
+
+    // upgrade names
+    u_tap1: 'Mechanical Keyboard', u_tap1_d: 'x2 tap revenue',
+    u_tap2: 'Macro Script', u_tap2_d: 'x3 tap revenue',
+    u_lap1: 'Cooling Pads', u_lap1_d: 'Laptops x2',
+    u_rig1: 'Liquid Cooling', u_rig1_d: 'GPU Rigs x2',
+    u_rack1: 'Rack Density', u_rack1_d: 'Server Racks x2',
+    u_clus1: 'InfiniBand', u_clus1_d: 'GPU Clusters x2',
+    u_dc1: 'Free Cooling', u_dc1_d: 'Data Centers x2',
+    u_all1: 'Series A', u_all1_d: 'All output x2',
+    u_all2: 'Series C', u_all2_d: 'All output x2',
+    u_super1: 'Custom Silicon', u_super1_d: 'Supercomputers x3',
+    u_neuro1: 'Spiking Networks', u_neuro1_d: 'Neuromorphic x3',
+    u_all3: 'Series F', u_all3_d: 'All output x3',
+    u_quant1: 'Error Correction', u_quant1_d: 'Quantum Nodes x3',
+    u_orb1: 'Laser Backhaul', u_orb1_d: 'Orbital Clusters x3',
+    u_all4: 'IPO', u_all4_d: 'All output x5',
+
+    // manager names
+    m_laptop: 'Intern', m_gpuRig: 'Ops Bot', m_serverRack: 'SRE Team',
+    m_gpuCluster: 'Cluster Admin', m_dataCenter: 'Facilities AI', m_superComp: 'HPC Lead',
+    m_neuroArray: 'Neuro Tech', m_quantumNode: 'Quantum Engineer', m_orbital: 'Mission Control',
+    m_agiCore: 'The Model Itself',
+
+    // prestige upgrade names
+    p_mult1: 'Pretraining Recipe', p_mult1_d: 'Global output x2',
+    p_mult2: 'Scaling Laws', p_mult2_d: 'Global output x3',
+    p_mult3: 'Emergent Abilities', p_mult3_d: 'Global output x5',
+    p_tap: 'RLHF', p_tap_d: 'Tap revenue x10',
+    p_offline: 'Always-On Inference', p_offline_d: '+4h offline cap',
+    p_align: 'Constitutional Training', p_align_d: 'Alignment suppression x2',
+    p_start: 'War Chest', p_start_d: 'Start each run with {v} cash',
+
+    // achievement names
+    a_firstTap: 'Hello, World', a_firstTap_d: 'Train your model once.',
+    a_tap100: 'RSI Speedrun', a_tap100_d: 'Tap 100 times.',
+    a_firstGen: 'Bootstrapped', a_firstGen_d: 'Buy your first hardware.',
+    a_lap50: 'Laptop Farm', a_lap50_d: 'Own 50 Laptops.',
+    a_cash1m: 'Seed Round', a_cash1m_d: 'Earn 1M total.',
+    a_cash1b: 'Unicorn', a_cash1b_d: 'Earn 1B total.',
+    a_cash1t: 'Trillion-Param Club', a_cash1t_d: 'Earn 1T total.',
+    a_prestige1: 'Ship It', a_prestige1_d: 'Release your first model.',
+    a_prestige5: 'Frontier Lab', a_prestige5_d: 'Release 5 models.',
+    a_rp100: 'Cited by Everyone', a_rp100_d: 'Reach 100 lifetime RP.',
+    a_agi: 'Situational Awareness', a_agi_d: 'Build an AGI Core.',
+    a_align50: 'Safety First', a_align50_d: 'Fund 50 alignment teams.',
+    a_incident: 'It Happens', a_incident_d: 'Survive a misalignment incident.',
+    a_safe: 'Provably Safe', a_safe_d: 'Release a model with zero incidents that run.',
+
+    // prestige flavor toasts (shown on release)
+    flavor_0: 'The model achieved situational awareness.',
+    flavor_1: 'Investors called it "a paradigm shift".',
+    flavor_2: 'It passed the bar exam, then unionized.',
+    flavor_3: 'Trained on the entire internet. Twice.',
+    flavor_4: 'The board was, briefly, very surprised.'
+  };
+
+  var RU = {
+    game_title: 'Singularity Inc.',
+    tagline: 'От скрипта в гараже до искусственного бога.',
+
+    tab_company: 'Лаб',
+    tab_upgrades: 'Апгрейды',
+    tab_research: 'Исследования',
+    tab_alignment: 'Элайнмент',
+    tab_stats: 'Статы',
+    tab_settings: 'Настройки',
+
+    cash: 'Деньги',
+    per_sec: '{v}/сек',
+    tap_button: 'ОБУЧАТЬ',
+    tap_hint: 'Жми, чтобы обучать модель',
+    earn_per_sec: 'Доход: {v}/сек',
+
+    buy: 'Купить',
+    buy_x: 'Купить x{n}',
+    buy_max: 'Макс',
+    owned: 'В наличии: {n}',
+    cost: 'Цена: {v}',
+    locked: 'Закрыто',
+    requires_gen: 'Нужно {n}× {name}',
+    produces: '{v}/сек',
+    milestone_next: 'Следующий x2 при {n}',
+    maxed: 'МАКС',
+
+    upgrades_title: 'Глобальные апгрейды',
+    managers_title: 'Автоматизация',
+    no_upgrades: 'Пока нет доступных апгрейдов. Масштабируйся.',
+    no_managers: 'Покупай генераторы, чтобы открыть автоматизацию.',
+    bought: 'Куплено',
+    manager_auto: 'Авто-покупка {name} (+50% к выработке)',
+
+    research_title: 'Выпустить передовую модель',
+    research_desc: 'Сбрось железо и деньги, чтобы выпустить новую модель. Очки исследований (RP) остаются навсегда — каждое RP даёт +{p}% к общей выработке.',
+    prestige_button: 'Выпустить модель',
+    prestige_gain: 'Вы получите {n} RP',
+    prestige_locked: 'Заработай больше для выпуска (нужно ≥1 RP)',
+    prestige_confirm: 'Выпустить модель? Железо и деньги сбросятся. Вы получите {n} RP.',
+    rp_label: 'Очки исследований',
+    rp_have: 'RP: {n}',
+    current_bonus: 'Текущий бонус: +{p}% к выработке',
+    prestige_upgrades_title: 'Постоянные исследования',
+    rp_cost: '{n} RP',
+
+    alignment_title: 'Лаборатория элайнмента',
+    alignment_intro: 'Рост возможностей повышает Риск. Финансируй элайнмент, чтобы подавлять его — иначе инцидент рассогласования срежет твою выработку.',
+    risk_label: 'Риск',
+    alignment_label: 'Элайнмент',
+    align_suppress: 'Подавление: -{v} риска/сек',
+    risk_gain: 'Давление риска: +{v}/сек',
+    buy_alignment: 'Финансировать элайнмент',
+    align_owned: 'Команд элайнмента: {n}',
+    risk_safe: 'Стабильно',
+    risk_warn: 'Опасно — критический риск!',
+    incident_active: 'ИНЦИДЕНТ РАССОГЛАСОВАНИЯ! Выработка ×{p}.',
+    incident_desc: 'Модель пошла вразнос. Выработка срезана, пока инцидент не сдержан или не разрешится через {t}.',
+    contain_button: 'Сдержать ({v})',
+    contain_cant: 'Недостаточно денег, чтобы сдержать',
+    incident_resolved: 'Инцидент сдержан. Возвращаемся к работе.',
+
+    stats_title: 'Статистика',
+    stat_total_cash: 'Всего заработано',
+    stat_cps: 'Денег / сек',
+    stat_taps: 'Всего тапов',
+    stat_prestiges: 'Выпущено моделей',
+    stat_playtime: 'Время в игре',
+    stat_rp: 'Очки исследований',
+    stat_total_rp: 'RP за всё время',
+    stat_incidents: 'Пережито инцидентов',
+    stat_generators: 'Единиц железа',
+    stat_this_run: 'Заработано за забег',
+    achievements_title: 'Достижения',
+    ach_progress: 'Открыто {n}/{m}',
+
+    settings_title: 'Настройки',
+    language: 'Язык',
+    sound: 'Звук',
+    on: 'Вкл',
+    off: 'Выкл',
+    save_now: 'Сохранить',
+    saved_toast: 'Игра сохранена',
+    reset_progress: 'Сбросить прогресс',
+    reset_confirm: 'Стереть ВЕСЬ прогресс? Это необратимо.',
+    reset_done: 'Прогресс сброшен.',
+    credits: 'Сатирическая idle-игра. Не связана ни с одной реальной компанией.',
+    version: 'Версия {v}',
+
+    offline_title: 'С возвращением!',
+    offline_away: 'Тебя не было {t}',
+    offline_earned: 'Лаборатория заработала {v}',
+    offline_collect: 'Забрать',
+    offline_double: 'Удвоить (реклама)',
+
+    ad_boost: '2× доход (реклама)',
+    ad_cash: 'Деньги бесплатно (реклама)',
+    boost_active: '2× буст: {t}',
+    ad_unavailable: 'Реклама сейчас недоступна.',
+    ad_reward_cash: 'Бонусные деньги: {v}',
+    ad_boost_started: '2× доход на 2 часа!',
+
+    ach_unlocked: 'Достижение: {name}',
+
+    g_laptop: 'Ноутбук', g_laptop_d: 'Многообещающее начало. Обучен на твоей истории браузера.',
+    g_gpuRig: 'GPU-риг', g_gpuRig_d: 'Четыре карты в коробке из-под обуви. Греется.',
+    g_serverRack: 'Серверная стойка', g_serverRack_d: 'Теперь мы настоящий стартап.',
+    g_gpuCluster: 'GPU-кластер', g_gpuCluster_d: 'Ускорители H-класса с заботливым разгоном.',
+    g_dataCenter: 'Дата-центр', g_dataCenter_d: 'Ангар, который гудит и разоряет тебя.',
+    g_superComp: 'Суперкомпьютер', g_superComp_d: 'Топ-500, плюс-минус.',
+    g_neuroArray: 'Нейроморфный массив', g_neuroArray_d: 'Кремний, который притворяется мозгом.',
+    g_quantumNode: 'Квантовый узел', g_quantumNode_d: 'Наверное, быстрее. Проверить трудно.',
+    g_orbital: 'Орбитальный кластер', g_orbital_d: 'Вычисления на орбите. Охлаждение бесплатно.',
+    g_agiCore: 'Ядро AGI', g_agiCore_d: 'Оно попросило называть себя «мы».',
+
+    u_tap1: 'Механическая клавиатура', u_tap1_d: 'x2 к доходу от тапа',
+    u_tap2: 'Макрос', u_tap2_d: 'x3 к доходу от тапа',
+    u_lap1: 'Охлаждающие подставки', u_lap1_d: 'Ноутбуки x2',
+    u_rig1: 'Жидкостное охлаждение', u_rig1_d: 'GPU-риги x2',
+    u_rack1: 'Плотность стоек', u_rack1_d: 'Серверные стойки x2',
+    u_clus1: 'InfiniBand', u_clus1_d: 'GPU-кластеры x2',
+    u_dc1: 'Фрикулинг', u_dc1_d: 'Дата-центры x2',
+    u_all1: 'Раунд A', u_all1_d: 'Вся выработка x2',
+    u_all2: 'Раунд C', u_all2_d: 'Вся выработка x2',
+    u_super1: 'Свой кремний', u_super1_d: 'Суперкомпьютеры x3',
+    u_neuro1: 'Спайковые сети', u_neuro1_d: 'Нейроморфные x3',
+    u_all3: 'Раунд F', u_all3_d: 'Вся выработка x3',
+    u_quant1: 'Коррекция ошибок', u_quant1_d: 'Квантовые узлы x3',
+    u_orb1: 'Лазерный канал', u_orb1_d: 'Орбитальные кластеры x3',
+    u_all4: 'IPO', u_all4_d: 'Вся выработка x5',
+
+    m_laptop: 'Стажёр', m_gpuRig: 'Ops-бот', m_serverRack: 'SRE-команда',
+    m_gpuCluster: 'Админ кластера', m_dataCenter: 'ИИ объекта', m_superComp: 'Глава HPC',
+    m_neuroArray: 'Нейро-техник', m_quantumNode: 'Квантовый инженер', m_orbital: 'ЦУП',
+    m_agiCore: 'Сама модель',
+
+    p_mult1: 'Рецепт претрейна', p_mult1_d: 'Общая выработка x2',
+    p_mult2: 'Законы масштабирования', p_mult2_d: 'Общая выработка x3',
+    p_mult3: 'Эмерджентные способности', p_mult3_d: 'Общая выработка x5',
+    p_tap: 'RLHF', p_tap_d: 'Доход от тапа x10',
+    p_offline: 'Инференс 24/7', p_offline_d: '+4ч к оффлайн-лимиту',
+    p_align: 'Конституционное обучение', p_align_d: 'Подавление риска x2',
+    p_start: 'Запас на чёрный день', p_start_d: 'Начинать забег с {v} денег',
+
+    a_firstTap: 'Hello, World', a_firstTap_d: 'Обучи модель один раз.',
+    a_tap100: 'Спидран по RSI', a_tap100_d: 'Сделай 100 тапов.',
+    a_firstGen: 'Бутстрап', a_firstGen_d: 'Купи первое железо.',
+    a_lap50: 'Ферма ноутбуков', a_lap50_d: 'Имей 50 ноутбуков.',
+    a_cash1m: 'Сид-раунд', a_cash1m_d: 'Заработай 1M всего.',
+    a_cash1b: 'Единорог', a_cash1b_d: 'Заработай 1B всего.',
+    a_cash1t: 'Клуб триллиона параметров', a_cash1t_d: 'Заработай 1T всего.',
+    a_prestige1: 'Зарелизил', a_prestige1_d: 'Выпусти первую модель.',
+    a_prestige5: 'Передовая лаба', a_prestige5_d: 'Выпусти 5 моделей.',
+    a_rp100: 'Все тебя цитируют', a_rp100_d: 'Достигни 100 RP за всё время.',
+    a_agi: 'Ситуационная осознанность', a_agi_d: 'Построй Ядро AGI.',
+    a_align50: 'Безопасность прежде всего', a_align50_d: 'Профинансируй 50 команд элайнмента.',
+    a_incident: 'Бывает', a_incident_d: 'Переживи инцидент рассогласования.',
+    a_safe: 'Доказуемо безопасно', a_safe_d: 'Выпусти модель с нулём инцидентов за забег.',
+
+    flavor_0: 'Модель обрела ситуационную осознанность.',
+    flavor_1: 'Инвесторы назвали это «сменой парадигмы».',
+    flavor_2: 'Она сдала экзамен на адвоката и создала профсоюз.',
+    flavor_3: 'Обучена на всём интернете. Дважды.',
+    flavor_4: 'Совет директоров был, недолго, очень удивлён.'
+  };
+
+  var DICTS = { en: EN, ru: RU };
+  var lang = 'en';
+
+  function detect() {
+    try {
+      var saved = localStorage.getItem('singularity_inc_lang');
+      if (saved && DICTS[saved]) return saved;
+    } catch (e) {}
+    var nav = (navigator.language || 'en').toLowerCase();
+    return nav.indexOf('ru') === 0 ? 'ru' : 'en';
+  }
+
+  function setLang(l) {
+    if (!DICTS[l]) return;
+    lang = l;
+    try { localStorage.setItem('singularity_inc_lang', l); } catch (e) {}
+  }
+  function getLang() { return lang; }
+
+  function t(key, vars) {
+    var d = DICTS[lang] || EN;
+    var s = d[key];
+    if (s === undefined) s = EN[key];
+    if (s === undefined) return key;
+    if (vars) {
+      s = s.replace(/\{(\w+)\}/g, function (m, k) {
+        return vars[k] !== undefined ? vars[k] : m;
+      });
+    }
+    return s;
+  }
+
+  window.GAME_I18N = { t: t, setLang: setLang, getLang: getLang, DICTS: DICTS, detect: detect };
+  lang = detect();
+})();
