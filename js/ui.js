@@ -564,7 +564,14 @@
     bind();
     window.GAME_AUDIO.setEnabled(G.state.sound);
     updateBuyModeBar();
-    switchTab('company');
+    // deep-linkable tab via URL hash (e.g. #stats)
+    var validTabs = { company: 1, upgrades: 1, research: 1, alignment: 1, stats: 1, settings: 1 };
+    var hash = (location.hash || '').replace('#', '');
+    switchTab(validTabs[hash] ? hash : 'company');
+    window.addEventListener('hashchange', function () {
+      var h = (location.hash || '').replace('#', '');
+      if (validTabs[h]) switchTab(h);
+    });
     update();
     if (offline && offline.earned > 0) showOffline(offline);
   }

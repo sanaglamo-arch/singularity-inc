@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{margin:0;padding:0;width:800px;height:470px;overflow:hidden;background:#0b1020}
+  #root{width:800px;height:470px;overflow:hidden;position:relative;font-family:-apple-system,'Segoe UI',Roboto,sans-serif}
+</style>
+</head>
+<body>
+<div id="root">
+<svg width="800" height="470" viewBox="0 0 800 470" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="55%" stop-color="#0e1530"/>
+      <stop offset="100%" stop-color="#121a33"/>
+    </linearGradient>
+    <!-- Sky radial glow center-right -->
+    <radialGradient id="skyGlow" cx="72%" cy="38%" r="45%">
+      <stop offset="0%" stop-color="#1a1060" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Cyan glow for AGI core -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5cc8ff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#7c5cff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Title text shadow gradient -->
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#a8d8ff"/>
+    </linearGradient>
+    <!-- Floor gradient -->
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2540"/>
+      <stop offset="100%" stop-color="#0b1020"/>
+    </linearGradient>
+    <!-- Server rack gradient -->
+    <linearGradient id="rackGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1c2a4a"/>
+      <stop offset="100%" stop-color="#243256"/>
+    </linearGradient>
+    <!-- Gold glow -->
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd86b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffd86b" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glow filter for neon elements -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="coreFilter" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Text background gradient for legibility -->
+    <linearGradient id="textBgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1020" stop-opacity="0.0"/>
+      <stop offset="40%" stop-color="#0b1020" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#0b1020" stop-opacity="0.9"/>
+    </linearGradient>
+    <!-- Violet glow for nodes -->
+    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7c5cff"/>
+      <stop offset="100%" stop-color="#7c5cff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Chart line gradient -->
+    <linearGradient id="chartGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#46e6a0"/>
+      <stop offset="60%" stop-color="#5cc8ff"/>
+      <stop offset="100%" stop-color="#7c5cff"/>
+    </linearGradient>
+    <!-- Data center building gradient -->
+    <linearGradient id="dcGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a2a50"/>
+      <stop offset="100%" stop-color="#223060"/>
+    </linearGradient>
+    <!-- Stars pattern -->
+    <radialGradient id="starGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- === BACKGROUND === -->
+  <rect width="800" height="470" fill="url(#bgGrad)"/>
+  <rect width="800" height="470" fill="url(#skyGlow)"/>
+
+  <!-- Stars scattered across sky -->
+  <g opacity="0.7">
+    <circle cx="42" cy="18" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="118" cy="45" r="0.8" fill="#fff" opacity="0.5"/>
+    <circle cx="200" cy="22" r="1.2" fill="#fff" opacity="0.7"/>
+    <circle cx="275" cy="55" r="0.7" fill="#fff" opacity="0.4"/>
+    <circle cx="340" cy="12" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="420" cy="30" r="1.3" fill="#fff" opacity="0.8"/>
+    <circle cx="510" cy="18" r="0.9" fill="#fff" opacity="0.5"/>
+    <circle cx="590" cy="42" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="655" cy="15" r="1.2" fill="#fff" opacity="0.7"/>
+    <circle cx="720" cy="35" r="0.8" fill="#fff" opacity="0.5"/>
+    <circle cx="760" cy="18" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="85" cy="80" r="0.7" fill="#fff" opacity="0.4"/>
+    <circle cx="155" cy="95" r="1" fill="#fff" opacity="0.5"/>
+    <circle cx="490" cy="65" r="0.8" fill="#fff" opacity="0.4"/>
+    <circle cx="310" cy="88" r="0.6" fill="#fff" opacity="0.3"/>
+    <circle cx="780" cy="70" r="0.8" fill="#fff" opacity="0.5"/>
+    <circle cx="62" cy="130" r="0.7" fill="#fff" opacity="0.3"/>
+    <circle cx="440" cy="78" r="0.6" fill="#fff" opacity="0.4"/>
+    <circle cx="170" cy="140" r="0.5" fill="#fff" opacity="0.3"/>
+  </g>
+
+  <!-- Subtle grid lines on floor -->
+  <g opacity="0.08" stroke="#5cc8ff" stroke-width="0.5">
+    <line x1="0" y1="380" x2="800" y2="380"/>
+    <line x1="0" y1="400" x2="800" y2="400"/>
+    <line x1="0" y1="420" x2="800" y2="420"/>
+    <line x1="0" y1="440" x2="800" y2="440"/>
+    <line x1="0" y1="460" x2="800" y2="460"/>
+    <!-- Perspective vertical lines -->
+    <line x1="100" y1="380" x2="80" y2="470"/>
+    <line x1="200" y1="380" x2="175" y2="470"/>
+    <line x1="300" y1="380" x2="280" y2="470"/>
+    <line x1="400" y1="380" x2="385" y2="470"/>
+    <line x1="500" y1="380" x2="490" y2="470"/>
+    <line x1="600" y1="380" x2="600" y2="470"/>
+    <line x1="700" y1="380" x2="710" y2="470"/>
+  </g>
+
+  <!-- Floor surface -->
+  <rect x="0" y="380" width="800" height="90" fill="url(#floorGrad)" opacity="0.6"/>
+
+  <!-- === LEFT SIDE: GARAGE / LAPTOP SCENE === -->
+  <!-- Garage building -->
+  <rect x="18" y="300" width="110" height="82" fill="#111d35" rx="3"/>
+  <!-- Garage roof triangle -->
+  <polygon points="10,300 135,300 72,255" fill="#0e1830"/>
+  <!-- Garage door lines -->
+  <rect x="42" y="330" width="60" height="50" fill="#0a1528" rx="2"/>
+  <line x1="42" y1="345" x2="102" y2="345" stroke="#1e3060" stroke-width="1.5"/>
+  <line x1="42" y1="360" x2="102" y2="360" stroke="#1e3060" stroke-width="1.5"/>
+  <line x1="42" y1="375" x2="102" y2="375" stroke="#1e3060" stroke-width="1.5"/>
+  <!-- Small window -->
+  <rect x="25" y="305" width="22" height="18" fill="#0a1528" rx="1"/>
+  <rect x="26" y="306" width="10" height="8" fill="#5cc8ff" opacity="0.15"/>
+  <rect x="37" y="306" width="9" height="8" fill="#5cc8ff" opacity="0.1"/>
+  <!-- Neon sign on garage: small "AI" text -->
+  <rect x="50" y="268" width="44" height="20" fill="none" stroke="#5cc8ff" stroke-width="1" rx="3" opacity="0.6"/>
+  <text x="72" y="282" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11" font-weight="800" fill="#5cc8ff" opacity="0.8">AI CO.</text>
+
+  <!-- Laptop on tiny desk -->
+  <rect x="30" y="356" width="50" height="4" fill="#1a2a40" rx="1"/><!-- desk -->
+  <!-- Laptop base -->
+  <rect x="38" y="345" width="34" height="22" fill="#1c2e48" rx="2"/>
+  <!-- Screen -->
+  <rect x="40" y="347" width="30" height="16" fill="#0a1020" rx="1"/>
+  <rect x="41" y="348" width="28" height="14" fill="#0d2040"/>
+  <!-- Screen content: tiny code lines -->
+  <line x1="43" y1="351" x2="62" y2="351" stroke="#46e6a0" stroke-width="1.2" opacity="0.7"/>
+  <line x1="43" y1="354" x2="57" y2="354" stroke="#5cc8ff" stroke-width="1" opacity="0.5"/>
+  <line x1="43" y1="357" x2="65" y2="357" stroke="#5cc8ff" stroke-width="1" opacity="0.5"/>
+  <line x1="43" y1="360" x2="53" y2="360" stroke="#7c5cff" stroke-width="1" opacity="0.6"/>
+
+  <!-- Small circuit lines radiating right from laptop -->
+  <g stroke="#5cc8ff" stroke-width="0.8" opacity="0.35" fill="none">
+    <polyline points="72,358 90,358 90,345 110,345"/>
+    <polyline points="72,354 95,354 95,340"/>
+    <circle cx="90" cy="345" r="1.5" fill="#5cc8ff" opacity="0.5"/>
+    <circle cx="95" cy="340" r="1.5" fill="#5cc8ff" opacity="0.5"/>
+  </g>
+
+  <!-- === MIDDLE-LEFT: SERVER RACKS === -->
+  <!-- Rack 1 -->
+  <g transform="translate(148, 290)">
+    <rect width="42" height="92" fill="url(#rackGrad)" rx="2"/>
+    <rect x="3" y="5" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="13" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="21" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="29" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="37" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="45" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="53" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="61" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="69" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="77" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <!-- LED indicators -->
+    <circle cx="36" cy="8" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="16" r="1.5" fill="#46e6a0" opacity="0.7"/>
+    <circle cx="36" cy="24" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="32" r="1.5" fill="#46e6a0" opacity="0.8"/>
+    <circle cx="36" cy="40" r="1.5" fill="#ffd86b" opacity="0.7"/>
+    <circle cx="36" cy="48" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="56" r="1.5" fill="#5cc8ff" opacity="0.8"/>
+    <circle cx="36" cy="64" r="1.5" fill="#46e6a0" opacity="0.7"/>
+    <circle cx="36" cy="72" r="1.5" fill="#ffd86b" opacity="0.6"/>
+    <circle cx="36" cy="80" r="1.5" fill="#46e6a0" opacity="0.9"/>
+  </g>
+
+  <!-- Rack 2 -->
+  <g transform="translate(196, 280)">
+    <rect width="42" height="102" fill="url(#rackGrad)" rx="2"/>
+    <rect x="3" y="5" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="13" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="21" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="29" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="37" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="45" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="53" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="61" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="69" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="77" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="85" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <circle cx="36" cy="8" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="16" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="24" r="1.5" fill="#5cc8ff" opacity="0.7"/>
+    <circle cx="36" cy="32" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="40" r="1.5" fill="#46e6a0" opacity="0.8"/>
+    <circle cx="36" cy="48" r="1.5" fill="#ffd86b" opacity="0.8"/>
+    <circle cx="36" cy="56" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="64" r="1.5" fill="#46e6a0" opacity="0.7"/>
+    <circle cx="36" cy="72" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="80" r="1.5" fill="#ffd86b" opacity="0.6"/>
+    <circle cx="36" cy="88" r="1.5" fill="#5cc8ff" opacity="0.8"/>
+  </g>
+
+  <!-- Rack 3 (taller) -->
+  <g transform="translate(244, 265)">
+    <rect width="42" height="117" fill="url(#rackGrad)" rx="2"/>
+    <rect x="3" y="5" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="13" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="21" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="29" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="37" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="45" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="53" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="61" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="69" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="77" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="85" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="93" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <rect x="3" y="101" width="36" height="6" fill="#0d1e38" rx="1"/>
+    <circle cx="36" cy="8" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="16" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="24" r="1.5" fill="#46e6a0" opacity="0.8"/>
+    <circle cx="36" cy="32" r="1.5" fill="#ffd86b" opacity="0.9"/>
+    <circle cx="36" cy="40" r="1.5" fill="#46e6a0" opacity="0.7"/>
+    <circle cx="36" cy="48" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="56" r="1.5" fill="#46e6a0" opacity="0.8"/>
+    <circle cx="36" cy="64" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="72" r="1.5" fill="#5cc8ff" opacity="0.7"/>
+    <circle cx="36" cy="80" r="1.5" fill="#ffd86b" opacity="0.8"/>
+    <circle cx="36" cy="88" r="1.5" fill="#46e6a0" opacity="0.9"/>
+    <circle cx="36" cy="96" r="1.5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="36" cy="104" r="1.5" fill="#46e6a0" opacity="0.7"/>
+  </g>
+
+  <!-- === MIDDLE: DATA CENTER BUILDING === -->
+  <!-- Large DC structure -->
+  <rect x="300" y="220" width="170" height="162" fill="url(#dcGrad)" rx="3"/>
+  <!-- DC facade panels -->
+  <rect x="308" y="228" width="72" height="146" fill="#1a2848" rx="2"/>
+  <rect x="388" y="228" width="72" height="146" fill="#1c2c50" rx="2"/>
+  <!-- Panel rows of server units -->
+  <g fill="#0d1a34">
+    <!-- Left panel rows -->
+    <rect x="312" y="233" width="64" height="5" rx="1"/>
+    <rect x="312" y="241" width="64" height="5" rx="1"/>
+    <rect x="312" y="249" width="64" height="5" rx="1"/>
+    <rect x="312" y="257" width="64" height="5" rx="1"/>
+    <rect x="312" y="265" width="64" height="5" rx="1"/>
+    <rect x="312" y="273" width="64" height="5" rx="1"/>
+    <rect x="312" y="281" width="64" height="5" rx="1"/>
+    <rect x="312" y="289" width="64" height="5" rx="1"/>
+    <rect x="312" y="297" width="64" height="5" rx="1"/>
+    <rect x="312" y="305" width="64" height="5" rx="1"/>
+    <rect x="312" y="313" width="64" height="5" rx="1"/>
+    <rect x="312" y="321" width="64" height="5" rx="1"/>
+    <rect x="312" y="329" width="64" height="5" rx="1"/>
+    <rect x="312" y="337" width="64" height="5" rx="1"/>
+    <rect x="312" y="345" width="64" height="5" rx="1"/>
+    <rect x="312" y="353" width="64" height="5" rx="1"/>
+    <rect x="312" y="361" width="64" height="5" rx="1"/>
+    <!-- Right panel rows -->
+    <rect x="392" y="233" width="64" height="5" rx="1"/>
+    <rect x="392" y="241" width="64" height="5" rx="1"/>
+    <rect x="392" y="249" width="64" height="5" rx="1"/>
+    <rect x="392" y="257" width="64" height="5" rx="1"/>
+    <rect x="392" y="265" width="64" height="5" rx="1"/>
+    <rect x="392" y="273" width="64" height="5" rx="1"/>
+    <rect x="392" y="281" width="64" height="5" rx="1"/>
+    <rect x="392" y="289" width="64" height="5" rx="1"/>
+    <rect x="392" y="297" width="64" height="5" rx="1"/>
+    <rect x="392" y="305" width="64" height="5" rx="1"/>
+    <rect x="392" y="313" width="64" height="5" rx="1"/>
+    <rect x="392" y="321" width="64" height="5" rx="1"/>
+    <rect x="392" y="329" width="64" height="5" rx="1"/>
+    <rect x="392" y="337" width="64" height="5" rx="1"/>
+    <rect x="392" y="345" width="64" height="5" rx="1"/>
+    <rect x="392" y="353" width="64" height="5" rx="1"/>
+    <rect x="392" y="361" width="64" height="5" rx="1"/>
+  </g>
+  <!-- LED dots left panel -->
+  <g fill="#46e6a0">
+    <circle cx="372" cy="235.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="243.5" r="1.5" opacity="0.7"/>
+    <circle cx="372" cy="251.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="259.5" r="1.5" opacity="0.8"/>
+    <circle cx="372" cy="267.5" r="1.5" opacity="0.6"/>
+    <circle cx="372" cy="275.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="283.5" r="1.5" opacity="0.7"/>
+    <circle cx="372" cy="291.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="299.5" r="1.5" opacity="0.8"/>
+    <circle cx="372" cy="307.5" r="1.5" opacity="0.6"/>
+    <circle cx="372" cy="315.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="323.5" r="1.5" opacity="0.7"/>
+    <circle cx="372" cy="331.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="339.5" r="1.5" opacity="0.8"/>
+    <circle cx="372" cy="347.5" r="1.5" opacity="0.7"/>
+    <circle cx="372" cy="355.5" r="1.5" opacity="0.9"/>
+    <circle cx="372" cy="363.5" r="1.5" opacity="0.6"/>
+  </g>
+  <!-- LED dots right panel -->
+  <g fill="#5cc8ff">
+    <circle cx="452" cy="235.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="243.5" r="1.5" opacity="0.8"/>
+    <circle cx="452" cy="251.5" r="1.5" opacity="0.7"/>
+    <circle cx="452" cy="259.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="267.5" r="1.5" opacity="0.8"/>
+    <circle cx="452" cy="275.5" r="1.5" opacity="0.6"/>
+    <circle cx="452" cy="283.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="291.5" r="1.5" opacity="0.7"/>
+    <circle cx="452" cy="299.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="307.5" r="1.5" opacity="0.8"/>
+    <circle cx="452" cy="315.5" r="1.5" opacity="0.7"/>
+    <circle cx="452" cy="323.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="331.5" r="1.5" opacity="0.8"/>
+    <circle cx="452" cy="339.5" r="1.5" opacity="0.6"/>
+    <circle cx="452" cy="347.5" r="1.5" opacity="0.9"/>
+    <circle cx="452" cy="355.5" r="1.5" opacity="0.7"/>
+    <circle cx="452" cy="363.5" r="1.5" opacity="0.9"/>
+  </g>
+  <!-- DC roof detail -->
+  <rect x="300" y="215" width="170" height="8" fill="#1e3060" rx="2"/>
+  <rect x="318" y="208" width="20" height="10" fill="#1a2848"/>
+  <rect x="350" y="205" width="20" height="13" fill="#1a2848"/>
+  <rect x="382" y="208" width="20" height="10" fill="#1a2848"/>
+  <rect x="414" y="204" width="20" height="14" fill="#1c2c50"/>
+  <!-- Cooling tower effect: tiny smoke lines -->
+  <g stroke="#5cc8ff" stroke-width="0.8" opacity="0.2" fill="none">
+    <path d="M328,208 Q325,198 328,188"/>
+    <path d="M360,205 Q357,193 361,183"/>
+    <path d="M392,208 Q390,196 393,186"/>
+    <path d="M424,204 Q422,192 425,180"/>
+  </g>
+
+  <!-- Cable connections between rack area and DC -->
+  <g stroke="#5cc8ff" stroke-width="0.8" opacity="0.25" fill="none">
+    <path d="M286,320 Q295,315 300,318"/>
+    <path d="M286,330 Q295,328 300,330"/>
+    <path d="M286,310 Q292,305 300,308"/>
+  </g>
+
+  <!-- === RIGHT SIDE: AGI CORE / NEURAL BRAIN === -->
+  <!-- Outer glow halo -->
+  <circle cx="628" cy="220" r="120" fill="url(#coreGlow)" opacity="0.5"/>
+  <circle cx="628" cy="220" r="80" fill="url(#coreGlow)" opacity="0.4"/>
+
+  <!-- Neural network background connections -->
+  <g stroke="#7c5cff" stroke-width="0.8" opacity="0.3" fill="none">
+    <!-- outer ring connections -->
+    <line x1="560" y1="155" x2="628" y2="220"/>
+    <line x1="696" y1="155" x2="628" y2="220"/>
+    <line x1="520" y1="220" x2="628" y2="220"/>
+    <line x1="736" y1="220" x2="628" y2="220"/>
+    <line x1="560" y1="285" x2="628" y2="220"/>
+    <line x1="696" y1="285" x2="628" y2="220"/>
+    <line x1="628" y1="135" x2="628" y2="220"/>
+    <line x1="628" y1="305" x2="628" y2="220"/>
+    <!-- second ring -->
+    <line x1="560" y1="155" x2="520" y2="220"/>
+    <line x1="560" y1="155" x2="628" y2="135"/>
+    <line x1="696" y1="155" x2="628" y2="135"/>
+    <line x1="696" y1="155" x2="736" y2="220"/>
+    <line x1="696" y1="285" x2="736" y2="220"/>
+    <line x1="560" y1="285" x2="520" y2="220"/>
+    <line x1="560" y1="285" x2="628" y2="305"/>
+    <line x1="696" y1="285" x2="628" y2="305"/>
+    <!-- extra diagonals -->
+    <line x1="560" y1="155" x2="696" y2="285"/>
+    <line x1="696" y1="155" x2="560" y2="285"/>
+    <line x1="520" y1="220" x2="628" y2="135"/>
+    <line x1="736" y1="220" x2="628" y2="135"/>
+    <line x1="520" y1="220" x2="628" y2="305"/>
+    <line x1="736" y1="220" x2="628" y2="305"/>
+  </g>
+
+  <!-- Neural node outer ring -->
+  <g filter="url(#softGlow)">
+    <circle cx="560" cy="155" r="5" fill="#7c5cff" opacity="0.8"/>
+    <circle cx="696" cy="155" r="5" fill="#7c5cff" opacity="0.8"/>
+    <circle cx="520" cy="220" r="5" fill="#5cc8ff" opacity="0.8"/>
+    <circle cx="736" cy="220" r="5" fill="#5cc8ff" opacity="0.8"/>
+    <circle cx="560" cy="285" r="5" fill="#7c5cff" opacity="0.8"/>
+    <circle cx="696" cy="285" r="5" fill="#7c5cff" opacity="0.8"/>
+    <circle cx="628" cy="135" r="5" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="628" cy="305" r="5" fill="#5cc8ff" opacity="0.7"/>
+  </g>
+
+  <!-- Inner ring nodes -->
+  <g filter="url(#softGlow)">
+    <circle cx="580" cy="178" r="6" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="676" cy="178" r="6" fill="#7c5cff" opacity="0.9"/>
+    <circle cx="580" cy="262" r="6" fill="#7c5cff" opacity="0.8"/>
+    <circle cx="676" cy="262" r="6" fill="#5cc8ff" opacity="0.9"/>
+    <circle cx="544" cy="220" r="4" fill="#46e6a0" opacity="0.8"/>
+    <circle cx="712" cy="220" r="4" fill="#46e6a0" opacity="0.8"/>
+  </g>
+  <!-- Inner ring connections -->
+  <g stroke="#5cc8ff" stroke-width="1" opacity="0.4" fill="none">
+    <line x1="580" y1="178" x2="676" y2="178"/>
+    <line x1="580" y1="178" x2="580" y2="262"/>
+    <line x1="676" y1="178" x2="676" y2="262"/>
+    <line x1="580" y1="262" x2="676" y2="262"/>
+    <line x1="580" y1="178" x2="628" y2="220"/>
+    <line x1="676" y1="178" x2="628" y2="220"/>
+    <line x1="580" y1="262" x2="628" y2="220"/>
+    <line x1="676" y1="262" x2="628" y2="220"/>
+  </g>
+
+  <!-- AGI Core center circle - large glowing -->
+  <circle cx="628" cy="220" r="42" fill="#0e1a40" stroke="#5cc8ff" stroke-width="2" opacity="0.95"/>
+  <circle cx="628" cy="220" r="42" fill="none" stroke="#5cc8ff" stroke-width="2" filter="url(#neonGlow)" opacity="0.7"/>
+  <!-- Inner rings of the brain -->
+  <circle cx="628" cy="220" r="30" fill="none" stroke="#7c5cff" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="628" cy="220" r="18" fill="none" stroke="#5cc8ff" stroke-width="1" opacity="0.5"/>
+
+  <!-- Brain-like organic shapes inside core -->
+  <g opacity="0.7">
+    <path d="M612,208 Q618,202 628,205 Q638,202 644,208 Q650,215 644,222 Q650,229 644,236 Q638,242 628,239 Q618,242 612,236 Q606,229 612,222 Q606,215 612,208Z" fill="none" stroke="#5cc8ff" stroke-width="1.5" opacity="0.6"/>
+    <path d="M620,212 Q628,208 636,212 Q640,220 636,228 Q628,232 620,228 Q616,220 620,212Z" fill="#7c5cff" opacity="0.25"/>
+  </g>
+
+  <!-- Bright center dot -->
+  <circle cx="628" cy="220" r="8" fill="#5cc8ff" filter="url(#strongGlow)" opacity="0.9"/>
+  <circle cx="628" cy="220" r="5" fill="#ffffff" opacity="0.9"/>
+
+  <!-- Pulse ring effect -->
+  <circle cx="628" cy="220" r="55" fill="none" stroke="#5cc8ff" stroke-width="0.8" opacity="0.3"/>
+  <circle cx="628" cy="220" r="68" fill="none" stroke="#7c5cff" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- === CHART / EXPONENTIAL CURVE === -->
+  <!-- Chart area background -->
+  <rect x="470" y="285" width="190" height="100" fill="#08101e" rx="4" opacity="0.7"/>
+  <rect x="470" y="285" width="190" height="100" fill="none" stroke="#1a3060" stroke-width="1" rx="4"/>
+
+  <!-- Chart grid lines -->
+  <g stroke="#1a2848" stroke-width="0.6" opacity="0.8">
+    <line x1="480" y1="295" x2="650" y2="295"/>
+    <line x1="480" y1="312" x2="650" y2="312"/>
+    <line x1="480" y1="329" x2="650" y2="329"/>
+    <line x1="480" y1="346" x2="650" y2="346"/>
+    <line x1="480" y1="363" x2="650" y2="363"/>
+    <line x1="480" y1="375" x2="650" y2="375"/>
+    <!-- vertical -->
+    <line x1="510" y1="285" x2="510" y2="380"/>
+    <line x1="553" y1="285" x2="553" y2="380"/>
+    <line x1="596" y1="285" x2="596" y2="380"/>
+    <line x1="639" y1="285" x2="639" y2="380"/>
+  </g>
+
+  <!-- Exponential chart fill -->
+  <path d="M480,375 L510,374 L540,371 L553,368 L570,361 L590,348 L610,328 L630,300 L645,288 L650,285 L650,380 L480,380Z" fill="url(#chartGrad)" opacity="0.18"/>
+
+  <!-- Exponential chart line (glowing) -->
+  <path d="M480,375 L510,374 L540,371 L553,368 L570,361 L590,348 L610,328 L630,300 L645,288" fill="none" stroke="#46e6a0" stroke-width="2.5" filter="url(#neonGlow)" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Chart label -->
+  <text x="484" y="295" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="8" fill="#46e6a0" opacity="0.7">COMPUTE</text>
+
+  <!-- Data points on chart -->
+  <circle cx="553" cy="368" r="2.5" fill="#46e6a0" filter="url(#softGlow)"/>
+  <circle cx="590" cy="348" r="2.5" fill="#46e6a0" filter="url(#softGlow)"/>
+  <circle cx="610" cy="328" r="2.5" fill="#5cc8ff" filter="url(#softGlow)"/>
+  <circle cx="630" cy="300" r="2.5" fill="#5cc8ff" filter="url(#softGlow)"/>
+  <circle cx="645" cy="288" r="3" fill="#ffd86b" filter="url(#neonGlow)"/>
+
+  <!-- Upward arrow at chart tip -->
+  <line x1="645" y1="290" x2="645" y2="278" stroke="#ffd86b" stroke-width="1.8" filter="url(#softGlow)"/>
+  <polygon points="641,282 645,272 649,282" fill="#ffd86b" filter="url(#softGlow)"/>
+
+  <!-- === CONNECTION LINES: DC to AGI === -->
+  <g stroke="#5cc8ff" stroke-width="1.2" opacity="0.3" fill="none">
+    <path d="M470,260 Q510,240 560,235"/>
+    <path d="M470,280 Q515,270 560,260"/>
+    <path d="M470,300 Q520,300 555,285"/>
+  </g>
+
+  <!-- === FLOATING DATA PARTICLES === -->
+  <!-- Particles moving left-to-right -->
+  <g filter="url(#softGlow)">
+    <!-- Cyan particles -->
+    <circle cx="140" cy="260" r="2" fill="#5cc8ff" opacity="0.6"/>
+    <circle cx="170" cy="240" r="1.5" fill="#5cc8ff" opacity="0.5"/>
+    <circle cx="230" cy="218" r="2" fill="#46e6a0" opacity="0.6"/>
+    <circle cx="280" cy="200" r="1.5" fill="#5cc8ff" opacity="0.5"/>
+    <!-- Circuit dots -->
+    <circle cx="500" cy="180" r="2.5" fill="#7c5cff" opacity="0.6"/>
+    <circle cx="530" cy="165" r="2" fill="#5cc8ff" opacity="0.5"/>
+    <circle cx="715" cy="150" r="2" fill="#ffd86b" opacity="0.7"/>
+    <circle cx="745" cy="170" r="1.5" fill="#ffd86b" opacity="0.5"/>
+    <circle cx="760" cy="200" r="2" fill="#5cc8ff" opacity="0.5"/>
+  </g>
+
+  <!-- === TITLE TEXT AREA === -->
+  <!-- Dark gradient behind title for legibility -->
+  <rect x="0" y="370" width="800" height="100" fill="url(#textBgGrad)"/>
+  <!-- Additional text bg for title -->
+  <rect x="0" y="0" width="280" height="80" fill="#0b1020" opacity="0.4"/>
+
+  <!-- Left-side small label -->
+  <text x="26" y="245" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9" fill="#5cc8ff" opacity="0.5" font-weight="600" letter-spacing="2">PHASE 01</text>
+
+  <!-- MAIN TITLE: "Singularity Inc." -->
+  <!-- Shadow/glow layer -->
+  <text x="400" y="432" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="58" font-weight="900" fill="#7c5cff" opacity="0.4" letter-spacing="-1" filter="url(#strongGlow)">Singularity Inc.</text>
+  <!-- Main title -->
+  <text x="400" y="432" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="58" font-weight="900" fill="url(#titleGrad)" letter-spacing="-1">Singularity Inc.</text>
+  <!-- Dot accent on period in gold -->
+  <!-- Tagline -->
+  <text x="400" y="458" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="14" font-weight="400" fill="#5cc8ff" opacity="0.75" letter-spacing="3">SCALE COMPUTE. MANAGE THE RISK.</text>
+
+  <!-- TOP-RIGHT: small "Early Access" badge -->
+  <rect x="698" y="14" width="88" height="24" fill="#7c5cff" rx="12" opacity="0.85"/>
+  <text x="742" y="30" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.5">IDLE STRATEGY</text>
+
+  <!-- Gold accent bar under title (subtle) -->
+  <rect x="320" y="438" width="160" height="2" fill="url(#goldGlow)" rx="1" opacity="0.6"/>
+
+  <!-- Vignette edge overlay -->
+  <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+    <stop offset="0%" stop-color="#0b1020" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#0b1020" stop-opacity="0.55"/>
+  </radialGradient>
+  <rect width="800" height="470" fill="url(#vignette)"/>
+
+</svg>
+</div>
+</body>
+</html>
