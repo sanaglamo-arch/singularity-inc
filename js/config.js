@@ -127,9 +127,9 @@
     { id: 'a_cash1b',     cond: { type: 'totalCash', n: 1e9 } },
     { id: 'a_cash1t',     cond: { type: 'totalCash', n: 1e12 } },
     { id: 'a_prestige1',  cond: { type: 'prestiges', n: 1 } },
-    { id: 'a_prestige5',  cond: { type: 'prestiges', n: 5 } },
+    { id: 'a_prestige5',  cond: { type: 'prestiges', n: 5 }, perk: { type: 'global', value: 1.05 } },
     { id: 'a_rp100',      cond: { type: 'totalRP', n: 100 } },
-    { id: 'a_agi',        cond: { type: 'gen', gen: 'agiCore', n: 1 } },
+    { id: 'a_agi',        cond: { type: 'gen', gen: 'agiCore', n: 1 }, perk: { type: 'global', value: 1.05 } },
     { id: 'a_align50',    cond: { type: 'align', n: 50 } },
     { id: 'a_incident',   cond: { type: 'incidents', n: 1 } },
     { id: 'a_safe',       cond: { type: 'cleanRun', n: 1 } }, // prestige with 0 incidents this run
@@ -141,8 +141,12 @@
     { id: 'a_overclock',  cond: { type: 'maxheat', n: 1 } },
     { id: 'a_tech',       cond: { type: 'tech', n: 1 } },
     { id: 'a_artifact',   cond: { type: 'artifacts', n: 1 } },
-    { id: 'a_singularity', cond: { type: 'singularities', n: 1 } },
-    { id: 'a_cores10',    cond: { type: 'cores', n: 10 } }
+    { id: 'a_singularity', cond: { type: 'singularities', n: 1 }, perk: { type: 'global', value: 1.10 } },
+    { id: 'a_cores10',    cond: { type: 'cores', n: 10 }, perk: { type: 'tap', value: 2 } },
+    { id: 'a_synergy',    cond: { type: 'synergy', n: 1 }, perk: { type: 'global', value: 1.05 } },
+    { id: 'a_techadept',  cond: { type: 'tech', n: 6 } },
+    { id: 'a_sing3',      cond: { type: 'singularities', n: 3 }, perk: { type: 'global', value: 1.15 } },
+    { id: 'a_cores50',    cond: { type: 'cores', n: 50 } }
   ];
 
   // ---- Tap combo / Overclock heat -------------------------------------

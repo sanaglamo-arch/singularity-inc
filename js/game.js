@@ -152,6 +152,14 @@
     return v;
   }
   function singCoreMult() { return 1 + (state.cores || 0) * C.SINGULARITY.CORE_BONUS; }
+  function achPerkMult(kind) {
+    var m = 1;
+    for (var i = 0; i < C.ACHIEVEMENTS.length; i++) {
+      var a = C.ACHIEVEMENTS[i];
+      if (a.perk && a.perk.type === kind && state.achievements[a.id]) m *= a.perk.value;
+    }
+    return m;
+  }
 
   function rpMult() { return 1 + state.rp * C.PRESTIGE.BONUS; }
   function allUpgradeMult() {
@@ -171,7 +179,7 @@
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     m *= techMult('all') * artifactMult('allMult') * artifactSynergyMult();
-    m *= metaMul('globalMult') * singCoreMult();
+    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global');
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
@@ -182,7 +190,7 @@
   function tapMult() {
     var m = 1;
     C.UPGRADES.forEach(function (u) { if (u.target === 'tap' && state.upgrades[u.id]) m *= u.mult; });
-    return m * puValue('tapMult', 1) * techMult('tap') * artifactMult('tapMult') * metaMul('tapMult');
+    return m * puValue('tapMult', 1) * techMult('tap') * artifactMult('tapMult') * metaMul('tapMult') * achPerkMult('tap');
   }
 
   // ---- production ------------------------------------------------------
@@ -613,6 +621,7 @@
       case 'artifacts': return (state.artifactsEquipped || []).length >= c.n;
       case 'singularities': return state.singularities >= c.n;
       case 'cores': return state.coresTotal >= c.n;
+      case 'synergy': return artifactSynergyMult() >= 1 + C.ARTIFACT_SYNERGY * c.n - 0.0001;
       default: return false;
     }
   }

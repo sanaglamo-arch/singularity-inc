@@ -300,7 +300,12 @@
     a_tech: 'First Principles', a_tech_d: 'Unlock a tech.',
     a_artifact: 'Relic Hunter', a_artifact_d: 'Equip an artifact.',
     a_singularity: 'Transcendence', a_singularity_d: 'Trigger the Singularity.',
-    a_cores10: 'Core Collector', a_cores10_d: 'Earn 10 Singularity Cores.'
+    a_cores10: 'Core Collector', a_cores10_d: 'Earn 10 Singularity Cores.',
+    a_synergy: 'Combinatorics', a_synergy_d: 'Activate an artifact synergy.',
+    a_techadept: 'Tech Adept', a_techadept_d: 'Unlock 6 techs.',
+    a_sing3: 'Ascended Thrice', a_sing3_d: 'Trigger 3 Singularities.',
+    a_cores50: 'Core Hoard', a_cores50_d: 'Earn 50 Singularity Cores.',
+    perk_label: 'Perk', perk_global: '+{p}% output', perk_tap: '×{n} tap'
   };
 
   var RU = {
@@ -583,7 +588,12 @@
     a_tech: 'С нуля', a_tech_d: 'Открой технологию.',
     a_artifact: 'Охотник за реликвиями', a_artifact_d: 'Надень артефакт.',
     a_singularity: 'Трансцендентность', a_singularity_d: 'Запусти Сингулярность.',
-    a_cores10: 'Коллекционер ядер', a_cores10_d: 'Заработай 10 Ядер Сингулярности.'
+    a_cores10: 'Коллекционер ядер', a_cores10_d: 'Заработай 10 Ядер Сингулярности.',
+    a_synergy: 'Комбинаторика', a_synergy_d: 'Активируй синергию артефактов.',
+    a_techadept: 'Технократ', a_techadept_d: 'Открой 6 технологий.',
+    a_sing3: 'Трижды вознёсшийся', a_sing3_d: 'Запусти Сингулярность 3 раза.',
+    a_cores50: 'Запас ядер', a_cores50_d: 'Заработай 50 Ядер Сингулярности.',
+    perk_label: 'Перк', perk_global: '+{p}% к выработке', perk_tap: '×{n} к тапу'
   };
 
   var DICTS = { en: EN, ru: RU };

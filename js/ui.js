@@ -529,9 +529,14 @@
     C.ACHIEVEMENTS.forEach(function (a) {
       var card = el('div', 'ach locked');
       card.dataset.aid = a.id;
+      var perk = '';
+      if (a.perk) {
+        var pt = a.perk.type === 'global' ? t('perk_global', { p: Math.round((a.perk.value - 1) * 100) }) : t('perk_tap', { n: a.perk.value });
+        perk = '<div class="aperk">' + t('perk_label') + ' · ' + pt + '</div>';
+      }
       card.innerHTML =
         '<div class="aicon">' + ic('nav_achievements') + '</div>' +
-        '<div><div class="aname">' + t(a.id) + '</div><div class="adesc">' + t(a.id + '_d') + '</div></div>' +
+        '<div><div class="aname">' + t(a.id) + '</div><div class="adesc">' + t(a.id + '_d') + '</div>' + perk + '</div>' +
         '<div class="check hidden">' + ic('ic_check') + '</div>';
       list.appendChild(card);
     });

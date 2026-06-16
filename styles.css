@@ -419,6 +419,8 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .ach .aicon svg { width: 20px; height: 20px; }
 .ach.locked .aicon { color: var(--fg-muted); }
 .ach .aname { font-weight: 600; font-size: 13px; }
+.ach .aperk { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: var(--gold); background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.3); border-radius: var(--radius-pill); padding: 1px 8px; }
+.ach.locked .aperk { color: var(--fg-muted); background: var(--surface-2); border-color: var(--glass-border); }
 .ach .adesc { font-size: 11px; color: var(--fg-muted); }
 .ach .check { margin-left: auto; color: var(--green); width: 20px; height: 20px; display: inline-flex; }
 .ach .check svg { width: 20px; height: 20px; }
