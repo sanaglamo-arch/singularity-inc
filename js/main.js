@@ -51,6 +51,17 @@
     });
     window.addEventListener('pagehide', function () { window.GAME.save(); });
     window.addEventListener('beforeunload', function () { window.GAME.save(); });
+
+    // Android (Capacitor) hardware BACK button — graceful no-op on plain web / Yandex.
+    try {
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        var App = window.Capacitor.Plugins.App;
+        App.addListener('backButton', function () {
+          if (!window.GAME_UI.back()) { window.GAME.save(); App.exitApp(); }
+        });
+        try { if (window.Capacitor.Plugins.StatusBar) window.Capacitor.Plugins.StatusBar.setStyle({ style: 'DARK' }); } catch (e) {}
+      }
+    } catch (e) {}
   }
 
   // when returning to a backgrounded tab, credit elapsed time

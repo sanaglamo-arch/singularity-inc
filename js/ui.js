@@ -1392,5 +1392,14 @@
     }
   }
 
-  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic };
+  // Android hardware BACK: close a tooltip/modal, else return to Lab, else let the OS handle it.
+  function back() {
+    var tip = document.getElementById('tooltip');
+    if (tip && !tip.classList.contains('hidden')) { hideTip(); return true; }
+    var m = $('modalRoot');
+    if (m && !m.classList.contains('hidden')) { hideModal(); return true; }
+    if (currentTab !== 'company') { switchTab('company'); return true; }
+    return false;
+  }
+  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back };
 })();

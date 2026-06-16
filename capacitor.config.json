@@ -1,0 +1,25 @@
+{
+  "appId": "com.singularityinc.game",
+  "appName": "Singularity Inc.",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "android": {
+    "backgroundColor": "#06060f",
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#06060f",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#06060f",
+      "overlaysWebView": true
+    }
+  }
+}
