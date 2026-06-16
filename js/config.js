@@ -243,6 +243,22 @@
     ]
   };
 
+  // ---- Cosmetics (earned, no pay-to-win) -------------------------------
+  // unlock: {} always | {prestiges:n} | {singularities:n} | {ach:n owned}
+  var COSMETICS = {
+    orbs: [
+      { id: 'orb_default', unlock: {} },
+      { id: 'orb_cyan',    unlock: { prestiges: 1 } },
+      { id: 'orb_gold',    unlock: { ach: 12 } },
+      { id: 'orb_crimson', unlock: { singularities: 1 } }
+    ],
+    themes: [
+      { id: 'theme_default', unlock: {} },
+      { id: 'theme_void',    unlock: { prestiges: 3 } },
+      { id: 'theme_aurora',  unlock: { singularities: 1 } }
+    ]
+  };
+
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
@@ -262,6 +278,7 @@
     OFFLINE: OFFLINE,
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
+    COSMETICS: COSMETICS,
     EVENTS: EVENTS,
     COMBO: COMBO,
     INSIGHT: INSIGHT,

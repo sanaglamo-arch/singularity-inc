@@ -67,6 +67,8 @@
       playtime: 0,           // seconds
       sound: false,
       music: false,
+      orb: 'orb_default',    // cosmetic: TRAIN orb skin
+      theme: 'theme_default',// cosmetic: backdrop theme
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -732,6 +734,21 @@
   function setMusic(b) { state.music = !!b; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
   function setOnboarded(b) { state.onboarded = !!b; save(); }
+  function achCount() { var c = 0; for (var k in state.achievements) if (state.achievements[k]) c++; return c; }
+  function cosmeticUnlocked(item) {
+    var u = item.unlock || {};
+    if (u.prestiges && state.prestiges < u.prestiges) return false;
+    if (u.singularities && state.singularities < u.singularities) return false;
+    if (u.ach && achCount() < u.ach) return false;
+    return true;
+  }
+  function findCosmetic(id) {
+    var all = C.COSMETICS.orbs.concat(C.COSMETICS.themes);
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+  function setOrb(id) { var it = findCosmetic(id); if (it && cosmeticUnlocked(it)) { state.orb = id; emit('change'); return true; } return false; }
+  function setTheme(id) { var it = findCosmetic(id); if (it && cosmeticUnlocked(it)) { state.theme = id; emit('change'); return true; } return false; }
 
   window.GAME = {
     // state access
@@ -772,6 +789,7 @@
     save: save, load: load, reset: reset, init: init,
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
+    achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     newState: newState
   };
 })();

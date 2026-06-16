@@ -18,7 +18,8 @@
     ic_tech: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="5" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><path d="M12 7.2v3.3M12 10.5 6.4 16M12 10.5 17.6 16"/></svg>',
     ic_artifact: '<svg viewBox="0 0 24 24"' + SW + '><path d="M6 3h12l3 5-9 13L3 8z"/><path d="M3 8h18M9 3 7.5 8 12 21 16.5 8 15 3"/></svg>',
     ic_core: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="2.4" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/></svg>',
-    nav_singularity: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3a9 9 0 1 1-7 3.3"/><path d="M12 3a9 9 0 0 1 7 3.3" opacity="0.5"/></svg>'
+    nav_singularity: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3a9 9 0 1 1-7 3.3"/><path d="M12 3a9 9 0 0 1 7 3.3" opacity="0.5"/></svg>',
+    ic_lock: '<svg viewBox="0 0 24 24"' + SW + '><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
   };
   function ic(key) { return EXTRA[key] || ICON[key] || ''; }
 
@@ -121,6 +122,10 @@
     $('adCashLabel').textContent = t('ad_cash');
     $('adBoostBtn').textContent = t('ad_boost');
     $('adCashBtn').textContent = t('ad_cash');
+    $('cosmeticsTitle').textContent = t('cosmetics_title');
+    $('cosOrbLabel').textContent = t('cosmetics_orb');
+    $('cosThemeLabel').textContent = t('cosmetics_theme');
+    buildCosmetics();
     $('saveBtn').textContent = t('save_now');
     $('resetBtn').textContent = t('reset_progress');
     $('creditsTxt').textContent = t('credits');
@@ -446,6 +451,77 @@
     updateMeta();
   }
 
+  // ---------- cosmetics ----------
+  var ORB_PREVIEW = {
+    orb_default: 'radial-gradient(circle at 50% 35%, #b79bff, #5b27c4)',
+    orb_cyan: 'radial-gradient(circle at 50% 35%, #a7f0ff, #0e7fa0)',
+    orb_gold: 'radial-gradient(circle at 50% 35%, #fff0b8, #b6820c)',
+    orb_crimson: 'radial-gradient(circle at 50% 35%, #ffb3c2, #a11733)'
+  };
+  var THEME_PREVIEW = {
+    theme_default: 'linear-gradient(135deg, #8b5cf6, #22d3ee)',
+    theme_void: 'linear-gradient(135deg, #1a1830, #050509)',
+    theme_aurora: 'linear-gradient(135deg, #34d399, #22d3ee)'
+  };
+  function lockReq(u) {
+    if (u.prestiges) return t('cos_locked_prestiges', { n: u.prestiges });
+    if (u.singularities) return t('cos_locked_singularities', { n: u.singularities });
+    if (u.ach) return t('cos_locked_ach', { n: u.ach });
+    return '';
+  }
+  function buildCosmetics() {
+    [['cosOrbList', C.COSMETICS.orbs, ORB_PREVIEW, 'orb'], ['cosThemeList', C.COSMETICS.themes, THEME_PREVIEW, 'theme']].forEach(function (row) {
+      var list = $(row[0]); if (!list) return; list.innerHTML = '';
+      row[1].forEach(function (it) {
+        var sw = el('div', 'cos-swatch'); sw.dataset.cid = it.id; sw.dataset.kind = row[3];
+        sw.style.background = row[2][it.id] || '#333';
+        sw.title = t(it.id);
+        sw.innerHTML = '<div class="lockicon hidden">' + ic('ic_lock') + '</div>';
+        sw.addEventListener('click', function () {
+          var ok = row[3] === 'orb' ? G.setOrb(it.id) : G.setTheme(it.id);
+          if (ok) { window.GAME_AUDIO.buy(); applyCosmetics(); }
+        });
+        list.appendChild(sw);
+      });
+    });
+  }
+  function updateCosmetics() {
+    var s = G.state;
+    [['cosOrbList', C.COSMETICS.orbs, s.orb], ['cosThemeList', C.COSMETICS.themes, s.theme]].forEach(function (row) {
+      var list = $(row[0]); if (!list) return;
+      for (var i = 0; i < list.children.length; i++) {
+        var sw = list.children[i], it = row[1][i];
+        var unlocked = G.cosmeticUnlocked(it);
+        sw.classList.toggle('locked', !unlocked);
+        sw.classList.toggle('sel', row[2] === it.id);
+        var li = sw.querySelector('.lockicon');
+        if (li) { li.classList.toggle('hidden', unlocked); if (!unlocked) li.innerHTML = ic('ic_lock'); }
+        sw.title = unlocked ? t(it.id) : (t(it.id) + ' — ' + lockReq(it.unlock || {}));
+      }
+    });
+  }
+  function applyCosmetics() {
+    var s = G.state, de = document.documentElement;
+    if (de.getAttribute('data-orb') !== s.orb) de.setAttribute('data-orb', s.orb);
+    if (de.getAttribute('data-theme') !== s.theme) de.setAttribute('data-theme', s.theme);
+  }
+
+  // ---------- news ticker ----------
+  var tickerIdx = -1, tickerTimer = null;
+  function currentNews() {
+    var lang = window.GAME_I18N.getLang();
+    var arr = (window.GAME_I18N.DICTS[lang] && window.GAME_I18N.DICTS[lang].news) || window.GAME_I18N.DICTS.en.news || [];
+    var stage = parseInt(document.documentElement.getAttribute('data-stage') || '0', 10) || 0;
+    return arr[Math.min(stage, arr.length - 1)] || arr[0] || [''];
+  }
+  function rotateTicker() {
+    var pool = currentNews(); if (!pool.length) return;
+    tickerIdx = (tickerIdx + 1) % pool.length;
+    var el2 = $('tickerText');
+    if (el2) { el2.textContent = pool[tickerIdx]; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
+  }
+  function startTicker() { rotateTicker(); if (tickerTimer) clearInterval(tickerTimer); tickerTimer = setInterval(rotateTicker, 9000); }
+
   // ---------- achievements ----------
   function buildAchievements() {
     var list = $('achList');
@@ -681,6 +757,8 @@
     // reveal Singularity nav once unlocked
     var nsb = $('navSingBtn');
     if (nsb) nsb.classList.toggle('hidden', !G.singUnlocked());
+    applyCosmetics();
+    if (currentTab === 'settings') updateCosmetics();
     updateSettingsState();
   }
 
@@ -1005,6 +1083,8 @@
     bind();
     window.GAME_AUDIO.setEnabled(G.state.sound);
     if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(G.state.music); if (G.state.music) window.GAME_MUSIC.start(); }
+    applyCosmetics();
+    startTicker();
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
     var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };

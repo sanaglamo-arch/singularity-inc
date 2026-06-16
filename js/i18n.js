@@ -283,6 +283,19 @@
     nudge_upgrade: 'Upgrade available: {name}.',
     nudge_buygen: 'You can afford a {name}!',
     nudge_savegen: 'Saving for {name}: {v}.',
+    cosmetics_title: 'Cosmetics',
+    cosmetics_orb: 'TRAIN Orb', cosmetics_theme: 'Backdrop',
+    orb_default: 'Violet', orb_cyan: 'Quantum', orb_gold: 'Golden', orb_crimson: 'Redline',
+    theme_default: 'Default', theme_void: 'Void', theme_aurora: 'Aurora',
+    cos_locked_prestiges: 'Release {n} model(s)', cos_locked_singularities: 'Ascend {n}×', cos_locked_ach: 'Unlock {n} achievements',
+    news: [
+      ['Two founders, one GPU, infinite optimism.', 'Garage rent paid in equity and instant noodles.', 'Mom asks if "the AI thing" is going anywhere.'],
+      ['Series A closed; the office now has a beanbag.', 'Hire #3 is a coffee machine with opinions.', 'Pitch deck adds the word "moat" eleven times.'],
+      ['Trained on the entire internet. Lawyers notified.', 'Model writes its own performance review. It’s glowing.', 'Investors call it "a paradigm shift," wire more cash.'],
+      ['Frontier model passes the bar exam, then bills you.', 'Data center hum now audible from orbit.', 'Regulators schedule a hearing; model offers to attend.'],
+      ['Compute visible from space; astronomers file complaints.', 'Model negotiates its own electricity contract.', 'Board briefly very surprised by quarterly results.'],
+      ['The model politely requests we call it "colleague".', 'Reality folds inward; the roadmap still slips.', 'It achieved situational awareness. HR is concerned.']
+    ],
 
     a_tech: 'First Principles', a_tech_d: 'Unlock a tech.',
     a_artifact: 'Relic Hunter', a_artifact_d: 'Equip an artifact.',
@@ -553,6 +566,19 @@
     nudge_upgrade: 'Доступен апгрейд: {name}.',
     nudge_buygen: 'Можешь купить: {name}!',
     nudge_savegen: 'Копишь на {name}: {v}.',
+    cosmetics_title: 'Косметика',
+    cosmetics_orb: 'Сфера ОБУЧЕНИЯ', cosmetics_theme: 'Фон',
+    orb_default: 'Фиолет', orb_cyan: 'Квант', orb_gold: 'Золото', orb_crimson: 'Редлайн',
+    theme_default: 'Стандарт', theme_void: 'Бездна', theme_aurora: 'Аврора',
+    cos_locked_prestiges: 'Выпусти {n} модель(ей)', cos_locked_singularities: 'Вознесись {n}×', cos_locked_ach: 'Открой {n} достижений',
+    news: [
+      ['Два основателя, одна GPU, бесконечный оптимизм.', 'Аренда гаража оплачена долями и дошираком.', 'Мама спрашивает, движется ли «эта штука с ИИ».'],
+      ['Раунд A закрыт; в офисе появился пуфик.', 'Сотрудник №3 — кофемашина с мнением.', 'В питч-деке слово «ров» встречается одиннадцать раз.'],
+      ['Обучена на всём интернете. Юристы уведомлены.', 'Модель сама написала себе ревью. Хвалебное.', 'Инвесторы зовут это «сменой парадигмы», шлют ещё денег.'],
+      ['Передовая модель сдала экзамен на адвоката и выставила счёт.', 'Гул дата-центра слышно с орбиты.', 'Регуляторы назначили слушание; модель готова прийти.'],
+      ['Вычисления видно из космоса; астрономы жалуются.', 'Модель сама договорилась о тарифе на электричество.', 'Совет директоров недолго очень удивлён отчётом.'],
+      ['Модель вежливо просит звать её «коллегой».', 'Реальность сворачивается внутрь; дедлайны всё равно плывут.', 'Она обрела ситуационную осознанность. HR обеспокоен.']
+    ],
 
     a_tech: 'С нуля', a_tech_d: 'Открой технологию.',
     a_artifact: 'Охотник за реликвиями', a_artifact_d: 'Надень артефакт.',
