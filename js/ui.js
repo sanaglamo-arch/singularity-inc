@@ -90,6 +90,8 @@
     $('alignIntro').textContent = t('alignment_intro');
     $('riskLabel').textContent = t('risk_label');
     $('alignLabel').textContent = t('alignment_label');
+    $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
+    $('researchTip').innerHTML = '<span class="ticon">' + ic('ic_bolt') + '</span><span>' + t('tip_overclock') + '</span>';
     // stats
     $('statsTitle').textContent = t('stats_title');
     $('achTitle').textContent = t('achievements_title');
@@ -122,8 +124,9 @@
     var list = $('genList');
     list.innerHTML = '';
     genRefs = {};
-    C.GENERATORS.forEach(function (g) {
+    C.GENERATORS.forEach(function (g, gi) {
       var card = el('div', 'card locked');
+      card.style.animationDelay = (Math.min(gi, 12) * 32) + 'ms';
       card.innerHTML =
         '<div class="iconwrap">' + ic('gen_' + g.id) + '</div>' +
         '<div class="info">' +
@@ -402,6 +405,13 @@
     } else {
       ib.classList.add('hidden');
     }
+    // secondary mini-stats panel (fills desktop space, adds at-a-glance info)
+    function mini(label, val) { return '<div class="minicard"><div class="mlabel">' + label + '</div><div class="mval">' + val + '</div></div>'; }
+    $('alignMini').innerHTML =
+      mini(t('mini_cps'), fmt(G.cps())) +
+      mini(t('mini_output'), '×' + fmt(G.globalMult())) +
+      mini(t('mini_risk'), G.riskGainRate().toFixed(2)) +
+      mini(t('mini_suppress'), G.alignSuppress().toFixed(2));
     // mini bar on company tab
     var mfill = $('riskMiniFill');
     if (mfill) { mfill.style.width = pct + '%'; mfill.style.background = col; }

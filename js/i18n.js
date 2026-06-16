@@ -229,7 +229,8 @@
     tip_overclock: 'Tap fast to build Overclock heat and multiply tap value.',
     a_insight: 'Eureka', a_insight_d: 'Catch a glowing Insight.',
     a_breakthrough: 'Paradigm Shift', a_breakthrough_d: 'Fire a Breakthrough.',
-    a_overclock: 'Redlined', a_overclock_d: 'Max out the Overclock heat.'
+    a_overclock: 'Redlined', a_overclock_d: 'Max out the Overclock heat.',
+    mini_cps: 'Cash / sec', mini_output: 'Output ×', mini_risk: 'Risk / sec', mini_suppress: 'Suppress / sec'
   };
 
   var RU = {
@@ -444,7 +445,8 @@
     tip_overclock: 'Тапай быстро, чтобы раскалить Разгон и умножить ценность тапа.',
     a_insight: 'Эврика', a_insight_d: 'Поймай светящееся Озарение.',
     a_breakthrough: 'Смена парадигмы', a_breakthrough_d: 'Запусти Прорыв.',
-    a_overclock: 'На пределе', a_overclock_d: 'Раскали Разгон до максимума.'
+    a_overclock: 'На пределе', a_overclock_d: 'Раскали Разгон до максимума.',
+    mini_cps: 'Деньги / сек', mini_output: 'Выработка ×', mini_risk: 'Риск / сек', mini_suppress: 'Подавление / сек'
   };
 
   var DICTS = { en: EN, ru: RU };
