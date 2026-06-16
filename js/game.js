@@ -292,7 +292,8 @@
   }
   // combined speed multiplier for ALL timed processes (researchers + research perks + boost)
   function processSpeed() {
-    var s = 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER) + (state.researchLevel || 0) * C.RESEARCH2.speedBonus;
+    var s = 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER)
+              + Math.min(C.PROCESS.RESEARCH_SPEED_CAP, (state.researchLevel || 0) * C.RESEARCH2.speedBonus);
     return s * (boostActive() ? C.ADS.BOOST_MULT : 1);
   }
   // ---- datacenter build process (money + time -> permanent compute capacity) ----
@@ -400,10 +401,10 @@
     for (var i = 0; i < C.FUNDING.length; i++) if (!state.funding[C.FUNDING[i].id]) return C.FUNDING[i];
     return null;
   }
-  function canTakeFunding() { var r = nextFundingRound(); return !!r && valuation() >= r.valReq; }
+  function canTakeFunding() { var r = nextFundingRound(); return !!r && state.modelGen >= r.genReq; }
   function takeFunding() {
     var r = nextFundingRound();
-    if (!r || valuation() < r.valReq) return false;
+    if (!r || state.modelGen < r.genReq) return false;
     state.funding[r.id] = true;
     addCash(valuation() * r.cashFrac);
     checkAchievements();

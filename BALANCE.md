@@ -335,3 +335,44 @@ human/autopilot buy-rate achieves, and the realistic arc (≈2h, 6–9 prestiges
 healthy. The biggest remaining lever for "flagship" is **long-tail depth past the
 first Singularity** (Cores/endings pacing), which this round did not deepen
 (feature-freeze).
+
+## GDD v3 — continuous no-reset arc (P9 balance)
+
+The meta was rewritten (GAME-DESIGN.md): no resets, model generations, real-time
+timed processes, market-share race. Arc measured by `tmp/sim2.js` (drives the real
+engine as an engaged player). Training is **wall-clock** (advances offline too), so
+the arc length is set by the trainSec ladder ÷ processSpeed.
+
+### Tuned arc (engaged player, processSpeed capped ~3×)
+| Gen | model | reached | note |
+|----|----|----|----|
+| v1 | Model v1 | ~1 min | garage: tap→GPU→train |
+| v2 | Model v2 | ~5 min | |
+| v3 | Model v3 | ~19 min | "ChatGPT moment" |
+| v4 | Model v4 | ~47 min | first hour = 4 generations (strong hook) |
+| v5 | Model v5 | ~2.5 h | become market #1 around here |
+| v6 | Model v6 | ~9 h | |
+| v7 | Frontier v7 | ~1.1 d | |
+| v8 | Frontier v8 | ~2.7 d | |
+| v9 | Frontier v9 | ~5.8 d | |
+| v10 | Proto-AGI | ~11 d | |
+| v11 | **AGI** | **~19 d** | win (casual/offline ≈ a month+) |
+
+- **No dead time (0%)** — datacenter-build + research run in parallel with training,
+  so there's always something progressing while a model trains.
+- **No walls** — compute (the early bottleneck) and money keep pace; later, the
+  time-gate (trainSec) is the deliberate month-long pacing mechanism.
+- **No exploits** — market/trading removed (funding rounds instead); windfalls were
+  retired with the prestige meta; rivals creep but you overtake by shipping.
+- **Funding** rounds gate by generation (Seed g1 → A g2 → B g4 → C g6 → IPO g8),
+  unlocking progressively; each pays cashFrac × valuation + a permanent revenue mult.
+
+### Levers
+- `MODELGEN[].trainSec` — the raw real-time ladder (1 min → 20 d). The primary month lever.
+- `PROCESS` caps — researchers ≤ +120%, research ≤ +100% → max process speed ~3×
+  (a meaningful reward without collapsing the month).
+- `CORE.REV_PER_COMPUTE`, generator/`DATACENTER`/`RESEARCH2` numbers — money/compute curve.
+
+### Known: late-game numbers go exponential (valuation reaches ~1e30 by AGI). This is
+inherent to an idle game with per-generation permanent multipliers; the realism is in
+the STRUCTURE, pacing and real-world anchors, not the absolute late-game $ (genre-normal).

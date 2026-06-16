@@ -474,25 +474,32 @@
   // computeReq (compute STOCK spent to start training), revMult (PERMANENT product
   // revenue ×), share (market-share % granted on completion), id (i18n key).
   // ~month-long arc when paced with the real-time timers (balanced in P9).
+  // trainSec is RAW real-time per generation (shortened by researchers/research/boost
+  // via processSpeed ≈ up to ~3×). Tuned (P9) so the v1→AGI arc spans ~3–4 weeks of
+  // real time for an engaged player (training is wall-clock — it advances offline too),
+  // longer for casual play. Early gens are minutes (fast, satisfying onboarding); late
+  // frontier gens are days→weeks (real lead-times, compressed). See BALANCE.md.
   var MODELGEN = [
-    { id: 'g_v1',     trainSec: 60,      computeReq: 50,        revMult: 2.2,  share: 1 },
-    { id: 'g_v2',     trainSec: 180,     computeReq: 400,       revMult: 2.4,  share: 2 },
-    { id: 'g_v3',     trainSec: 600,     computeReq: 4e3,       revMult: 3.0,  share: 4 },  // the "ChatGPT moment"
-    { id: 'g_v4',     trainSec: 1800,    computeReq: 4e4,       revMult: 3.5,  share: 6 },
-    { id: 'g_v5',     trainSec: 7200,    computeReq: 4e5,       revMult: 4.0,  share: 8 },
-    { id: 'g_v6',     trainSec: 21600,   computeReq: 4e6,       revMult: 5.0,  share: 10 },
-    { id: 'g_front1', trainSec: 64800,   computeReq: 5e7,       revMult: 6.0,  share: 12 }, // 18h
-    { id: 'g_front2', trainSec: 129600,  computeReq: 6e8,       revMult: 7.0,  share: 14 }, // 36h
-    { id: 'g_front3', trainSec: 259200,  computeReq: 8e9,       revMult: 9.0,  share: 16 }, // 3d
-    { id: 'g_proto',  trainSec: 432000,  computeReq: 1e11,      revMult: 12.0, share: 18 }, // 5d proto-AGI
-    { id: 'g_agi',    trainSec: 604800,  computeReq: 2e12,      revMult: 16.0, share: 22 }  // 7d — AGI (win)
+    { id: 'g_v1',     trainSec: 60,       computeReq: 50,        revMult: 2.2,  share: 1 },   // 1 min
+    { id: 'g_v2',     trainSec: 240,      computeReq: 400,       revMult: 2.4,  share: 2 },   // 4 min
+    { id: 'g_v3',     trainSec: 900,      computeReq: 4e3,       revMult: 3.0,  share: 4 },   // 15 min — "ChatGPT moment"
+    { id: 'g_v4',     trainSec: 3600,     computeReq: 4e4,       revMult: 3.5,  share: 6 },   // 1 h
+    { id: 'g_v5',     trainSec: 14400,    computeReq: 4e5,       revMult: 4.0,  share: 8 },   // 4 h
+    { id: 'g_v6',     trainSec: 54000,    computeReq: 4e6,       revMult: 5.0,  share: 10 },  // 15 h
+    { id: 'g_front1', trainSec: 151200,   computeReq: 5e7,       revMult: 6.0,  share: 12 },  // ~1.75 d
+    { id: 'g_front2', trainSec: 345600,   computeReq: 6e8,       revMult: 7.0,  share: 14 },  // 4 d
+    { id: 'g_front3', trainSec: 691200,   computeReq: 8e9,       revMult: 9.0,  share: 16 },  // 8 d
+    { id: 'g_proto',  trainSec: 1209600,  computeReq: 1e11,      revMult: 12.0, share: 18 },  // 14 d proto-AGI
+    { id: 'g_agi',    trainSec: 1728000,  computeReq: 2e12,      revMult: 16.0, share: 22 }   // 20 d — AGI (win)
   ];
 
   // ---- Timed processes (the month-long engine) ------------------------
   var PROCESS = {
-    // training progress/sec = 1 (real time) * researcherSpeed * boostSpeed
-    RESEARCHER_SPEED_PER: 0.02,  // each researcher = +2% training/build/research speed
-    RESEARCHER_SPEED_CAP: 3.0,   // ≤ +300% from researchers (soft cap)
+    // process speed = 1 + researchers-bonus(≤cap) + research-bonus(≤1.0) , × boost.
+    // Capped (P9) so speedups are a meaningful reward but never collapse the month arc.
+    RESEARCHER_SPEED_PER: 0.012, // each researcher = +1.2% process speed
+    RESEARCHER_SPEED_CAP: 1.2,   // ≤ +120% from researchers
+    RESEARCH_SPEED_CAP: 1.0,     // ≤ +100% from research projects
     OFFLINE_PROCESS: true,       // timers advance offline (capped by offline cap)
   };
 
@@ -503,7 +510,7 @@
   var DATACENTER = { baseCost: 1.2e4, costGrowth: 2.3, baseSec: 240, secGrowth: 1.55, bonus: 0.6 };
   // RESEARCH project: money + real time → permanent EFFICIENCY (faster processes +
   // more compute per unit). Repeatable ladder; escalates like builds.
-  var RESEARCH2 = { baseCost: 6e3, costGrowth: 2.1, baseSec: 200, secGrowth: 1.5, speedBonus: 0.04, computeBonus: 0.06 };
+  var RESEARCH2 = { baseCost: 6e3, costGrowth: 2.1, baseSec: 200, secGrowth: 1.5, speedBonus: 0.02, computeBonus: 0.06 };
 
   // ---- Researchers / talent -------------------------------------------
   var TALENT = {
@@ -515,14 +522,15 @@
   // ---- Finance: funding rounds (replaces twitchy market) --------------
   // Each round: one-time cash = fraction of current valuation; gated by valuation
   // milestone; raises a permanent revenue/credibility multiplier. Seed→A→B→C→IPO.
-  // valReq = realistic valuation milestones (seed $15M → IPO $200B). The moneyRate
-  // curve gets compressed in P9 so these gate progressively across the month.
+  // Funding rounds gate by MODEL GENERATION (genReq) — valuation grows too
+  // explosively to gate on, so generations are the reliable progressive trigger;
+  // valuation is still the shown scoreboard, and each round pays cashFrac × valuation.
   var FUNDING = [
-    { id: 'seed', valReq: 1.5e7, cashFrac: 0.20, mult: 1.10 },
-    { id: 'a',    valReq: 2e8,   cashFrac: 0.18, mult: 1.15 },
-    { id: 'b',    valReq: 3e9,   cashFrac: 0.16, mult: 1.20 },
-    { id: 'c',    valReq: 4e10,  cashFrac: 0.14, mult: 1.25 },
-    { id: 'ipo',  valReq: 2e11,  cashFrac: 0.12, mult: 1.40 }
+    { id: 'seed', genReq: 1, cashFrac: 0.20, mult: 1.10 },
+    { id: 'a',    genReq: 2, cashFrac: 0.18, mult: 1.15 },
+    { id: 'b',    genReq: 4, cashFrac: 0.16, mult: 1.20 },
+    { id: 'c',    genReq: 6, cashFrac: 0.14, mult: 1.25 },
+    { id: 'ipo',  genReq: 8, cashFrac: 0.12, mult: 1.40 }
   ];
 
   // ---- Misc ------------------------------------------------------------
