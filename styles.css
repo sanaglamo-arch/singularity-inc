@@ -333,9 +333,9 @@ h2:first-child { margin-top: 4px; }
   box-shadow: var(--shadow-1), var(--inset-hi); }
 #resRow { display: flex; gap: 8px; }
 #resRow .res { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 7px 9px; }
+  background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 7px 7px; }
 #resRow .rlabel { font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-muted); display: inline-flex; align-items: center; white-space: nowrap; }
-#resRow .rval { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#resRow .rval { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 #resRow .rsub { font-size: 10px; color: var(--green); white-space: nowrap; }
 #resRow .res:nth-child(2) .rval { color: var(--violet-2); }
 #resRow .res:nth-child(3) .rval { color: var(--gold); }

@@ -61,7 +61,7 @@
     // rivals + market-share race (the central goal)
     standings_title: 'Market share', standings_sub: 'race to AGI',
     rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'You',
-    standings_leader: "You're #1 — now reach AGI first", standings_behind: '#{n} of {total} — ship models to climb',
+    standings_leader: "#1 — reach AGI first!", standings_behind: '#{n}/{total} — ship to climb',
     agi_race_you: 'You {p}%', agi_race_lead: 'top rival {p}%',
     tip_rivals: 'Rival labs compete for market share and race you to AGI. Ship model generations to climb the ranking — become #1, then reach AGI before they do.',
 
@@ -538,7 +538,7 @@
     tip_funding: 'Привлекай капитал по мере роста оценки: Seed → A → B → C → IPO. Каждый раунд — крупная разовая инъекция денег и перманентный буст выручки. Заменяет биржевой трейдинг — расти компанию, а не тикер.',
     standings_title: 'Доля рынка', standings_sub: 'гонка к AGI',
     rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'Ты',
-    standings_leader: 'Ты #1 — теперь достигни AGI первым', standings_behind: '#{n} из {total} — выпускай модели, чтобы подняться',
+    standings_leader: 'Ты #1 — достигни AGI!', standings_behind: '#{n}/{total} — выпускай модели',
     agi_race_you: 'Ты {p}%', agi_race_lead: 'лидер-конкурент {p}%',
     tip_rivals: 'Лаборатории-конкуренты борются за долю рынка и гонятся к AGI. Выпускай поколения моделей, чтобы подняться в рейтинге — стань #1 и достигни AGI раньше них.',
 
