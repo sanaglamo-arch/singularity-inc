@@ -39,8 +39,20 @@
     isEnabled: function () { return enabled; },
     tap: function () { blip(380 + Math.random() * 40, 0.08, 'triangle', 0.05); },
     buy: function () { blip(520, 0.10, 'sine', 0.06); setTimeout(function () { blip(700, 0.10, 'sine', 0.05); }, 60); },
-    prestige: function () { blip(440, 0.18, 'sawtooth', 0.05); setTimeout(function () { blip(660, 0.22, 'sawtooth', 0.05); }, 120); },
+    prestige: function () {
+      // ascending arpeggio sting
+      var notes = [392, 523, 659, 784, 1047];
+      notes.forEach(function (f, i) { setTimeout(function () { blip(f, 0.3, 'sawtooth', 0.05); blip(f * 2, 0.18, 'sine', 0.025); }, i * 90); });
+    },
     achievement: function () { blip(660, 0.12, 'sine', 0.06); setTimeout(function () { blip(880, 0.16, 'sine', 0.06); }, 90); },
-    incident: function () { blip(160, 0.4, 'sawtooth', 0.07); }
+    milestone: function () {
+      // bright triad chime
+      [523, 659, 784].forEach(function (f, i) { setTimeout(function () { blip(f, 0.22, 'triangle', 0.06); }, i * 55); });
+    },
+    insight: function () {
+      // sparkle: quick high arpeggio
+      [880, 1175, 1568, 2093].forEach(function (f, i) { setTimeout(function () { blip(f, 0.12, 'sine', 0.05); }, i * 50); });
+    },
+    incident: function () { blip(160, 0.4, 'sawtooth', 0.07); setTimeout(function () { blip(120, 0.5, 'sawtooth', 0.06); }, 100); }
   };
 })();

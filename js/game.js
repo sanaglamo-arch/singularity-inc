@@ -66,6 +66,7 @@
       achievements: achs,
       playtime: 0,           // seconds
       sound: false,
+      music: false,
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -728,6 +729,7 @@
   // ---- setters ---------------------------------------------------------
   function setBuyMode(m) { state.buyMode = m; emit('change'); }
   function setSound(b) { state.sound = !!b; emit('change'); }
+  function setMusic(b) { state.music = !!b; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
   function setOnboarded(b) { state.onboarded = !!b; save(); }
 
@@ -769,7 +771,7 @@
     // persistence
     save: save, load: load, reset: reset, init: init,
     // setters
-    setBuyMode: setBuyMode, setSound: setSound, setLang: setLang, setOnboarded: setOnboarded,
+    setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
     newState: newState
   };
 })();

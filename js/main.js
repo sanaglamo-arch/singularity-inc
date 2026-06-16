@@ -31,8 +31,8 @@
 
     // lifecycle: save + gameplay stop/start
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) { window.GAME.save(); window.GAME_SDK.gameplayStop(); }
-      else { window.GAME_SDK.gameplayStart(); catchUpOffline(); }
+      if (document.hidden) { window.GAME.save(); window.GAME_SDK.gameplayStop(); if (window.GAME_MUSIC) window.GAME_MUSIC.stop(); }
+      else { window.GAME_SDK.gameplayStart(); catchUpOffline(); if (window.GAME_MUSIC && window.GAME.state.music) window.GAME_MUSIC.start(); }
     });
     window.addEventListener('pagehide', function () { window.GAME.save(); });
     window.addEventListener('beforeunload', function () { window.GAME.save(); });

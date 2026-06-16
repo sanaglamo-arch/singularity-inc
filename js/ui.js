@@ -115,6 +115,8 @@
     $('settingsTitle').textContent = t('settings_title');
     $('langLabel').textContent = t('language');
     $('soundLabel').textContent = t('sound');
+    $('musicLabel').textContent = t('music');
+    var msg = $('musicSeg').children; msg[0].textContent = t('on'); msg[1].textContent = t('off');
     $('adBoostLabel').textContent = t('ad_boost');
     $('adCashLabel').textContent = t('ad_cash');
     $('adBoostBtn').textContent = t('ad_boost');
@@ -558,6 +560,7 @@
     // atmosphere intensity rises with output toward AGI
     var inten = Math.max(0, Math.min(1, (Math.log10(G.cps() + 10) - 1) / 9));
     document.documentElement.style.setProperty('--intensity', inten.toFixed(3));
+    if (window.GAME_MUSIC) window.GAME_MUSIC.setIntensity(inten);
     // discrete evolving backdrop stage (highest hardware tier + singularity)
     var hi = -1;
     for (var gx = 0; gx < C.GENERATORS.length; gx++) if (s.gens[C.GENERATORS[gx].id] > 0) hi = gx;
@@ -643,6 +646,9 @@
     var ssg = $('soundSeg').children;
     ssg[0].classList.toggle('on', s.sound);
     ssg[1].classList.toggle('on', !s.sound);
+    var msg = $('musicSeg').children;
+    msg[0].classList.toggle('on', s.music);
+    msg[1].classList.toggle('on', !s.music);
   }
 
   // ---------- tabs ----------
@@ -716,8 +722,9 @@
       var res = G.claimInsight();
       removeInsight();
       if (res) {
-        window.GAME_AUDIO.achievement();
+        window.GAME_AUDIO.insight();
         window.GAME_FX.insightBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        window.GAME_FX.flash('rgba(251,191,36,0.3)');
         toast(t('insight_' + res.reward, res.vars), 'gold');
       }
     }
@@ -872,6 +879,17 @@
         });
       })(ssg[b]);
     }
+    // music
+    var msg = $('musicSeg').children;
+    for (var mb = 0; mb < msg.length; mb++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var on = btn.dataset.music === 'on';
+          G.setMusic(on);
+          if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(on); if (on) window.GAME_MUSIC.start(); }
+        });
+      })(msg[mb]);
+    }
     // ad buttons
     $('adBoostBtn').addEventListener('click', function () {
       window.GAME_ADS.showRewarded({
@@ -934,6 +952,7 @@
     renderStatic();
     bind();
     window.GAME_AUDIO.setEnabled(G.state.sound);
+    if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(G.state.music); if (G.state.music) window.GAME_MUSIC.start(); }
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
     var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
