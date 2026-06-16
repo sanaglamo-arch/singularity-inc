@@ -5,8 +5,18 @@
 
   var G = window.GAME, C = window.GAME_CONFIG, FMT = window.GAME_FMT;
   var t = function (k, v) { return window.GAME_I18N.t(k, v); };
-  var $ = function (id) { return document.getElementById(id); };
+  // cached getElementById: stable ids are looked up once; the isConnected guard
+  // auto-refreshes if a node was replaced (e.g. a list rebuilt via innerHTML).
+  var _elc = {};
+  var $ = function (id) { var e = _elc[id]; if (e && e.isConnected) return e; e = document.getElementById(id); if (e) _elc[id] = e; return e; };
   var fmt = FMT.fmt;
+  // guarded DOM writes — only touch the DOM (and trigger style-recalc) when the
+  // value actually CHANGED. This is the core 60fps lever: most per-frame writes
+  // are no-ops, so we skip the recalc/layout they would otherwise force.
+  function setText(el, v) { if (!el) return; if (el.__t !== v) { el.__t = v; el.textContent = v; } }
+  function setStyleP(el, prop, v) { if (!el) return; var k = '__s_' + prop; if (el[k] !== v) { el[k] = v; el.style[prop] = v; } }
+  function setClass(el, cls, on) { if (!el) return; var k = '__c_' + cls; on = !!on; if (el[k] !== on) { el[k] = on; el.classList.toggle(cls, on); } }
+  function setHTML(el, v) { if (!el) return; if (el.__h !== v) { el.__h = v; el.innerHTML = v; } }
 
   var currentTab = 'company';
   var genRefs = {};      // id -> {el, cost, count, sub, mbar, qty}
@@ -252,33 +262,33 @@
       var idx = C.GENERATORS.indexOf(g);
       var prevCount = idx > 0 ? s.gens[C.GENERATORS[idx - 1].id] : 99;
       if (idx > 0 && owned === 0 && s.cash < g.baseCost * 0.5 && prevCount < 10) {
-        r.el.classList.add('hidden');
+        setClass(r.el, 'hidden', true);
         return;
       }
-      r.el.classList.remove('hidden');
+      setClass(r.el, 'hidden', false);
       var p = G.genBuyPreview(g.id);
-      r.el.classList.toggle('affordable', p.affordable);
-      r.el.classList.toggle('locked', !p.affordable);
-      r.cost.textContent = fmt(p.cost);
-      r.cost.classList.toggle('cant', !p.affordable);
+      setClass(r.el, 'affordable', p.affordable);
+      setClass(r.el, 'locked', !p.affordable);
+      setText(r.cost, fmt(p.cost));
+      setClass(r.cost, 'cant', !p.affordable);
       // headline per-unit value: what ONE of this generator produces, right now
-      r.each.textContent = t('gen_each', { v: fmt(p.perUnit) });
+      setText(r.each, t('gen_each', { v: fmt(p.perUnit) }));
       // what the CURRENT purchase (selected buy-mode) adds — hidden when buying just one (== "each")
-      if (p.qty > 1) { r.add.style.display = ''; r.add.textContent = t('gen_add', { v: fmt(p.addCps) }); }
-      else { r.add.style.display = 'none'; }
+      if (p.qty > 1) { setStyleP(r.add, 'display', ''); setText(r.add, t('gen_add', { v: fmt(p.addCps) })); }
+      else { setStyleP(r.add, 'display', 'none'); }
       // buy-mode affordance: exact count for the selected mode
-      r.buylabel.textContent = (s.buyMode === 'max')
+      setText(r.buylabel, (s.buyMode === 'max')
         ? t('buy_max_n', { n: p.maxAffordable })
-        : t('buy_n', { n: s.buyMode });
-      if (owned > 0) { r.badge.classList.remove('hidden'); r.badge.textContent = owned; }
-      else r.badge.classList.add('hidden');
+        : t('buy_n', { n: s.buyMode }));
+      setClass(r.badge, 'hidden', owned <= 0);
+      if (owned > 0) setText(r.badge, owned);
       var msLevel = owned >= 200 ? 3 : owned >= 100 ? 2 : owned >= 25 ? 1 : 0;
-      r.el.classList.toggle('ms1', msLevel === 1);
-      r.el.classList.toggle('ms2', msLevel === 2);
-      r.el.classList.toggle('ms3', msLevel === 3);
+      setClass(r.el, 'ms1', msLevel === 1);
+      setClass(r.el, 'ms2', msLevel === 2);
+      setClass(r.el, 'ms3', msLevel === 3);
       var nm = G.nextMilestone(owned);
-      if (nm) { r.mbar.style.width = Math.min(100, (owned / nm) * 100) + '%'; r.mbar.parentNode.style.display = ''; }
-      else { r.mbar.parentNode.style.display = 'none'; }
+      if (nm) { setStyleP(r.mbar, 'width', Math.min(100, (owned / nm) * 100).toFixed(1) + '%'); setStyleP(r.mbar.parentNode, 'display', ''); }
+      else { setStyleP(r.mbar.parentNode, 'display', 'none'); }
     });
   }
 
@@ -710,7 +720,16 @@
 
   // ---------- alignment (multi-vector) ----------
   function vecColor(v) { return v > C.RISK.WARN_AT ? 'linear-gradient(90deg, var(--warn), var(--bad))' : 'linear-gradient(90deg, var(--good), var(--warn))'; }
+  // cheap: just the company-tab mini risk bar (no offscreen alignment-tab DOM)
+  function updateRiskMini() {
+    var hv = G.highestVector(), pct = hv.val;
+    var mfill = $('riskMiniFill');
+    if (mfill) { setStyleP(mfill, 'width', pct + '%'); setStyleP(mfill, 'background', vecColor(pct)); }
+    setText($('riskMiniPct'), Math.floor(pct) + '%');
+  }
   function updateAlignment() {
+    updateRiskMini();
+    if (currentTab !== 'alignment') return;   // heavy DOM only when the tab is visible
     var s = G.state;
     // vector bars
     var html = '';
@@ -747,29 +766,29 @@
     function mini(label, val) { return '<div class="minicard"><div class="mlabel">' + label + '</div><div class="mval">' + val + '</div></div>'; }
     var hv = G.highestVector();
     $('alignMini').innerHTML =
-      mini(t('mini_cps'), fmt(G.cps())) +
-      mini(t('mini_output'), '×' + fmt(G.globalMult())) +
+      mini(t('mini_cps'), fmt(frameCps)) +
+      mini(t('mini_output'), '×' + fmt(frameGM)) +
       mini(t('mini_toprisk'), t('vec_' + hv.id) + ' ' + Math.floor(hv.val) + '%') +
       mini(t('mini_suppress'), G.alignSuppress().toFixed(2));
-    // mini bar on company tab = highest vector
-    var pct = hv.val;
-    var mfill = $('riskMiniFill');
-    if (mfill) { mfill.style.width = pct + '%'; mfill.style.background = vecColor(pct); }
-    var mpct = $('riskMiniPct');
-    if (mpct) mpct.textContent = Math.floor(pct) + '%';
   }
 
   // ---------- top bar / boost ----------
   function updateTop() {
     var s = G.state;
+    var cps = frameCps;                 // computed once per frame in update()
     setOdometer($('cashVal'), s.cash);
-    $('cpsVal').textContent = t('per_sec', { v: fmt(G.cps()) });
-    $('tapValue').textContent = '+' + fmt(G.tapValue());
+    setText($('cpsVal'), t('per_sec', { v: fmt(cps) }));
+    setText($('tapValue'), '+' + fmt(G.tapValue()));
 
-    // atmosphere intensity rises with output toward AGI
-    var inten = Math.max(0, Math.min(1, (Math.log10(G.cps() + 10) - 1) / 9));
-    document.documentElement.style.setProperty('--intensity', inten.toFixed(3));
-    if (window.GAME_MUSIC) window.GAME_MUSIC.setIntensity(inten);
+    // atmosphere intensity rises with output toward AGI — quantized so we only
+    // write the (document-wide, recalc-forcing) custom property when it visibly moves.
+    var inten = Math.max(0, Math.min(1, (Math.log10(cps + 10) - 1) / 9));
+    var iq = Math.round(inten * 50) / 50;   // 0.02 steps
+    if (iq !== _lastInten) {
+      _lastInten = iq;
+      document.documentElement.style.setProperty('--intensity', iq.toFixed(3));
+      if (window.GAME_MUSIC) window.GAME_MUSIC.setIntensity(iq);
+    }
     // discrete evolving backdrop stage (highest hardware tier + singularity)
     var hi = -1;
     for (var gx = 0; gx < C.GENERATORS.length; gx++) if (s.gens[C.GENERATORS[gx].id] > 0) hi = gx;
@@ -779,56 +798,57 @@
 
     // overclock heat -> combo bar + button glow
     var heat = s.comboHeat || 0;
-    $('tapBtn').style.setProperty('--heat', heat.toFixed(3));
+    var hq = Math.round(heat * 100) / 100;
+    if (hq !== _lastHeat) { _lastHeat = hq; $('tapBtn').style.setProperty('--heat', hq.toFixed(2)); }
     var cw = $('comboWrap');
     if (heat > 0.02) {
-      cw.classList.add('on');
-      $('comboName').textContent = t('combo_label');
-      $('comboMult').textContent = '×' + (1 + G.comboBonus()).toFixed(1);
-      $('comboFill').style.width = (heat * 100) + '%';
-    } else { cw.classList.remove('on'); }
+      setClass(cw, 'on', true);
+      setText($('comboName'), t('combo_label'));
+      setText($('comboMult'), '×' + (1 + G.comboBonus()).toFixed(1));
+      setStyleP($('comboFill'), 'width', (heat * 100).toFixed(1) + '%');
+    } else { setClass(cw, 'on', false); }
 
     // breakthrough button (Stage 2 reveal)
     var btn = $('breakthroughBtn');
-    if (!G.breakthroughUnlocked()) { btn.classList.add('hidden'); }
+    if (!G.breakthroughUnlocked()) { setClass(btn, 'hidden', true); }
     else {
-    btn.classList.remove('hidden');
+    setClass(btn, 'hidden', false);
     if (G.breakthroughActive()) {
       btn.disabled = true;
-      btn.textContent = t('breakthrough_active', { t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) });
-      btn.classList.add('bt-active');
+      setText(btn, t('breakthrough_active', { t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) }));
+      setClass(btn, 'bt-active', true);
     } else if (G.breakthroughReady()) {
       btn.disabled = false;
-      btn.textContent = t('breakthrough_btn') + ' · ' + t('breakthrough_ready');
-      btn.classList.remove('bt-active');
+      setText(btn, t('breakthrough_btn') + ' · ' + t('breakthrough_ready'));
+      setClass(btn, 'bt-active', false);
     } else {
       btn.disabled = true;
-      btn.textContent = t('breakthrough_btn') + ' · ' + FMT.fmtTime(G.breakthroughCooldownLeft());
-      btn.classList.remove('bt-active');
+      setText(btn, t('breakthrough_btn') + ' · ' + FMT.fmtTime(G.breakthroughCooldownLeft()));
+      setClass(btn, 'bt-active', false);
     }
     }
 
     // buff badge (priority: breakthrough > frenzy > clickFrenzy > ad boost)
     var bb = $('boostBadge');
     if (G.breakthroughActive()) {
-      bb.classList.remove('hidden');
-      bb.textContent = t('buff_breakthrough', { m: s.breakthroughMult, t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) });
+      setClass(bb, 'hidden', false);
+      setText(bb, t('buff_breakthrough', { m: s.breakthroughMult, t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) }));
     } else if (G.frenzyActive()) {
-      bb.classList.remove('hidden');
-      bb.textContent = t('buff_frenzy', { m: s.frenzyMult, t: FMT.fmtTime((s.frenzyEndsAt - Date.now()) / 1000) });
+      setClass(bb, 'hidden', false);
+      setText(bb, t('buff_frenzy', { m: s.frenzyMult, t: FMT.fmtTime((s.frenzyEndsAt - Date.now()) / 1000) }));
     } else if (G.clickFrenzyActive()) {
-      bb.classList.remove('hidden');
-      bb.textContent = t('buff_click', { m: s.clickFrenzyMult, t: FMT.fmtTime((s.clickFrenzyEndsAt - Date.now()) / 1000) });
+      setClass(bb, 'hidden', false);
+      setText(bb, t('buff_click', { m: s.clickFrenzyMult, t: FMT.fmtTime((s.clickFrenzyEndsAt - Date.now()) / 1000) }));
     } else if (G.boostActive()) {
-      bb.classList.remove('hidden');
-      bb.textContent = t('boost_active', { t: FMT.fmtTime((s.boostUntil - Date.now()) / 1000) });
-    } else bb.classList.add('hidden');
+      setClass(bb, 'hidden', false);
+      setText(bb, t('boost_active', { t: FMT.fmtTime((s.boostUntil - Date.now()) / 1000) }));
+    } else setClass(bb, 'hidden', true);
     var eb = $('eventBadge');
     if (G.eventActive() && s.eventId) {
-      eb.classList.remove('hidden');
-      eb.classList.toggle('bad', s.eventId === 'shortage');
-      eb.textContent = t('ev_active', { name: t('ev_' + s.eventId), t: FMT.fmtTime((s.eventEndsAt - Date.now()) / 1000) });
-    } else eb.classList.add('hidden');
+      setClass(eb, 'hidden', false);
+      setClass(eb, 'bad', s.eventId === 'shortage');
+      setText(eb, t('ev_active', { name: t('ev_' + s.eventId), t: FMT.fmtTime((s.eventEndsAt - Date.now()) / 1000) }));
+    } else setClass(eb, 'hidden', true);
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -893,21 +913,33 @@
     $('worldLocked').classList.toggle('hidden', unlocked);
     ['worldNewsTitle', 'cardList', 'worldMarketTitle', 'marketIntro', 'marketList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
     if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
-    // active cards (skip crises here — they appear as a modal; but still list them)
-    var cl = $('cardList'), html = '';
+    // active cards (skip crises here — they appear as a modal; but still list them).
+    // Only REBUILD the list when the card set changes; tick the countdowns cheaply.
+    var cl = $('cardList');
     var order = { crisis: 0, opportunity: 1, decision: 2 };
-    G.state.cards.slice().sort(function (a, b) { return (order[a.kind] || 9) - (order[b.kind] || 9); }).forEach(function (c) { html += renderCardHTML(c); });
-    if (!html) html = '<div class="empty-state">' + t('ap_status_idle') + '</div>';
-    cl.innerHTML = html; wireCardButtons(cl);
+    var sorted = G.state.cards.slice().sort(function (a, b) { return (order[a.kind] || 9) - (order[b.kind] || 9); });
+    var sig = sorted.map(function (c) { return c.uid + c.id; }).join('|');
+    if (sig !== _lastCardSig) {
+      _lastCardSig = sig;
+      var html = sorted.map(renderCardHTML).join('');
+      if (!html) html = '<div class="empty-state">' + t('ap_status_idle') + '</div>';
+      cl.innerHTML = html; wireCardButtons(cl);
+    } else {
+      // refresh only the countdown labels in place
+      var timers = cl.querySelectorAll('.nc-timer');
+      for (var ti = 0; ti < timers.length && ti < sorted.length; ti++) {
+        setText(timers[ti], t('card_expires', { t: FMT.fmtTime(Math.max(0, (sorted[ti].expiresAt - Date.now()) / 1000)) }));
+      }
+    }
     // market
     G.ensureMarket(); var m = G.state.market;
     var rows = $('marketList').children;
     for (var i = 0; i < rows.length; i++) {
       var aid = rows[i].dataset.aid;
-      rows[i].querySelector('.mk-price').textContent = fmt(m.price[aid]);
-      rows[i].querySelector('.mk-spark').innerHTML = sparkline(m.hist[aid]);
+      setText(rows[i].querySelector('.mk-price'), fmt(m.price[aid]));
+      setHTML(rows[i].querySelector('.mk-spark'), sparkline(m.hist[aid]));  // setHTML guards on string equality -> rebuilds only when prices move
       var hold = m.hold[aid];
-      rows[i].querySelector('.mk-hold').textContent = hold > 0.0001 ? t('market_hold', { n: hold.toFixed(2), v: fmt(hold * m.price[aid]) }) : t('market_none');
+      setText(rows[i].querySelector('.mk-hold'), hold > 0.0001 ? t('market_hold', { n: hold.toFixed(2), v: fmt(hold * m.price[aid]) }) : t('market_none'));
       rows[i].querySelector('.mk-sell').disabled = hold <= 0.0001;
       rows[i].querySelector('.mk-buy').disabled = G.state.cash < 1;
     }
@@ -920,11 +952,11 @@
   function actId(i) { return C.ACTS[Math.max(0, Math.min(C.ACTS.length - 1, i))].id; }
   function updateActBar() {
     var a = G.state.act, bar = $('actBar');
-    if (a < 1) { bar.classList.add('hidden'); return; }
-    bar.classList.remove('hidden');
-    $('actLabel').textContent = t('act_' + actId(a) + '_t');
+    if (a < 1) { setClass(bar, 'hidden', true); return; }
+    setClass(bar, 'hidden', false);
+    setText($('actLabel'), t('act_' + actId(a) + '_t'));
     var prog = a >= 2 ? G.agiProgress() : (a * 20);
-    $('actFill').style.width = prog + '%';
+    setStyleP($('actFill'), 'width', prog.toFixed(1) + '%');
   }
   function showActIntro(a) {
     var id = actId(a);
@@ -1026,17 +1058,22 @@
     }
     return null;
   }
+  var _nudgeIcon = null;
   function updateNudge() {
     var n = computeNudge(), box = $('nudge');
-    if (!n) { box.classList.add('hidden'); return; }
-    box.classList.remove('hidden', 'urgent', 'go');
-    if (n.tone) box.classList.add(n.tone);
-    box.querySelector('.nicon').innerHTML = ic(n.icon);
-    $('nudgeText').textContent = t(n.key, n.vars);
+    if (!n) { setClass(box, 'hidden', true); return; }
+    setClass(box, 'hidden', false);
+    setClass(box, 'urgent', n.tone === 'urgent');
+    setClass(box, 'go', n.tone === 'go');
+    if (n.icon !== _nudgeIcon) { _nudgeIcon = n.icon; box.querySelector('.nicon').innerHTML = ic(n.icon); }  // icon rarely changes
+    setText($('nudgeText'), t(n.key, n.vars));
   }
 
   // ---------- main per-frame update ----------
+  var frameCps = 0, frameGM = 1, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
   function update() {
+    frameCps = G.cps();           // compute the two hottest values ONCE per frame
+    frameGM = G.globalMult();
     updateTop();
     if (currentTab === 'company') updateGenerators();
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
@@ -1047,22 +1084,22 @@
     else if (currentTab === 'stats') updateStats();
     else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
-    if (currentTab === 'company') { updateAlignment(); updateNudge(); }
+    if (currentTab === 'company') { if (G.riskUnlocked()) updateRiskMini(); updateNudge(); }
     // progressive nav: show ONLY unlocked tabs (early game = Lab + More)
     var wu = G.worldUnlocked();
     toggleNav('navUpgradesBtn', G.upgradesUnlocked());
     toggleNav('navResearchBtn', G.researchUnlocked());
     toggleNav('navWorldBtn', wu);
     // satirical news ticker is part of the World/News layer — hidden until it unlocks (Stage 6)
-    var tk = $('ticker'); if (tk) tk.classList.toggle('hidden', !wu);
+    var tk = $('ticker'); if (tk) setClass(tk, 'hidden', !wu);
     // Trust HUD rides with the World stage
     var th = $('trustHud');
     if (th) {
-      th.classList.toggle('hidden', !wu);
-      if (wu) { var tr = G.state.trust; $('trustVal').textContent = Math.round(tr); th.classList.toggle('low', tr < 35); th.classList.toggle('high', tr >= 75); }
+      setClass(th, 'hidden', !wu);
+      if (wu) { var tr = G.state.trust; setText($('trustVal'), Math.round(tr)); setClass(th, 'low', tr < 35); setClass(th, 'high', tr >= 75); }
     }
     // risk mini bar only exists once risks of scale are unlocked (Stage 5)
-    var rm = $('riskMini'); if (rm) rm.classList.toggle('hidden', !G.riskUnlocked());
+    var rm = $('riskMini'); if (rm) setClass(rm, 'hidden', !G.riskUnlocked());
     // guided first model-release CTA (Stage 4)
     updatePrestigeCta();
     checkUnlocks();
@@ -1090,7 +1127,7 @@
   }
 
   // ---------- progressive unlock plumbing ----------
-  function toggleNav(id, on) { var b = $(id); if (b) b.classList.toggle('hidden', !on); }
+  function toggleNav(id, on) { setClass($(id), 'hidden', !on); }
   // is a destination reachable right now?
   function tabUnlocked(tab) {
     switch (tab) {
