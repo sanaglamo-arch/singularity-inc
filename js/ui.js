@@ -12,8 +12,15 @@
   var genRefs = {};      // id -> {el, cost, count, sub, mbar, qty}
   var built = false;
   var ICON = window.GAME_ICONS || {};
-  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  function ic(key) { return key === 'ic_check' ? CHECK_SVG : (ICON[key] || ''); }
+  var SW = ' fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
+  var EXTRA = {
+    ic_check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    ic_tech: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="5" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><path d="M12 7.2v3.3M12 10.5 6.4 16M12 10.5 17.6 16"/></svg>',
+    ic_artifact: '<svg viewBox="0 0 24 24"' + SW + '><path d="M6 3h12l3 5-9 13L3 8z"/><path d="M3 8h18M9 3 7.5 8 12 21 16.5 8 15 3"/></svg>',
+    ic_core: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="2.4" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/></svg>',
+    nav_singularity: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3a9 9 0 1 1-7 3.3"/><path d="M12 3a9 9 0 0 1 7 3.3" opacity="0.5"/></svg>'
+  };
+  function ic(key) { return EXTRA[key] || ICON[key] || ''; }
 
   // ---------- helpers ----------
   function el(tag, cls, html) {
@@ -63,7 +70,7 @@
     $('tapLabel').textContent = t('tap_button');
     $('tapHint').textContent = t('tap_hint');
     // nav icons (replace emoji with inline SVG)
-    var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', alignment: 'nav_alignment', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
+    var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', singularity: 'nav_singularity', alignment: 'nav_alignment', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
     var navBtns = $('tabbar').children;
     for (var ni = 0; ni < navBtns.length; ni++) {
       var tabKey = navBtns[ni].dataset.tab;
@@ -74,6 +81,15 @@
     $('nav_company').textContent = t('tab_company');
     $('nav_upgrades').textContent = t('tab_upgrades');
     $('nav_research').textContent = t('tab_research');
+    $('nav_singularity').textContent = t('tab_singularity');
+    // research-tab extras
+    $('artifactsTitle').textContent = t('artifacts_title');
+    $('techTitle').textContent = t('tech_title');
+    // singularity tab
+    $('singTitle').textContent = t('singularity_title');
+    $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
+    $('metaTitle').textContent = t('meta_title');
+    buildArtifacts(); buildTech(); buildMeta();
     $('nav_alignment').textContent = t('tab_alignment');
     $('nav_stats').textContent = t('tab_stats');
     $('nav_achievements').textContent = t('tab_achievements');
@@ -309,6 +325,119 @@
     }
   }
 
+  // ---------- tech tree ----------
+  function techDesc(tk) { return t('tech_cat_' + tk.cat) + ' ×' + tk.mult; }
+  function buildTech() {
+    var list = $('techList'); list.innerHTML = '';
+    C.TECH.forEach(function (tk) {
+      var card = el('div', 'card locked'); card.dataset.tid = tk.id;
+      card.innerHTML =
+        '<div class="iconwrap">' + ic('ic_tech') + '</div>' +
+        '<div class="info"><div class="name">' + t(tk.id) + '</div><div class="desc">' + techDesc(tk) + '</div><div class="sub req"></div></div>' +
+        '<div class="right"><button class="minibtn">' + t('rp_cost', { n: tk.cost }) + '</button></div>';
+      card.querySelector('button').addEventListener('click', function () { if (G.buyTech(tk.id)) window.GAME_AUDIO.buy(); });
+      list.appendChild(card);
+    });
+  }
+  function updateTech() {
+    var s = G.state, nodes = $('techList').children;
+    for (var i = 0; i < nodes.length; i++) {
+      var tk = C.TECH[i], card = nodes[i], btn = card.querySelector('button'), req = card.querySelector('.req');
+      if (s.tech[tk.id]) { card.classList.add('owned-tech'); card.classList.remove('locked'); btn.textContent = '✓ ' + t('bought'); btn.disabled = true; req.textContent = ''; continue; }
+      var ok = G.techReqMet(tk);
+      if (!ok) {
+        card.classList.add('locked'); btn.disabled = true; btn.textContent = t('rp_cost', { n: tk.cost });
+        if (tk.req.tech) req.textContent = t('tech_locked_tech', { name: t(tk.req.tech) });
+        else if (tk.req.gen) req.textContent = t('tech_locked_gen', { n: tk.req.count, name: t('g_' + tk.req.gen) });
+      } else {
+        req.textContent = '';
+        var afford = s.rp >= tk.cost;
+        card.classList.toggle('locked', !afford); card.classList.toggle('affordable', afford);
+        btn.disabled = !afford; btn.textContent = t('rp_cost', { n: tk.cost });
+      }
+    }
+  }
+
+  // ---------- artifacts ----------
+  function artDesc(a) { return a.effect.type === 'gamble' ? t('art_gamble') : (t('art_' + a.effect.type) + ' ×' + a.effect.value); }
+  function buildArtifacts() {
+    var list = $('artifactList'); list.innerHTML = '';
+    C.ARTIFACTS.forEach(function (a) {
+      var card = el('div', 'card'); card.dataset.arid = a.id;
+      var tags = a.tags.map(function (tg) { return '<span class="tagchip">' + t('tag_' + tg) + '</span>'; }).join('');
+      card.innerHTML =
+        '<div class="iconwrap">' + ic('ic_artifact') + '</div>' +
+        '<div class="info"><div class="name">' + t(a.id) + '</div><div class="desc">' + artDesc(a) + '</div><div class="tags">' + tags + '</div></div>' +
+        '<div class="right"><button class="minibtn"></button></div>';
+      card.querySelector('button').addEventListener('click', function () {
+        if (G.state.artifactsEquipped.indexOf(a.id) >= 0) G.unequipArtifact(a.id);
+        else if (G.equipArtifact(a.id)) window.GAME_AUDIO.buy();
+        else window.GAME_AUDIO.buy();
+      });
+      list.appendChild(card);
+    });
+  }
+  function updateArtifacts() {
+    var s = G.state, nodes = $('artifactList').children, anyOwned = false;
+    for (var i = 0; i < nodes.length; i++) {
+      var a = C.ARTIFACTS[i], card = nodes[i], btn = card.querySelector('button');
+      var owned = !!s.artifactsOwned[a.id];
+      card.classList.toggle('hidden', !owned);
+      if (owned) anyOwned = true;
+      var eq = s.artifactsEquipped.indexOf(a.id) >= 0;
+      card.classList.toggle('equipped', eq);
+      card.classList.toggle('affordable', eq);
+      btn.textContent = eq ? t('unequip') : t('equip');
+      btn.disabled = !eq && s.artifactsEquipped.length >= C.ARTIFACT_SLOTS;
+    }
+    $('artSynergy').textContent = anyOwned
+      ? t('equipped_label', { n: s.artifactsEquipped.length, m: C.ARTIFACT_SLOTS }) + '  ·  ' + t('synergy_label') + ' ×' + G.artifactSynergyMult().toFixed(2)
+      : t('artifacts_empty');
+  }
+
+  // ---------- core (meta) upgrades ----------
+  var META_KEY = { globalMult: 'meta_global', rpGain: 'meta_rp', tapMult: 'meta_tap', riskMult: 'meta_risk', offlineCap: 'meta_offline', coreGain: 'meta_core' };
+  function metaDesc(mu) {
+    var lbl = t(META_KEY[mu.type] || 'meta_global');
+    if (mu.type === 'offlineCap') return lbl + ' +' + mu.value + 'h';
+    return lbl + ' ×' + mu.value;
+  }
+  function buildMeta() {
+    var list = $('metaList'); list.innerHTML = '';
+    C.SINGULARITY.meta.forEach(function (mu) {
+      var card = el('div', 'pcard'); card.dataset.mid = mu.id;
+      card.innerHTML =
+        '<div class="picon">' + ic('ic_core') + '</div>' +
+        '<div class="info"><div class="name">' + t(mu.id) + '</div><div class="desc">' + metaDesc(mu) + '</div></div>' +
+        '<button>' + t('cores_cost', { n: mu.cost }) + '</button>';
+      card.querySelector('button').addEventListener('click', function () { if (G.buyMeta(mu.id)) window.GAME_AUDIO.prestige(); });
+      list.appendChild(card);
+    });
+  }
+  function updateMeta() {
+    var s = G.state, nodes = $('metaList').children;
+    for (var i = 0; i < nodes.length; i++) {
+      var mu = C.SINGULARITY.meta[i], card = nodes[i], btn = card.querySelector('button');
+      if (s.meta[mu.id]) { card.classList.add('owned'); btn.textContent = '✓ ' + t('bought'); btn.disabled = true; }
+      else { card.classList.remove('owned'); btn.textContent = t('cores_cost', { n: mu.cost }); btn.disabled = s.cores < mu.cost; }
+    }
+  }
+  function updateSingularity() {
+    var s = G.state;
+    var gain = G.coresGain();
+    var btn = $('singBtn'); btn.textContent = t('singularity_btn');
+    if (!G.singUnlocked()) {
+      $('singGain').textContent = t('singularity_locked', { n: C.SINGULARITY.UNLOCK_RP });
+      btn.disabled = true;
+    } else {
+      $('singGain').textContent = G.canSingularity() ? t('singularity_gain', { n: gain }) : t('singularity_locked', { n: C.SINGULARITY.UNLOCK_RP });
+      btn.disabled = !G.canSingularity();
+    }
+    $('coresHave').textContent = t('cores_have', { n: s.cores });
+    $('coresBonus').textContent = t('cores_bonus', { p: Math.round(s.cores * C.SINGULARITY.CORE_BONUS * 100) });
+    updateMeta();
+  }
+
   // ---------- achievements ----------
   function buildAchievements() {
     var list = $('achList');
@@ -486,12 +615,16 @@
     updateTop();
     if (currentTab === 'company') updateGenerators();
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
-    else if (currentTab === 'research') updateResearch();
+    else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
+    else if (currentTab === 'singularity') updateSingularity();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
     else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
     if (currentTab === 'company') updateAlignment();
+    // reveal Singularity nav once unlocked
+    var nsb = $('navSingBtn');
+    if (nsb) nsb.classList.toggle('hidden', !G.singUnlocked());
     updateSettingsState();
   }
 
@@ -675,6 +808,28 @@
       };
     });
 
+    // singularity (second prestige)
+    $('singBtn').addEventListener('click', function () {
+      if (!G.canSingularity()) return;
+      var gain = G.coresGain();
+      showModal(
+        '<h3>' + t('singularity_title') + '</h3>' +
+        '<p>' + t('singularity_confirm', { n: gain }) + '</p>' +
+        '<div class="row"><button class="secondary" id="sCancel">✕</button>' +
+        '<button class="primary" id="sOk">' + t('singularity_btn') + '</button></div>'
+      );
+      $('sCancel').onclick = hideModal;
+      $('sOk').onclick = function () {
+        hideModal();
+        if (G.doSingularity()) {
+          if (window.GAME_FX.ritual) window.GAME_FX.ritual('singularity');
+          window.GAME_AUDIO.prestige();
+          switchTab('company');
+        }
+      };
+    });
+    G.on('singularity', function () { toast(t('sing_flavor'), 'gold'); });
+
     // alignment buy
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
 
@@ -772,7 +927,7 @@
     window.GAME_AUDIO.setEnabled(G.state.sound);
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
-    var validTabs = { company: 1, upgrades: 1, research: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
+    var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
     var hash = (location.hash || '').replace('#', '');
     switchTab(validTabs[hash] ? hash : 'company');
     window.addEventListener('hashchange', function () {

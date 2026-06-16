@@ -230,7 +230,52 @@
     a_insight: 'Eureka', a_insight_d: 'Catch a glowing Insight.',
     a_breakthrough: 'Paradigm Shift', a_breakthrough_d: 'Fire a Breakthrough.',
     a_overclock: 'Redlined', a_overclock_d: 'Max out the Overclock heat.',
-    mini_cps: 'Cash / sec', mini_output: 'Output ×', mini_risk: 'Risk / sec', mini_suppress: 'Suppress / sec'
+    mini_cps: 'Cash / sec', mini_output: 'Output ×', mini_risk: 'Risk / sec', mini_suppress: 'Suppress / sec',
+
+    // --- Tech tree ---
+    tech_title: 'Tech Tree',
+    tech_cat_tap: 'Tap value', tech_cat_gen_low: 'Early hardware', tech_cat_gen_mid: 'Mid hardware',
+    tech_cat_gen_high: 'Late hardware', tech_cat_all: 'All output', tech_cat_offline: 'Offline', tech_cat_risk: 'Risk gain',
+    t_tap1: 'Hotkeys', t_low1: 'Driver Tuning', t_off1: 'Always-On', t_risk1: 'Safety Basics',
+    t_all1: 'Pipeline Parallelism', t_mid1: 'Cluster Scheduling', t_tap2: 'Macro Suite', t_off2: 'Edge Caching',
+    t_all2: 'Mixture of Experts', t_high1: 'Exotic Hardware', t_risk2: 'Interpretability', t_all3: 'Recursive Compilers',
+    tech_locked_tech: 'Requires {name}', tech_locked_gen: 'Requires {n}× {name}',
+
+    // --- Artifacts ---
+    artifacts_title: 'Artifacts',
+    artifacts_empty: 'Release models to discover artifacts.',
+    artifact_found: 'New artifact: {name}',
+    synergy_label: 'Synergy',
+    equipped_label: 'Equipped {n}/{m}',
+    equip: 'Equip', unequip: 'Remove', equipped_tag: 'Equipped',
+    art_allMult: 'All output', art_tapMult: 'Tap value', art_genHighMult: 'Late hardware',
+    art_riskMult: 'Risk gain', art_offlineMult: 'Offline', art_gamble: 'Random ×0.6–3.0 all output',
+    tag_hw: 'Hardware', tag_ai: 'AI', tag_safety: 'Safety', tag_money: 'Capital', tag_gamble: 'Gamble',
+    ar_chip: 'Lucky Chip', ar_cooler: 'Cryo Cooler', ar_gpu: 'Golden GPU', ar_oracle: 'Oracle Weights',
+    ar_dataset: 'Clean Dataset', ar_charter: 'Safety Charter', ar_vault: 'Data Vault', ar_fund: 'Venture Fund', ar_dice: 'Loaded Dice',
+
+    // --- Singularity (2nd prestige) ---
+    tab_singularity: 'Singularity',
+    singularity_title: 'The Singularity',
+    singularity_desc: 'Collapse everything — generators, research and RP — into Singularity Cores. Cores are permanent and power the Core tree. Each Core: +{p}% global output, forever.',
+    singularity_btn: 'Ascend',
+    singularity_gain: 'You will gain {n} Singularity Cores',
+    singularity_locked: 'Reach {n} lifetime RP or build an AGI Core to unlock.',
+    singularity_confirm: 'Ascend? Generators, research, tech and RP reset. You gain {n} Cores (kept forever).',
+    cores_have: 'Singularity Cores: {n}',
+    cores_bonus: 'Core bonus: +{p}% global output',
+    meta_title: 'Core Upgrades',
+    cores_cost: '{n} Cores',
+    meta_global: 'Global output', meta_rp: 'RP gain', meta_tap: 'Tap value',
+    meta_risk: 'Risk gain', meta_offline: 'Offline cap', meta_core: 'Core gain',
+    sm_global1: 'Foom Protocol', sm_rp: 'Open Research', sm_tap: 'Neural Interface', sm_risk: 'Aligned by Design',
+    sm_offline: 'Autonomous Agents', sm_global2: 'Compute Overhang', sm_core: 'Self-Replication', sm_global3: 'Intelligence Explosion',
+    sing_flavor: 'Reality folds inward. You are the seed of a new intelligence.',
+
+    a_tech: 'First Principles', a_tech_d: 'Unlock a tech.',
+    a_artifact: 'Relic Hunter', a_artifact_d: 'Equip an artifact.',
+    a_singularity: 'Transcendence', a_singularity_d: 'Trigger the Singularity.',
+    a_cores10: 'Core Collector', a_cores10_d: 'Earn 10 Singularity Cores.'
   };
 
   var RU = {
@@ -446,7 +491,49 @@
     a_insight: 'Эврика', a_insight_d: 'Поймай светящееся Озарение.',
     a_breakthrough: 'Смена парадигмы', a_breakthrough_d: 'Запусти Прорыв.',
     a_overclock: 'На пределе', a_overclock_d: 'Раскали Разгон до максимума.',
-    mini_cps: 'Деньги / сек', mini_output: 'Выработка ×', mini_risk: 'Риск / сек', mini_suppress: 'Подавление / сек'
+    mini_cps: 'Деньги / сек', mini_output: 'Выработка ×', mini_risk: 'Риск / сек', mini_suppress: 'Подавление / сек',
+
+    tech_title: 'Дерево технологий',
+    tech_cat_tap: 'Доход тапа', tech_cat_gen_low: 'Раннее железо', tech_cat_gen_mid: 'Среднее железо',
+    tech_cat_gen_high: 'Позднее железо', tech_cat_all: 'Вся выработка', tech_cat_offline: 'Оффлайн', tech_cat_risk: 'Прирост риска',
+    t_tap1: 'Горячие клавиши', t_low1: 'Тюнинг драйверов', t_off1: 'Всегда онлайн', t_risk1: 'Основы безопасности',
+    t_all1: 'Параллелизм конвейера', t_mid1: 'Планировщик кластера', t_tap2: 'Набор макросов', t_off2: 'Кэш на краю',
+    t_all2: 'Смесь экспертов', t_high1: 'Экзотическое железо', t_risk2: 'Интерпретируемость', t_all3: 'Рекурсивные компиляторы',
+    tech_locked_tech: 'Нужно: {name}', tech_locked_gen: 'Нужно {n}× {name}',
+
+    artifacts_title: 'Артефакты',
+    artifacts_empty: 'Выпускай модели, чтобы находить артефакты.',
+    artifact_found: 'Новый артефакт: {name}',
+    synergy_label: 'Синергия',
+    equipped_label: 'Надето {n}/{m}',
+    equip: 'Надеть', unequip: 'Снять', equipped_tag: 'Надето',
+    art_allMult: 'Вся выработка', art_tapMult: 'Доход тапа', art_genHighMult: 'Позднее железо',
+    art_riskMult: 'Прирост риска', art_offlineMult: 'Оффлайн', art_gamble: 'Случайно ×0.6–3.0 ко всей выработке',
+    tag_hw: 'Железо', tag_ai: 'ИИ', tag_safety: 'Безопасность', tag_money: 'Капитал', tag_gamble: 'Азарт',
+    ar_chip: 'Счастливый чип', ar_cooler: 'Криокулер', ar_gpu: 'Золотая GPU', ar_oracle: 'Веса-оракул',
+    ar_dataset: 'Чистый датасет', ar_charter: 'Хартия безопасности', ar_vault: 'Хранилище данных', ar_fund: 'Венчурный фонд', ar_dice: 'Шулерские кости',
+
+    tab_singularity: 'Сингулярность',
+    singularity_title: 'Сингулярность',
+    singularity_desc: 'Сверни всё — генераторы, исследования и RP — в Ядра Сингулярности. Ядра постоянны и питают древо ядра. Каждое Ядро: +{p}% к общей выработке, навсегда.',
+    singularity_btn: 'Вознестись',
+    singularity_gain: 'Вы получите {n} Ядер Сингулярности',
+    singularity_locked: 'Достигни {n} RP за всё время или построй Ядро AGI, чтобы открыть.',
+    singularity_confirm: 'Вознестись? Генераторы, исследования, технологии и RP сбросятся. Вы получите {n} Ядер (навсегда).',
+    cores_have: 'Ядра Сингулярности: {n}',
+    cores_bonus: 'Бонус ядра: +{p}% к общей выработке',
+    meta_title: 'Улучшения ядра',
+    cores_cost: '{n} Ядер',
+    meta_global: 'Вся выработка', meta_rp: 'Прирост RP', meta_tap: 'Доход тапа',
+    meta_risk: 'Прирост риска', meta_offline: 'Лимит оффлайна', meta_core: 'Прирост ядер',
+    sm_global1: 'Протокол Foom', sm_rp: 'Открытые исследования', sm_tap: 'Нейроинтерфейс', sm_risk: 'Безопасность в основе',
+    sm_offline: 'Автономные агенты', sm_global2: 'Навес вычислений', sm_core: 'Саморепликация', sm_global3: 'Интеллектуальный взрыв',
+    sing_flavor: 'Реальность сворачивается внутрь. Ты — семя нового разума.',
+
+    a_tech: 'С нуля', a_tech_d: 'Открой технологию.',
+    a_artifact: 'Охотник за реликвиями', a_artifact_d: 'Надень артефакт.',
+    a_singularity: 'Трансцендентность', a_singularity_d: 'Запусти Сингулярность.',
+    a_cores10: 'Коллекционер ядер', a_cores10_d: 'Заработай 10 Ядер Сингулярности.'
   };
 
   var DICTS = { en: EN, ru: RU };

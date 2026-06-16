@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06060f">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=3">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="fonts.css?v=4">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 <div id="app">
@@ -63,9 +63,29 @@
           <div id="rpHave" class="muted"></div>
           <div id="currentBonus" class="accent"></div>
         </div>
+        <h2 id="artifactsTitle"></h2>
+        <div id="artSynergy" class="muted small"></div>
+        <div id="artifactList"></div>
+        <h2 id="techTitle"></h2>
+        <div id="techList"></div>
         <h2 id="prestigeUpTitle"></h2>
         <div id="prestigeUpList"></div>
         <div class="tip" id="researchTip"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="singularity">
+      <div class="scroll" id="singPane">
+        <h2 id="singTitle"></h2>
+        <p id="singDesc" class="muted"></p>
+        <div id="singBox" class="glass-panel">
+          <div id="singGain"></div>
+          <button id="singBtn"></button>
+          <div id="coresHave" class="muted"></div>
+          <div id="coresBonus" class="accent"></div>
+        </div>
+        <h2 id="metaTitle"></h2>
+        <div id="metaList"></div>
       </div>
     </section>
 
@@ -138,6 +158,7 @@
     <button data-tab="company" class="active"><span class="ti"></span><span class="tl" id="nav_company"></span></button>
     <button data-tab="upgrades"><span class="ti"></span><span class="tl" id="nav_upgrades"></span></button>
     <button data-tab="research"><span class="ti"></span><span class="tl" id="nav_research"></span></button>
+    <button data-tab="singularity" id="navSingBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_singularity"></span></button>
     <button data-tab="alignment"><span class="ti"></span><span class="tl" id="nav_alignment"></span></button>
     <button data-tab="stats"><span class="ti"></span><span class="tl" id="nav_stats"></span></button>
     <button data-tab="achievements"><span class="ti"></span><span class="tl" id="nav_achievements"></span></button>
@@ -149,16 +170,17 @@
 <div id="modalRoot" class="hidden"></div>
 <div id="fxRoot"></div>
 
-<script src="js/config.js?v=3"></script>
-<script src="js/format.js?v=3"></script>
-<script src="js/i18n.js?v=3"></script>
-<script src="js/sdk.js?v=3"></script>
-<script src="js/ads.js?v=3"></script>
-<script src="js/game.js?v=3"></script>
-<script src="js/audio.js?v=3"></script>
-<script src="js/fx.js?v=3"></script>
-<script src="js/icons.js?v=3"></script>
-<script src="js/ui.js?v=3"></script>
-<script src="js/main.js?v=3"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/format.js?v=4"></script>
+<script src="js/i18n.js?v=4"></script>
+<script src="js/sdk.js?v=4"></script>
+<script src="js/ads.js?v=4"></script>
+<script src="js/game.js?v=4"></script>
+<script src="js/audio.js?v=4"></script>
+<script src="js/fx.js?v=4"></script>
+<script src="js/icons.js?v=4"></script>
+<script src="js/music.js?v=4"></script>
+<script src="js/ui.js?v=4"></script>
+<script src="js/main.js?v=4"></script>
 </body>
 </html>

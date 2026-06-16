@@ -1,15 +1,20 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><title>seed</title></head><body>
 <script>
-var save = {"version":1,"cash":420000000,"totalEarnedThisRun":910000000,"totalEarnedAllTime":7800000000,"gens":{"laptop":124,"gpuRig":98,"serverRack":72,"gpuCluster":46,"dataCenter":29,"superComp":13,"neuroArray":4,"quantumNode":0,"orbital":0,"agiCore":0},"upgrades":{"u_tap1":true,"u_tap2":true,"u_lap1":true,"u_rig1":true,"u_rack1":true,"u_clus1":true,"u_all1":true,"u_dc1":true},"managers":{"m_laptop":true,"m_gpuRig":true,"m_serverRack":true,"m_gpuCluster":true},"rp":28,"totalRP":46,"prestiges":2,"prestigeUpgrades":{"p_mult1":true,"p_tap":true,"p_align":true,"p_offline":true},"align":16,"risk":73.5,"incidentEndsAt":0,"incidentsThisRun":1,"incidentsTotal":1,"taps":612,"boostUntil":0,"achievements":{"a_firstTap":true,"a_tap100":true,"a_firstGen":true,"a_lap50":true,"a_cash1m":true,"a_cash1b":true,"a_prestige1":true,"a_incident":true,"a_align50":false},"playtime":7140,"sound":false,"lang":"en","buyMode":10,"lastSeen":1781558947427,"createdAt":1781551807427};
+var save = {"version":1,"cash":420000000,"totalEarnedThisRun":910000000,"totalEarnedAllTime":7800000000,"gens":{"laptop":124,"gpuRig":98,"serverRack":72,"gpuCluster":46,"dataCenter":29,"superComp":13,"neuroArray":4,"quantumNode":0,"orbital":0,"agiCore":0},"upgrades":{"u_tap1":true,"u_tap2":true,"u_lap1":true,"u_rig1":true,"u_rack1":true,"u_clus1":true,"u_all1":true,"u_dc1":true},"managers":{"m_laptop":true,"m_gpuRig":true,"m_serverRack":true,"m_gpuCluster":true},"rp":28,"totalRP":46,"prestiges":2,"prestigeUpgrades":{"p_mult1":true,"p_tap":true,"p_align":true,"p_offline":true},"align":16,"risk":73.5,"incidentEndsAt":0,"incidentsThisRun":1,"incidentsTotal":1,"taps":612,"boostUntil":0,"eventId":null,"eventEndsAt":0,"eventOutputMult":1,"eventsSeen":0,"nextEventAt":0,"comboHeat":0,"maxHeatHit":false,"frenzyEndsAt":0,"frenzyMult":1,"clickFrenzyEndsAt":0,"clickFrenzyMult":1,"insightExpiresAt":0,"nextInsightAt":0,"insightsClaimed":0,"breakthroughEndsAt":0,"breakthroughMult":1,"breakthroughReadyAt":0,"lastBreakthroughEndAt":0,"breakthroughsUsed":0,"tech":{"t_tap1":true,"t_low1":true,"t_off1":true,"t_all1":true},"artifactsOwned":{"ar_chip":true,"ar_gpu":true,"ar_dataset":true,"ar_oracle":true},"artifactsEquipped":["ar_chip","ar_gpu"],"gambleRoll":1,"cores":0,"coresTotal":0,"meta":{},"singularities":0,"singUnlocked":false,"achievements":{"a_firstTap":true,"a_tap100":true,"a_firstGen":true,"a_lap50":true,"a_cash1m":true,"a_cash1b":true,"a_prestige1":true,"a_incident":true,"a_align50":false},"playtime":7140,"sound":false,"lang":"en","buyMode":10,"_lastRunClean":false,"onboarded":false,"lastSeen":1781588378988,"createdAt":1781581238988};
 var p = new URLSearchParams(location.search);
 save.lastSeen = Date.now() + 300000;
-save.onboarded = true; // mid-game seed: don't show first-run tour
+save.onboarded = true;
 var lang = p.get('lang') || 'en';
 save.lang = lang;
 if (p.get('incident')) { save.incidentEndsAt = Date.now() + 90000; save.risk = 100; }
 else { save.incidentEndsAt = 0; }
 if (p.get('insight')) { save.playtime = 200; save.nextInsightAt = Date.now() - 4000; save.insightExpiresAt = 0; }
 if (p.get('combo')) { save.comboHeat = 0.82; }
+if (p.get('end')) {
+  save.totalRP = 820; save.rp = 660; save.gens.agiCore = 3; save.gens.dysonSwarm = 1;
+  save.singUnlocked = true; save.singularities = 1; save.cores = 5; save.coresTotal = 5;
+  save.meta = { sm_global1: true, sm_rp: true };
+}
 try {
   localStorage.setItem('singularity_inc_save_v1', JSON.stringify(save));
   localStorage.setItem('singularity_inc_lang', lang);
