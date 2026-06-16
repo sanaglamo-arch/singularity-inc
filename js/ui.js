@@ -837,7 +837,8 @@
     if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
     // active cards (skip crises here — they appear as a modal; but still list them)
     var cl = $('cardList'), html = '';
-    G.state.cards.forEach(function (c) { html += renderCardHTML(c); });
+    var order = { crisis: 0, opportunity: 1, decision: 2 };
+    G.state.cards.slice().sort(function (a, b) { return (order[a.kind] || 9) - (order[b.kind] || 9); }).forEach(function (c) { html += renderCardHTML(c); });
     if (!html) html = '<div class="empty-state">' + t('ap_status_idle') + '</div>';
     cl.innerHTML = html; wireCardButtons(cl);
     // market
@@ -918,7 +919,10 @@
     var wb = $('navWorldBtn'), wu = G.worldUnlocked();
     if (wb) wb.classList.toggle('hidden', !wu);
     var th = $('trustHud');
-    if (th) { th.classList.toggle('hidden', !wu); if (wu) $('trustVal').textContent = Math.round(G.state.trust); }
+    if (th) {
+      th.classList.toggle('hidden', !wu);
+      if (wu) { var tr = G.state.trust; $('trustVal').textContent = Math.round(tr); th.classList.toggle('low', tr < 35); th.classList.toggle('high', tr >= 75); }
+    }
     if (wu && !G.state.seen.world) { G.state.seen.world = true; toast(t('hint_world'), 'gold'); G.save(); }
     applyCosmetics();
     if (currentTab === 'settings') updateCosmetics();

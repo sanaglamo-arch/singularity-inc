@@ -77,6 +77,7 @@
       trust: 60,
       cards: [],             // active actionable cards (crisis / decision / opportunity)
       cardAllMult: 1,        // permanent multiplier from one-time opportunities (chip drops)
+      lastCrisisAt: 0,       // crisis cooldown anchor (ms)
       nextNewsAt: 0,
       newsLog: [],           // recent headline strings for the News feed
       market: null,          // {price:{id:n}, hold:{id:shares}, hist:{id:[...]}, nextAt}
@@ -192,7 +193,7 @@
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     m *= techMult('all') * artifactMult('allMult') * artifactSynergyMult();
-    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global') * (state.cardAllMult || 1);
+    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global') * (state.cardAllMult || 1) * trustMult();
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
@@ -395,7 +396,7 @@
     var r = riskReduce();
     if (id === 'cap') { var f = Math.log10(cps() + 10) / C.RISK.CAP_DIV; return C.RISK.CAP_GAIN * f * r; }
     if (id === 'data') { var n = 0; C.RISK.DATA_GENS.forEach(function (g) { n += state.gens[g] || 0; }); return C.RISK.DATA_GAIN * n * r; }
-    if (id === 'reg') { return C.RISK.REG_BASE * r; }
+    if (id === 'reg') { var lowT = state.trust < 50 ? (50 - state.trust) / 50 * C.TRUST.LOW_REG_PRESSURE : 0; return (C.RISK.REG_BASE + lowT) * r; }
     if (id === 'sec') { return C.RISK.SEC_GAIN * r; }
     return 0;
   }
@@ -598,6 +599,9 @@
   }
   // ===== R7 World: Trust, cards (crises + news), market, gating =====
   function worldUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
+  function crisisCooldown() { return Math.max(C.RISK.CRISIS_CD_MIN, C.RISK.CRISIS_CD_BASE - state.prestiges * 3 - state.singularities * 10); }
+  function crisisCdLeft() { return Math.max(0, (state.lastCrisisAt + crisisCooldown() * 1000 - Date.now()) / 1000); }
+  function trustMult() { return C.TRUST.OUTPUT_LO + (C.TRUST.OUTPUT_HI - C.TRUST.OUTPUT_LO) * ((state.trust || 0) / 100); }
   function marketUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
   function clampTrust(v) { return Math.max(C.TRUST.MIN, Math.min(C.TRUST.MAX, v)); }
   function hasCrisisCard() { for (var i = 0; i < state.cards.length; i++) if (state.cards[i].kind === 'crisis') return true; return false; }
@@ -631,8 +635,9 @@
     return true;
   }
   function spawnCrisisCard(vector) {
-    var tpl = null; for (var i = 0; i < C.CARDS.crises.length; i++) if (C.CARDS.crises[i].vector === vector) tpl = C.CARDS.crises[i];
-    if (!tpl) return;
+    var matches = C.CARDS.crises.filter(function (c) { return c.vector === vector; });
+    if (!matches.length) return;
+    var tpl = matches[Math.floor(Math.random() * matches.length)];
     state.cards.push({ uid: _uid++, kind: 'crisis', id: tpl.id, vector: vector, expiresAt: Date.now() + C.CARDS.CRISIS_EXPIRE * 1000 });
     state.incidentsThisRun++; state.incidentsTotal++;
     emit('card', { kind: 'crisis', id: tpl.id });
@@ -653,10 +658,11 @@
     for (var i = state.cards.length - 1; i >= 0; i--) {
       var card = state.cards[i];
       if (now >= card.expiresAt) {
-        if (card.kind === 'crisis') { // escalate: penalty + trust hit + vector re-raise
-          state.incidentEndsAt = now + C.RISK.INCIDENT_DURATION * 1000;
-          state.trust = clampTrust(state.trust - 8);
-          if (card.vector) state.vec[card.vector] = Math.min(C.RISK.MAX, state.vec[card.vector] + 20);
+        if (card.kind === 'crisis') { // escalate: HARDER penalty + bigger trust hit + vector re-raise
+          state.incidentEndsAt = now + C.RISK.INCIDENT_DURATION * C.RISK.ESCALATE_DUR_MULT * 1000;
+          state.trust = clampTrust(state.trust - C.RISK.ESCALATE_TRUST);
+          if (card.vector) state.vec[card.vector] = Math.min(C.RISK.MAX, state.vec[card.vector] + 25);
+          state.lastCrisisAt = now;
           emit('card', { kind: 'escalate', vector: card.vector });
         }
         state.cards.splice(i, 1); changed = true;
@@ -683,9 +689,12 @@
     if (now >= m.nextAt) {
       m.nextAt = now + C.MARKET.TICK * 1000;
       C.MARKET.assets.forEach(function (a) {
-        var vol = a.id === 'ALN' ? C.MARKET.DRIFT * 0.5 : C.MARKET.DRIFT;
-        var chg = (Math.random() * 2 - 1) * vol * 2 + 0.0006;
-        m.price[a.id] = Math.max(1, m.price[a.id] * (1 + chg));
+        var p = m.price[a.id], anchor = a.start, vol = C.MARKET.VOL * (a.vol || 1);
+        var noise = (Math.random() * 2 - 1) * vol;
+        var pull = (anchor - p) / anchor * C.MARKET.REVERT;  // mean reversion -> no runaway, no printer
+        p = p * (1 + noise + pull);
+        p = Math.max(anchor * (1 - C.MARKET.BAND), Math.min(anchor * (1 + C.MARKET.BAND), p)); // soft band
+        m.price[a.id] = Math.max(1, p);
         m.hist[a.id].push(m.price[a.id]); if (m.hist[a.id].length > 40) m.hist[a.id].shift();
       });
       emit('change');
@@ -854,17 +863,15 @@
       var vid = C.RISK.VECTORS[vi];
       state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + vectorNet(vid) * dt));
     }
-    // crisis: a maxed vector triggers an output-penalty crisis (and a decision if enabled)
-    if (!prevIncident) {
+    // crisis: a maxed vector fires a crisis, but only once per (stage-scaled) cooldown
+    // so they're tense, not spammy. On cooldown a maxed vector is pinned (visible danger).
+    if (!prevIncident && !hasCrisisCard()) {
+      var cdMs = crisisCooldown() * 1000, nowt = Date.now();
       for (var ci = 0; ci < C.RISK.VECTORS.length; ci++) {
         var cv = C.RISK.VECTORS[ci];
         if (state.vec[cv] >= C.RISK.INCIDENT_THRESHOLD) {
-          state.vec[cv] = C.RISK.INCIDENT_RESET_RISK;
-          state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000;
-          state.incidentsThisRun++; state.incidentsTotal++;
-          checkAchievements();
-          emit('incident', { active: true, vector: cv });
-          triggerCrisis(cv); // Slice 2: decision card (no-op until crises defined)
+          if (nowt - state.lastCrisisAt < cdMs) { state.vec[cv] = Math.min(state.vec[cv], 96); }
+          else { state.vec[cv] = C.RISK.INCIDENT_RESET_RISK; state.lastCrisisAt = nowt; checkAchievements(); triggerCrisis(cv); }
           break;
         }
       }
@@ -1024,6 +1031,7 @@
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
+    crisisCdLeft: crisisCdLeft, trustMult: trustMult,
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
     autopilotUnlocked: autopilotUnlocked, apStatus: apStatus,
     setAutopilotOn: setAutopilotOn, setAutopilotReserve: setAutopilotReserve,

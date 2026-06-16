@@ -108,7 +108,12 @@
     // Reactive Audit: preemptive, costs cash, on cooldown — NOT an instant crisis-clear
     AUDIT_CUT: 35,           // reduces the highest vector by this
     AUDIT_FRAC: 0.18,        // cost = this fraction of current cash
-    AUDIT_CD: 120            // cooldown (seconds)
+    AUDIT_CD: 120,           // cooldown (seconds)
+    // Crisis cadence — a global cooldown spaces crises out (anti-nag). Gentle early,
+    // more pressure later: cooldown = clamp(BASE - prestiges*3 - singularities*10).
+    CRISIS_CD_BASE: 130, CRISIS_CD_MIN: 65,
+    // Escalation: an ignored crisis hits harder + longer than a handled one.
+    ESCALATE_DUR_MULT: 1.6, ESCALATE_TRUST: 10
   };
 
   // ---- Tap -------------------------------------------------------------
@@ -261,7 +266,9 @@
   };
 
   // ---- Trust / Reputation ----------------------------------------------
-  var TRUST = { START: 60, MAX: 100, MIN: 0 };
+  // Trust matters every second: output x scales 0.90 (trust 0) -> 1.00 (50) -> 1.10 (100).
+  // High Trust unlocks premium contracts; low Trust adds regulatory pressure.
+  var TRUST = { START: 60, MAX: 100, MIN: 0, OUTPUT_LO: 0.90, OUTPUT_HI: 1.10, LOW_REG_PRESSURE: 0.04 };
 
   // ---- Unified card system: crises + news decisions + opportunities -----
   // effect keys: cashFrac (-fraction of cash), trust (+/-), vec {id:delta},
@@ -286,7 +293,19 @@
       { id: 'c_sec', vector: 'sec', choices: [
         { id: 'patch',  effect: { cashFrac: -0.14 } },
         { id: 'ransom', effect: { cashFrac: -0.28, trust: -5 } },
-        { id: 'ignore', effect: { penaltySec: 90, vec: { sec: 20 } } } ] }
+        { id: 'ignore', effect: { penaltySec: 90, vec: { sec: 20 } } } ] },
+      { id: 'c_cap2', vector: 'cap', choices: [
+        { id: 'sandbox', effect: { cashFrac: -0.16 } },
+        { id: 'ship',    effect: { trust: -12, vec: { reg: 16 } } },
+        { id: 'ignore',  effect: { penaltySec: 90 } } ] },
+      { id: 'c_reg2', vector: 'reg', choices: [
+        { id: 'settle',  effect: { cashFrac: -0.2, trust: 6 } },
+        { id: 'appeal',  effect: { cashFrac: -0.1, vec: { reg: 14 } } },
+        { id: 'ignore',  effect: { penaltySec: 90, trust: -5 } } ] },
+      { id: 'c_data2', vector: 'data', choices: [
+        { id: 'optout',  effect: { cashFrac: -0.13, trust: 5 } },
+        { id: 'sell',    effect: { cashGift: 400, trust: -14, vec: { reg: 18 } } },
+        { id: 'ignore',  effect: { penaltySec: 90 } } ] }
     ],
     // news decisions (two-choice) + opportunities (single act). gated behind progress.
     news: [
@@ -301,20 +320,35 @@
       { id: 'n_chip', kind: 'opportunity', choices: [
         { id: 'buy', effect: { allMult: 1.05 } } ] },
       { id: 'n_grant', kind: 'opportunity', req: { trust: 70 }, choices: [
-        { id: 'accept', effect: { cashGift: 3000, trust: 3 } } ] }
+        { id: 'accept', effect: { cashGift: 3000, trust: 3 } } ] },
+      { id: 'n_defense', kind: 'opportunity', req: { trust: 85 }, choices: [
+        { id: 'sign', effect: { cashGift: 6000, vec: { reg: 12 } } } ] },
+      { id: 'n_viral', kind: 'decision', choices: [
+        { id: 'lean',  effect: { trust: -6, cashGift: 1200, vec: { reg: 10 } } },
+        { id: 'damp',  effect: { trust: 5 } } ] },
+      { id: 'n_whistle', kind: 'decision', choices: [
+        { id: 'address', effect: { cashFrac: -0.12, trust: 8 } },
+        { id: 'silence', effect: { trust: -15, vec: { sec: 14 } } } ] },
+      { id: 'n_audit', kind: 'opportunity', choices: [
+        { id: 'invite', effect: { trust: 7, cashFrac: -0.08 } } ] }
     ]
   };
 
   // ---- Market / investing minigame -------------------------------------
+  // Mean-reverting (NOT a money printer): zero net drift + pull toward each asset's
+  // anchor so prices oscillate. Profit requires timing; the 1.5% fee each way (3%
+  // round-trip) punishes churn. Bonus skill layer, never trivializes the economy.
   var MARKET = {
-    DRIFT: 0.015,            // per-tick volatility (random walk)
-    TICK: 6,                 // seconds between price updates
-    FEE: 0.01,               // 1% trade fee
+    VOL: 0.05,               // per-update volatility
+    REVERT: 0.06,            // pull back toward anchor each update
+    BAND: 0.55,              // soft price band: anchor*(1±BAND)
+    TICK: 5,                 // seconds between price updates
+    FEE: 0.015,              // 1.5% trade fee per side
     assets: [
-      { id: 'CMP', start: 100 },  // Compute Futures
-      { id: 'NVX', start: 240 },  // Chip Co
-      { id: 'DTA', start: 60 },   // Data Corp
-      { id: 'ALN', start: 150 }   // Safety ETF (low volatility)
+      { id: 'CMP', start: 100, vol: 1.0 },  // Compute Futures
+      { id: 'NVX', start: 240, vol: 1.3 },  // Chip Co (spiky)
+      { id: 'DTA', start: 60,  vol: 1.1 },  // Data Corp
+      { id: 'ALN', start: 150, vol: 0.45 }  // Safety ETF (calm)
     ]
   };
 

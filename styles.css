@@ -147,6 +147,8 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 #trustHud { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--glass-border); font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--cyan); }
 #trustHud .thi { width: 15px; height: 15px; display: inline-flex; color: var(--cyan); }
 #trustHud .thi svg { width: 15px; height: 15px; }
+#trustHud.low { color: var(--rose); border-color: rgba(251,92,120,0.4); } #trustHud.low .thi { color: var(--rose); }
+#trustHud.high { color: var(--green); border-color: rgba(52,211,153,0.4); } #trustHud.high .thi { color: var(--green); }
 
 /* ---------- world: news cards + market ---------- */
 .newscard { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 11px; box-shadow: var(--shadow-1), var(--inset-hi); }
