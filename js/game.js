@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -98,6 +98,10 @@
       modelGen: 0,           // # of model generations COMPLETED (0 = none yet); next = MODELGEN[modelGen]
       marketShare: 0,        // your market share % (derived scoreboard, climbs on generation advance)
       training: { active: false, gen: -1, startedAt: 0, endsAt: 0 }, // active timed training process
+      datacenters: 0,        // completed datacenter builds (each = +compute multiplier)
+      build: { active: false, startedAt: 0, endsAt: 0 },             // active datacenter-build timer
+      researchLevel: 0,      // completed research projects (efficiency)
+      research2: { active: false, startedAt: 0, endsAt: 0 },         // active research timer
       funding: {},           // funding round id -> true (Seed→A→B→C→IPO)
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
@@ -279,12 +283,38 @@
     m *= achPerkMult('global') * (state.cardAllMult || 1) * transientMult();
     return m;
   }
-  // 🖥 compute produced per second by all generators (generators = compute infra).
+  // 🖥 compute produced per second by all generators (generators = compute infra),
+  // scaled by built datacenters and research efficiency (the parallel processes).
   function computeRate() {
     var sum = 0;
     for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
-    return sum * C.CORE.COMPUTE_PER_OUT * genericMult();
+    return sum * C.CORE.COMPUTE_PER_OUT * genericMult() * datacenterMult() * researchEfficiencyMult();
   }
+  // combined speed multiplier for ALL timed processes (researchers + research perks + boost)
+  function processSpeed() {
+    var s = 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER) + (state.researchLevel || 0) * C.RESEARCH2.speedBonus;
+    return s * (boostActive() ? C.ADS.BOOST_MULT : 1);
+  }
+  // ---- datacenter build process (money + time -> permanent compute capacity) ----
+  function datacenterMult() { return 1 + (state.datacenters || 0) * C.DATACENTER.bonus; }
+  function buildCost() { return Math.floor(C.DATACENTER.baseCost * Math.pow(C.DATACENTER.costGrowth, state.datacenters || 0)); }
+  function buildSec() { return C.DATACENTER.baseSec * Math.pow(C.DATACENTER.secGrowth, state.datacenters || 0) / processSpeed(); }
+  function buildActive() { return !!(state.build && state.build.active); }
+  function canStartBuild() { return !buildActive() && state.cash >= buildCost(); }
+  function startBuild() { if (!canStartBuild()) return false; state.cash -= buildCost(); var d = buildSec(); state.build = { active: true, startedAt: Date.now(), endsAt: Date.now() + d * 1000 }; emit('change'); return true; }
+  function buildProgress() { if (!buildActive()) return 0; var b = state.build, tot = b.endsAt - b.startedAt; return tot <= 0 ? 1 : Math.max(0, Math.min(1, (Date.now() - b.startedAt) / tot)); }
+  function buildTimeLeft() { return buildActive() ? Math.max(0, (state.build.endsAt - Date.now()) / 1000) : 0; }
+  function finishBuild() { if (!buildActive()) return false; state.datacenters++; state.build = { active: false, startedAt: 0, endsAt: 0 }; checkAchievements(); emit('process', { kind: 'build', n: state.datacenters }); emit('change'); return true; }
+  // ---- research project process (money + time -> permanent efficiency) ----
+  function researchEfficiencyMult() { return 1 + (state.researchLevel || 0) * C.RESEARCH2.computeBonus; }
+  function researchProjCost() { return Math.floor(C.RESEARCH2.baseCost * Math.pow(C.RESEARCH2.costGrowth, state.researchLevel || 0)); }
+  function researchProjSec() { return C.RESEARCH2.baseSec * Math.pow(C.RESEARCH2.secGrowth, state.researchLevel || 0) / processSpeed(); }
+  function researchActive() { return !!(state.research2 && state.research2.active); }
+  function canStartResearch() { return !researchActive() && state.cash >= researchProjCost(); }
+  function startResearch() { if (!canStartResearch()) return false; state.cash -= researchProjCost(); var d = researchProjSec(); state.research2 = { active: true, startedAt: Date.now(), endsAt: Date.now() + d * 1000 }; emit('change'); return true; }
+  function researchProgress() { if (!researchActive()) return 0; var b = state.research2, tot = b.endsAt - b.startedAt; return tot <= 0 ? 1 : Math.max(0, Math.min(1, (Date.now() - b.startedAt) / tot)); }
+  function researchTimeLeft() { return researchActive() ? Math.max(0, (state.research2.endsAt - Date.now()) / 1000) : 0; }
+  function finishResearch() { if (!researchActive()) return false; state.researchLevel++; state.research2 = { active: false, startedAt: 0, endsAt: 0 }; checkAchievements(); emit('process', { kind: 'research', n: state.researchLevel }); emit('change'); return true; }
   function tapCompute() {
     var v = C.CORE.TAP_COMPUTE * (1 + comboBonus()) * genericMult();
     if (clickFrenzyActive()) v *= state.clickFrenzyMult;
@@ -330,8 +360,7 @@
   // real-time duration for the next generation, shortened by researchers + boosts
   function trainDuration() {
     var g = nextGen(); if (!g) return 0;
-    var speed = researcherSpeed() * (boostActive() ? C.ADS.BOOST_MULT : 1);
-    return g.trainSec / speed;
+    return g.trainSec / processSpeed();   // researchers + research perks + boost all shorten it
   }
   function canStartTraining() {
     var g = nextGen();
@@ -1174,6 +1203,8 @@
     state.compute += computeRate() * dt;
     addCash(moneyRate() * dt);
     if (trainingActive() && Date.now() >= state.training.endsAt) finishTraining();
+    if (buildActive() && Date.now() >= state.build.endsAt) finishBuild();        // parallel timers
+    if (researchActive() && Date.now() >= state.research2.endsAt) finishResearch();
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
@@ -1290,6 +1321,11 @@
     // ---- v5: rival market-share race ----
     if (!s.rivalShare || typeof s.rivalShare !== 'object') s.rivalShare = {};
     C.RIVALS.forEach(function (r) { if (typeof s.rivalShare[r.id] !== 'number') s.rivalShare[r.id] = r.share0; });
+    // ---- v6: parallel build/research timers ----
+    if (typeof s.datacenters !== 'number') s.datacenters = 0;
+    if (!s.build || typeof s.build !== 'object') s.build = { active: false, startedAt: 0, endsAt: 0 };
+    if (typeof s.researchLevel !== 'number') s.researchLevel = 0;
+    if (!s.research2 || typeof s.research2 !== 'object') s.research2 = { active: false, startedAt: 0, endsAt: 0 };
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1364,6 +1400,8 @@
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
     rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi,
+    datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
+    researchEfficiencyMult: researchEfficiencyMult, researchProjCost: researchProjCost, researchActive: researchActive, canStartResearch: canStartResearch, startResearch: startResearch, researchProgress: researchProgress, researchTimeLeft: researchTimeLeft, processSpeed: processSpeed,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,

@@ -496,6 +496,15 @@
     OFFLINE_PROCESS: true,       // timers advance offline (capped by offline cap)
   };
 
+  // ---- Parallel timed processes (the month-long engine, GAME-DESIGN.md §2/§7) --
+  // Datacenter BUILD: money + real time → permanent compute capacity. Several
+  // builds over the arc (real lead-time 6–12 months, compressed). Each adds BONUS
+  // to the compute multiplier. cost/time escalate so later builds take hours→days.
+  var DATACENTER = { baseCost: 1.2e4, costGrowth: 2.3, baseSec: 240, secGrowth: 1.55, bonus: 0.6 };
+  // RESEARCH project: money + real time → permanent EFFICIENCY (faster processes +
+  // more compute per unit). Repeatable ladder; escalates like builds.
+  var RESEARCH2 = { baseCost: 6e3, costGrowth: 2.1, baseSec: 200, secGrowth: 1.5, speedBonus: 0.04, computeBonus: 0.06 };
+
   // ---- Researchers / talent -------------------------------------------
   var TALENT = {
     baseCost: 5e3,            // money cost of researcher #1
@@ -519,7 +528,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 5,          // GDD v3: + rival market-share race
+    SAVE_VERSION: 6,          // GDD v3: + parallel build/research timers
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -533,6 +542,8 @@
     CORE: CORE,
     MODELGEN: MODELGEN,
     PROCESS: PROCESS,
+    DATACENTER: DATACENTER,
+    RESEARCH2: RESEARCH2,
     TALENT: TALENT,
     FUNDING: FUNDING,
     UNLOCKS: UNLOCKS,

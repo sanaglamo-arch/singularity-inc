@@ -15,7 +15,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 
 ## Phase status
 - [x] P1 generations ladder — DONE (no-reset; prestige reset disabled forward-only; money flipped to product revenue) + no reset
-- [~] P2 timed processes (training live in tick+UI; datacenter-build + research timers still TODO)
+- [x] P2 timed processes — training + datacenter-BUILD (Lab) + RESEARCH (Team) timers, all PARALLEL in tick (3 at once), researchers/research/boost shorten them, offline-safe, SAVE_VERSION 6.
 - [x] P3 resources (state+migration+engine+HUD done) (money/compute/researchers + valuation/share)
 - [x] P4 rivals + market-share race — state.rivalShare + growth in tick, standings panel (you vs rivals sorted, #1 highlight), agiProgress re-homed to modelGen, SAVE_VERSION 5. (Lab crowding -> address in P6/P10)
 - [x] P5 finance — valuation fixed (ARR×multiple); funding rounds Seed→A→B→C→IPO UI live (realistic valReqs; moneyRate compression pending P9)

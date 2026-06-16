@@ -388,6 +388,23 @@ h2:first-child { margin-top: 4px; }
 #hireBtn:active:not(:disabled) { transform: scale(0.98); filter: brightness(1.06); }
 #hireBtn:disabled { background: var(--surface-2); color: var(--fg-muted); box-shadow: none; }
 #hireHint { text-align: center; margin-top: 8px; }
+/* parallel-process boxes (datacenter build on Lab, research in Team) reuse train/fund styles */
+#buildBox { margin-top: 8px; }
+#buildBtn, #researchBtn { width: 100%; min-height: 46px; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--fg);
+  background: rgba(20,19,42,0.82); box-shadow: var(--shadow-1), var(--inset-hi);
+  transition: transform 0.09s var(--ease-spring), filter 0.2s; }
+#buildBtn:active:not(:disabled), #researchBtn:active:not(:disabled) { transform: scale(0.98); filter: brightness(1.1); }
+#buildBtn:disabled, #researchBtn:disabled { color: var(--fg-muted); opacity: 0.6; cursor: default; }
+#buildProg, #researchProg2 { margin-top: 7px; }
+#buildProg .bar, #researchProg2 .bar { height: 9px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+#buildFill, #researchFill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--violet-2), var(--cyan)); box-shadow: 0 0 10px var(--glow-violet); transition: width 0.3s linear; }
+#buildTimer, #researchTimer { text-align: center; margin-top: 4px; }
+#rndPanel { padding: 14px; }
+#researchStats { display: flex; gap: 10px; margin-bottom: 12px; }
+#researchStats .tstat { flex: 1 1 0; background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 10px; display: flex; flex-direction: column; gap: 3px; }
+#researchStats .tk { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-muted); }
+#researchStats .tv { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--violet-2); }
 #tapHint { color: var(--fg-muted); font-size: 12px; margin-top: 12px; letter-spacing: 0.3px; }
 #breakthroughBtn { max-width: 320px; margin: 12px auto 0; display: block; }
 #breakthroughBtn.bt-active { background: linear-gradient(100deg, var(--gold), var(--rose)); color: #2a0710; box-shadow: 0 0 26px -6px var(--glow-gold); }

@@ -144,6 +144,7 @@
     if ($('teamTitle')) {
       $('teamTitle').innerHTML = t('team_title') + infoBtn('tip_team');
       $('teamDesc').textContent = t('team_desc');
+      if ($('rndTitle')) $('rndTitle').innerHTML = t('rnd_title') + infoBtn('tip_research2');
     }
     // alignment
     $('alignTitle').innerHTML = t('alignment_title') + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
@@ -318,6 +319,17 @@
       setClass(fb, 'hidden', false); fb.disabled = false;
       setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.valuation() * round.cashFrac) }));
     } else { setClass(fb, 'hidden', true); }
+    // datacenter build (parallel timer): money + time -> permanent compute capacity
+    var bb = $('buildBtn'), bp = $('buildProg');
+    if (G.buildActive()) {
+      setClass(bb, 'hidden', true); setClass(bp, 'hidden', false);
+      setStyleP($('buildFill'), 'width', (G.buildProgress() * 100).toFixed(1) + '%');
+      setText($('buildTimer'), t('build_active', { t: FMT.fmtTime(G.buildTimeLeft()) }));
+    } else {
+      setClass(bp, 'hidden', true); setClass(bb, 'hidden', false);
+      setText(bb, t('build_btn', { v: '$' + fmt(G.buildCost()), p: Math.round(C.DATACENTER.bonus * 100) }));
+      bb.disabled = !G.canStartBuild();
+    }
     var btn = $('trainBtn'), prog = $('trainProg'), hint = $('trainHint');
     if (G.isAGI()) {
       setClass(btn, 'hidden', true); setClass(prog, 'hidden', true);
@@ -350,6 +362,20 @@
     setText(btn, t('hire_btn', { v: fmt(cost) }));
     btn.disabled = s.cash < cost;
     setText($('hireHint'), t('team_hint'));
+    // research project (parallel timer): money + time -> permanent efficiency
+    setHTML($('researchStats'),
+      '<div class="tstat"><span class="tk">' + t('research_done') + '</span><span class="tv">' + s.researchLevel + '</span></div>' +
+      '<div class="tstat"><span class="tk">' + t('research_eff') + '</span><span class="tv">+' + Math.round((G.researchEfficiencyMult() - 1) * 100) + '%</span></div>');
+    var rb = $('researchBtn'), rp = $('researchProg2');
+    if (G.researchActive()) {
+      setClass(rb, 'hidden', true); setClass(rp, 'hidden', false);
+      setStyleP($('researchFill'), 'width', (G.researchProgress() * 100).toFixed(1) + '%');
+      setText($('researchTimer'), t('research_active', { t: FMT.fmtTime(G.researchTimeLeft()) }));
+    } else {
+      setClass(rp, 'hidden', true); setClass(rb, 'hidden', false);
+      setText(rb, t('research_btn', { v: '$' + fmt(G.researchProjCost()) }));
+      rb.disabled = !G.canStartResearch();
+    }
   }
 
   // ---------- GDD v3: rival market-share standings ----------
@@ -1534,6 +1560,21 @@
     if (trainBtn) trainBtn.addEventListener('click', function () {
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // GDD v3: parallel timers — datacenter build + research project
+    var buildBtn = $('buildBtn');
+    if (buildBtn) buildBtn.addEventListener('click', function () {
+      if (G.startBuild()) { window.GAME_AUDIO.buy(); buzz(10); window.GAME_FX.flash('rgba(34,211,238,0.15)'); updateModelPanel(); }
+      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    var researchBtn = $('researchBtn');
+    if (researchBtn) researchBtn.addEventListener('click', function () {
+      if (G.startResearch()) { window.GAME_AUDIO.buy(); buzz(10); updateTeam(); }
+      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    G.on('process', function (d) {
+      if (d.kind === 'build') toast(t('build_done_toast', { n: d.n }), 'gold');
+      else if (d.kind === 'research') toast(t('research_done_toast', { n: d.n }), 'gold');
     });
     // GDD v3: hire a researcher (speeds up training/research/builds)
     var hireBtn = $('hireBtn');
