@@ -440,6 +440,7 @@
     if (state.comboHeat >= 0.999) state.maxHeatHit = true;
     var v = tapValue();
     addCash(v);
+    state.compute += tapCompute();   // GDD v3: a tap also generates compute (the bottleneck)
     state.taps++;
     checkAchievements();
     emit('change');
@@ -1137,6 +1138,10 @@
 
     var rate = cps();
     addCash(rate * dt);
+
+    // GDD v3 continuous meta: generators also accrue COMPUTE; timed training advances.
+    state.compute += computeRate() * dt;
+    if (trainingActive() && Date.now() >= state.training.endsAt) finishTraining();
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
     // Before that, "risks of scale" simply do not exist (clean early game).
