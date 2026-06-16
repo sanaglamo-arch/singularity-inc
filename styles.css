@@ -316,3 +316,16 @@ button { font-family: inherit; color: var(--txt); }
 
 /* larger screens: cap scroll width for readability */
 .scroll > * { max-width: 880px; margin-left: auto; margin-right: auto; }
+
+/* Desktop layout balance: vertically center short panels so wide screens don't
+   look top-heavy/empty. `safe center` falls back to top-alignment when content
+   overflows, so long lists (upgrades, generators) still scroll normally. */
+@media (min-width: 720px) {
+  .scroll { display: flex; flex-direction: column; justify-content: safe center; align-items: center; }
+  .scroll > * { width: 100%; }
+  /* focused single-panel tabs read better as a centered card */
+  #alignPane > *, #researchPane > *, #settingsPane > *, #statsPane > * { max-width: 560px; }
+  #achPane > * { max-width: 640px; }
+  /* generators column keeps its width and stays top-aligned */
+  #genList { align-items: stretch; justify-content: flex-start; }
+}
