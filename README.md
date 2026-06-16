@@ -24,6 +24,7 @@ singularity-inc/
 │   ├── ads.js              rewarded / interstitial / sticky (graceful no-op)
 │   ├── game.js             economy engine, tick, save/load, prestige, risk
 │   ├── audio.js            procedural WebAudio SFX (off by default)
+│   ├── fx.js               particle bursts, screen shake, vignette (juice)
 │   ├── ui.js               DOM rendering + interaction
 │   └── main.js             bootstrap, RAF loop, anti-hijack guards
 ├── icon-512.png            512×512 RGB (no alpha) store icon
@@ -79,10 +80,10 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
 6. **Screenshots:** upload from `screenshots/`. Recommended set:
    - Mobile (1350×2400, 9:16): `mobile_company.png`, `mobile_upgrades.png`,
      `mobile_research.png`, `mobile_alignment_incident.png`, `mobile_stats.png`,
-     `mobile_settings.png`.
+     `mobile_achievements.png`, `mobile_settings.png`, `mobile_onboarding.png`.
    - Desktop (1920×1080, 16:9): `hero.png` (= `desktop_company.png`),
      `desktop_upgrades.png`, `desktop_research.png`, `desktop_alignment.png`,
-     `desktop_stats.png`.
+     `desktop_stats.png`, `desktop_achievements.png`.
    - `mobile_company_ru.png` showcases the Russian localization.
 7. **Category:** Simulation / Strategy (Idle). **Monetization:** enable Rewarded
    Video, Interstitial, and Sticky banner — all are wired and degrade gracefully.
@@ -103,7 +104,7 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
   `user-select:none`, `touch-action:manipulation`.
 - ✅ **Viewport:** `width=device-width, initial-scale=1, maximum-scale=1,
   user-scalable=no, viewport-fit=cover`; safe-area insets respected.
-- ✅ **Localization:** complete **RU + EN** (199/199 keys each, verified parity),
+- ✅ **Localization:** complete **RU + EN** (246/246 keys each, verified parity),
   runtime toggle, no untranslated strings.
 - ✅ **Icon:** 512×512, **RGB, no alpha**, square, an illustration.
 - ✅ **Cover:** 800×470 illustration (not a screenshot).
