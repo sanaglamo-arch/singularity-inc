@@ -18,7 +18,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [~] P2 timed processes (training live in tick+UI; datacenter-build + research timers still TODO)
 - [x] P3 resources (state+migration+engine+HUD done) (money/compute/researchers + valuation/share)
 - [ ] P4 market share + rivals central
-- [ ] P5 finance rounds + valuation
+- [x] P5 finance — valuation fixed (ARR×multiple); funding rounds Seed→A→B→C→IPO UI live (realistic valReqs; moneyRate compression pending P9)
 - [ ] P6 systems re-homed on continuous growth
 - [ ] P7 retention engine
 - [ ] P8 endgame + endings + legacy

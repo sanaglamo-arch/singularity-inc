@@ -459,9 +459,9 @@
     REV_BASE: 0.15,           // tuned in P9
     REV_COMPUTE_FACTOR: 0.10, // (legacy) gentle log scaling
     REV_PER_COMPUTE: 0.5,     // money/sec per compute/sec of infra (product serves users ∝ compute)
-    // valuation = funding-implied; grows with revenue run-rate, model gen, market share
-    VAL_REV_MULT: 30,         // ARR multiple (≈ real frontier-lab multiples)
-    VAL_GEN_MULT: 1.0,
+    // valuation = annual revenue run-rate × multiple (clean; no double-count)
+    SECONDS_YEAR: 31536000,
+    VAL_REV_MULT: 20,         // ARR multiple (≈ real frontier-lab multiples)
     START_MONEY: 0
   };
 
@@ -502,12 +502,14 @@
   // ---- Finance: funding rounds (replaces twitchy market) --------------
   // Each round: one-time cash = fraction of current valuation; gated by valuation
   // milestone; raises a permanent revenue/credibility multiplier. Seed→A→B→C→IPO.
+  // valReq = realistic valuation milestones (seed $15M → IPO $200B). The moneyRate
+  // curve gets compressed in P9 so these gate progressively across the month.
   var FUNDING = [
-    { id: 'seed', valReq: 5e4,  cashFrac: 0.20, mult: 1.10 },
-    { id: 'a',    valReq: 1e7,  cashFrac: 0.18, mult: 1.15 },
-    { id: 'b',    valReq: 5e8,  cashFrac: 0.16, mult: 1.20 },
-    { id: 'c',    valReq: 2e10, cashFrac: 0.14, mult: 1.25 },
-    { id: 'ipo',  valReq: 1e12, cashFrac: 0.12, mult: 1.40 }
+    { id: 'seed', valReq: 1.5e7, cashFrac: 0.20, mult: 1.10 },
+    { id: 'a',    valReq: 2e8,   cashFrac: 0.18, mult: 1.15 },
+    { id: 'b',    valReq: 3e9,   cashFrac: 0.16, mult: 1.20 },
+    { id: 'c',    valReq: 4e10,  cashFrac: 0.14, mult: 1.25 },
+    { id: 'ipo',  valReq: 2e11,  cashFrac: 0.12, mult: 1.40 }
   ];
 
   // ---- Misc ------------------------------------------------------------

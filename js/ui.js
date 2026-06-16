@@ -307,6 +307,12 @@
     setText($('shareVal'), (Math.round(s.marketShare * 10) / 10) + '%');
     setText($('valVal'), '$' + fmt(G.valuation()));
     setText($('modelProg'), t('model_progress', { n: s.modelGen, total: C.MODELGEN.length }));
+    // funding round (P5): appears when valuation clears the next round's milestone
+    var fb = $('fundingBtn'), round = G.nextFundingRound();
+    if (round && G.canTakeFunding()) {
+      setClass(fb, 'hidden', false); fb.disabled = false;
+      setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.valuation() * round.cashFrac) }));
+    } else { setClass(fb, 'hidden', true); }
     var btn = $('trainBtn'), prog = $('trainProg'), hint = $('trainHint');
     if (G.isAGI()) {
       setClass(btn, 'hidden', true); setClass(prog, 'hidden', true);
@@ -1485,6 +1491,17 @@
     if (trainBtn) trainBtn.addEventListener('click', function () {
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // GDD v3: raise a funding round
+    var fundingBtn = $('fundingBtn');
+    if (fundingBtn) fundingBtn.addEventListener('click', function () {
+      var round = G.nextFundingRound(); if (!round) return;
+      var before = G.state.cash;
+      if (G.takeFunding()) { window.GAME_AUDIO.prestige(); buzz([0,25,40,25]); window.GAME_FX.flash('rgba(251,191,36,0.22)'); updateModelPanel(); }
+    });
+    G.on('funding', function (d) {
+      var r = null; for (var i = 0; i < C.FUNDING.length; i++) if (C.FUNDING[i].id === d.id) r = C.FUNDING[i];
+      toast(t('fund_done_toast', { name: t('fund_' + d.id), v: '$' + fmt(G.valuation() * (r ? r.cashFrac : 0)), p: r ? Math.round((r.mult - 1) * 100) : 0 }), 'gold');
     });
     G.on('generation', function (d) {
       var g = (d.gen >= 1 && C.MODELGEN[d.gen - 1]) ? C.MODELGEN[d.gen - 1] : null;

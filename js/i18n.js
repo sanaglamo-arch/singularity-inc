@@ -53,6 +53,11 @@
     // model generation names (generic, no trademarks)
     g_v1: 'Model v1', g_v2: 'Model v2', g_v3: 'Model v3', g_v4: 'Model v4', g_v5: 'Model v5', g_v6: 'Model v6',
     g_front1: 'Frontier v7', g_front2: 'Frontier v8', g_front3: 'Frontier v9', g_proto: 'Proto-AGI', g_agi: 'AGI',
+    // funding rounds (Seed→A→B→C→IPO)
+    fund_seed: 'Seed', fund_a: 'Series A', fund_b: 'Series B', fund_c: 'Series C', fund_ipo: 'IPO',
+    fund_btn: 'Raise {name} · +{v}', fund_locked: 'Next round at {v} valuation',
+    fund_done_toast: 'Raised {name}! +{v} cash · +{p}% revenue',
+    tip_funding: 'Raise capital as your valuation grows: Seed → A → B → C → IPO. Each round is a big one-time cash injection and a permanent revenue boost. Replaces day-trading — grow the company, not a ticker.',
 
     upgrades_title: 'Global Upgrades',
     managers_title: 'Automation',
@@ -501,6 +506,10 @@
     tip_valuation: 'Сколько инвесторы считают компанию стоящей (run-rate выручки × рынок). С её ростом открываются раунды.',
     g_v1: 'Модель v1', g_v2: 'Модель v2', g_v3: 'Модель v3', g_v4: 'Модель v4', g_v5: 'Модель v5', g_v6: 'Модель v6',
     g_front1: 'Передовая v7', g_front2: 'Передовая v8', g_front3: 'Передовая v9', g_proto: 'Прото-AGI', g_agi: 'AGI',
+    fund_seed: 'Seed', fund_a: 'Раунд A', fund_b: 'Раунд B', fund_c: 'Раунд C', fund_ipo: 'IPO',
+    fund_btn: 'Привлечь {name} · +{v}', fund_locked: 'Следующий раунд при оценке {v}',
+    fund_done_toast: 'Привлечён {name}! +{v} денег · +{p}% выручки',
+    tip_funding: 'Привлекай капитал по мере роста оценки: Seed → A → B → C → IPO. Каждый раунд — крупная разовая инъекция денег и перманентный буст выручки. Заменяет биржевой трейдинг — расти компанию, а не тикер.',
 
     upgrades_title: 'Глобальные апгрейды',
     managers_title: 'Автоматизация',

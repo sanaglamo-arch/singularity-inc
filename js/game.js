@@ -303,11 +303,11 @@
     if (state.modelGen <= 0) return 0;            // no product yet → tap bootstrap only
     return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100);
   }
-  // company valuation (derived scoreboard): ARR multiple + generation + share
+  // company valuation (derived scoreboard): annual revenue run-rate × multiple,
+  // floored by tangible assets (cash + infra) so a pre-revenue garage isn't $0.
   function valuation() {
-    var arr = moneyRate() * 86400 * 30;           // ~monthly run-rate proxy
-    var v = arr * C.CORE.VAL_REV_MULT * (1 + state.marketShare / 100) * (1 + state.modelGen * C.CORE.VAL_GEN_MULT);
-    return Math.max(v, state.compute * 5);        // floor so early infra has some value
+    var arr = moneyRate() * C.CORE.SECONDS_YEAR;  // annualised run-rate
+    return Math.max(arr * C.CORE.VAL_REV_MULT, state.cash + state.compute * 2);
   }
 
   // ---- researchers / talent ----

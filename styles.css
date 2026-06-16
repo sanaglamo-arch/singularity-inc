@@ -354,6 +354,11 @@ h2:first-child { margin-top: 4px; }
 #trainTimer { text-align: center; }
 #trainHint { text-align: center; }
 #trainHint.agi { color: var(--gold); font-family: var(--font-display); font-weight: 800; letter-spacing: 2px; font-size: 15px; text-shadow: 0 0 16px var(--glow-gold); }
+#fundingBtn { width: 100%; min-height: 46px; margin-top: 8px; border: 1px solid rgba(251,191,36,0.5); border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 0.4px; color: #1a1305;
+  background: linear-gradient(100deg, var(--gold), #ffe08a); box-shadow: 0 8px 24px -10px var(--glow-gold);
+  transition: transform 0.09s var(--ease-spring), filter 0.2s; }
+#fundingBtn:active { transform: scale(0.98); filter: brightness(1.06); }
 #tapHint { color: var(--fg-muted); font-size: 12px; margin-top: 12px; letter-spacing: 0.3px; }
 #breakthroughBtn { max-width: 320px; margin: 12px auto 0; display: block; }
 #breakthroughBtn.bt-active { background: linear-gradient(100deg, var(--gold), var(--rose)); color: #2a0710; box-shadow: 0 0 26px -6px var(--glow-gold); }
