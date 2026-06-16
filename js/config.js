@@ -75,12 +75,12 @@
       { id: 'p_tap',     type: 'tapMult',     value: 10,   cost: 10 },
       { id: 'p_align',   type: 'alignBoost',  value: 2,    cost: 20 }, // alignment suppression x2
       { id: 'p_offline', type: 'offlineCap',  value: 4,    cost: 25 }, // +4h offline cap
-      { id: 'p_seed',    type: 'startCashPct', value: 0.05, cost: 40 }, // start each run with 5% of best run
+      { id: 'p_seed',    type: 'startCashPct', value: 0.03, cost: 40 }, // start each run with 3% of best run
       { id: 'p_mult2',   type: 'globalMult',  value: 3,    cost: 50 },
-      { id: 'p_keepgen', type: 'keepGens',    value: 0.10, cost: 120 }, // keep 10% of every generator level
+      { id: 'p_keepgen', type: 'keepGens',    value: 0.06, cost: 120 }, // keep 6% of every generator level
       { id: 'p_offline2',type: 'offlineCap',  value: 12,   cost: 200 }, // +12h offline cap
       { id: 'p_mult3',   type: 'globalMult',  value: 5,    cost: 500 },
-      { id: 'p_seed2',   type: 'startCashPct', value: 0.25, cost: 1500 }, // start with 25% of best run
+      { id: 'p_seed2',   type: 'startCashPct', value: 0.10, cost: 1500 }, // start with 10% of best run
       { id: 'p_mult4',   type: 'globalMult',  value: 10,   cost: 5000 }  // late-game global x10
     ]
   };
@@ -104,10 +104,12 @@
     // risk gained/sec = GAIN * capabilityFactor, capabilityFactor = log10(cps+10)/CAP_DIV
     GAIN: 0.55,
     CAP_DIV: 3,
-    // each Alignment unit suppresses risk/sec by SUPPRESS (x alignBoost)
-    SUPPRESS: 0.20,
+    // each Alignment unit suppresses risk/sec by SUPPRESS (x alignBoost). R13: lowered
+    // 0.20->0.12 so alignment is an ONGOING investment that scales with capability
+    // (you keep funding it as you grow) instead of a trivial 5-and-done toggle.
+    SUPPRESS: 0.12,
     alignBaseCost: 200,
-    alignGrowth: 1.18,        // cost(n) = alignBaseCost * growth^owned
+    alignGrowth: 1.16,        // cost(n) = alignBaseCost * growth^owned (gentler so ongoing funding stays affordable)
     // incident
     INCIDENT_THRESHOLD: 100,
     INCIDENT_PENALTY: 0.20,   // output multiplied by this during incident
@@ -130,7 +132,7 @@
     AUDIT_CD: 120,           // cooldown (seconds)
     // Crisis cadence — a global cooldown spaces crises out (anti-nag). Gentle early,
     // more pressure later: cooldown = clamp(BASE - prestiges*3 - singularities*10).
-    CRISIS_CD_BASE: 130, CRISIS_CD_MIN: 65,
+    CRISIS_CD_BASE: 165, CRISIS_CD_MIN: 95,
     // Escalation: an ignored crisis hits harder + longer than a handled one.
     ESCALATE_DUR_MULT: 1.6, ESCALATE_TRUST: 10
   };
@@ -144,6 +146,13 @@
     AD_CAP_HOURS: 24,        // when watching rewarded ad
     RATE: 0.5                // offline earns 50% of current cps
   };
+
+  // Anti-printer: every "X seconds of production" windfall (insight Eureka, event
+  // grant, ad cash, news cashGift) is (a) computed from BASE cps — transient buffs
+  // like Breakthrough/Frenzy/Hype no longer inflate it — and (b) capped at this
+  // fraction of your best proven run, so windfalls can never self-compound into a
+  // printer. (News cashGift uses its own tighter CARDS.CASHGIFT_CAP_FRAC.)
+  var WINDFALL = { CAP_FRAC: 0.08 };
 
   // ---- Ad boosts -------------------------------------------------------
   var ADS = {
@@ -254,7 +263,7 @@
 
   // ---- Second prestige: The Singularity (meta-currency: Singularity Cores) --
   var SINGULARITY = {
-    UNLOCK_RP: 700,            // unlocks at this lifetime RP ...
+    UNLOCK_RP: 1200,           // unlocks at this lifetime RP ...
     UNLOCK_GEN: 'agiCore',     // ... or once an AGI Core exists
     SCALE: 100,                // cores = floor( sqrt(rp / SCALE) * coreGainMult )
     CORE_BONUS: 0.10,          // each Core = +10% global (passive)
@@ -327,8 +336,12 @@
   // penaltySec (output crisis penalty), allMult (one-time permanent x), cashGift (x seconds of cps)
   var CARDS = {
     CRISIS_EXPIRE: 28,        // seconds to decide before a crisis escalates
-    NEWS_MIN: 70, NEWS_MAX: 140, // seconds between news/opportunity spawns
+    NEWS_MIN: 100, NEWS_MAX: 180, // seconds between news/opportunity spawns
     NEWS_LIFE: 45,            // seconds an actionable news item stays
+    // Anti-printer cap: any single cash windfall (cashGift) is capped at this
+    // fraction of your best proven run, so World cards stay a bonus — never a
+    // self-compounding money printer. cashGift values below are "seconds of cps".
+    CASHGIFT_CAP_FRAC: 0.04,
     crises: [
       { id: 'c_cap', vector: 'cap', choices: [
         { id: 'pull',   effect: { cashFrac: -0.18 } },
@@ -356,7 +369,7 @@
         { id: 'ignore',  effect: { penaltySec: 90, trust: -5 } } ] },
       { id: 'c_data2', vector: 'data', choices: [
         { id: 'optout',  effect: { cashFrac: -0.13, trust: 5 } },
-        { id: 'sell',    effect: { cashGift: 400, trust: -14, vec: { reg: 18 } } },
+        { id: 'sell',    effect: { cashGift: 120, trust: -14, vec: { reg: 18 } } },
         { id: 'ignore',  effect: { penaltySec: 90 } } ] }
     ],
     // news decisions (two-choice) + opportunities (single act). gated behind progress.
@@ -368,15 +381,15 @@
         { id: 'counter', effect: { cashFrac: -0.15 } },
         { id: 'letgo',   effect: { vec: { sec: 12 } } } ] },
       { id: 'n_round', kind: 'opportunity', choices: [
-        { id: 'raise', effect: { cashGift: 1800, trust: -3 } } ] },
+        { id: 'raise', effect: { cashGift: 240, trust: -3 } } ] },
       { id: 'n_chip', kind: 'opportunity', choices: [
         { id: 'buy', effect: { allMult: 1.05 } } ] },
       { id: 'n_grant', kind: 'opportunity', req: { trust: 70 }, choices: [
-        { id: 'accept', effect: { cashGift: 3000, trust: 3 } } ] },
+        { id: 'accept', effect: { cashGift: 300, trust: 3 } } ] },
       { id: 'n_defense', kind: 'opportunity', req: { trust: 85 }, choices: [
-        { id: 'sign', effect: { cashGift: 6000, vec: { reg: 12 } } } ] },
+        { id: 'sign', effect: { cashGift: 420, vec: { reg: 12 } } } ] },
       { id: 'n_viral', kind: 'decision', choices: [
-        { id: 'lean',  effect: { trust: -6, cashGift: 1200, vec: { reg: 10 } } },
+        { id: 'lean',  effect: { trust: -6, cashGift: 180, vec: { reg: 10 } } },
         { id: 'damp',  effect: { trust: 5 } } ] },
       { id: 'n_whistle', kind: 'decision', choices: [
         { id: 'address', effect: { cashFrac: -0.12, trust: 8 } },
@@ -387,15 +400,19 @@
   };
 
   // ---- Market / investing minigame -------------------------------------
-  // Mean-reverting (NOT a money printer): zero net drift + pull toward each asset's
-  // anchor so prices oscillate. Profit requires timing; the 1.5% fee each way (3%
-  // round-trip) punishes churn. Bonus skill layer, never trivializes the economy.
+  // R13 anti-printer rework: a BOUNDED RANDOM WALK (REVERT 0) — no mean-reversion
+  // edge, so buy-low/sell-high is a coin-flip that loses to the fee on average. A
+  // mean-reverting market is provably exploitable (a patient trader compounds the
+  // reversion edge into a money printer — the old tuning printed 25,000× in 4h of
+  // perfect play). With zero drift + a real 4% fee, even a perfect 4h bot nets only
+  // a few× a bankroll on the bounded price band — a flavor skill/luck bonus that can
+  // never rival (let alone fund) the exponential generator economy. See BALANCE.md.
   var MARKET = {
-    VOL: 0.05,               // per-update volatility
-    REVERT: 0.06,            // pull back toward anchor each update
-    BAND: 0.55,              // soft price band: anchor*(1±BAND)
+    VOL: 0.045,              // per-update volatility (visible ±25% swings)
+    REVERT: 0,               // ZERO drift: driftless random walk -> no systematic edge
+    BAND: 0.25,              // soft price band: anchor*(1±BAND) keeps prices sane
     TICK: 5,                 // seconds between price updates
-    FEE: 0.015,              // 1.5% trade fee per side
+    FEE: 0.04,               // 4% per side (8% round-trip) -> churn loses to fees
     assets: [
       { id: 'CMP', start: 100, vol: 1.0 },  // Compute Futures
       { id: 'NVX', start: 240, vol: 1.3 },  // Chip Co (spiky)
@@ -447,6 +464,7 @@
     OFFLINE: OFFLINE,
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
+    WINDFALL: WINDFALL,
     AUTOPILOT: AUTOPILOT,
     ACTS: ACTS,
     RIVALS: RIVALS,

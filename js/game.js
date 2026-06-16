@@ -231,6 +231,27 @@
     for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
     return sum * globalMult();
   }
+  // product of TRANSIENT output multipliers currently active (boost/event/frenzy/
+  // breakthrough/incident). baseCps strips these so "X seconds of production"
+  // windfalls can't be inflated by claiming during a stacked buff.
+  function transientMult() {
+    var m = 1;
+    if (boostActive()) m *= C.ADS.BOOST_MULT;
+    if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
+    m *= eventOutputMult();
+    if (frenzyActive()) m *= state.frenzyMult;
+    if (breakthroughActive()) m *= state.breakthroughMult;
+    return m;
+  }
+  function baseCps() { var tm = transientMult(); return tm > 0 ? cps() / tm : cps(); }
+  // a capped cash windfall = `seconds` of BASE production, never more than `frac`
+  // of the best proven run (no self-compounding printer). first run: no cap yet.
+  function windfallCash(seconds, frac, fallbackTapMult) {
+    var v = baseCps() * seconds;
+    if (v <= 0) v = tapValue() * (fallbackTapMult || 100);
+    if (state.bestRunEarned > 0) v = Math.min(v, state.bestRunEarned * frac);
+    return v;
+  }
   function tapValue() {
     var v = C.TAP.base * tapMult() * globalMult();
     v *= (1 + comboBonus());                       // overclock heat
@@ -637,8 +658,7 @@
     emit('change');
   }
   function addCashBurst() {
-    var v = cps() * C.ADS.CASH_BURST_SECONDS;
-    if (v <= 0) v = tapValue() * 50;
+    var v = windfallCash(C.ADS.CASH_BURST_SECONDS, C.WINDFALL.CAP_FRAC, 50);
     addCash(v);
     emit('toast', { key: 'ad_reward_cash', vars: { v: window.GAME_FMT.fmt(v) } });
     emit('change');
@@ -696,7 +716,7 @@
   function applyEffect(eff) {
     if (!eff) return;
     if (eff.cashFrac) state.cash = Math.max(0, state.cash + state.cash * eff.cashFrac);
-    if (eff.cashGift) addCash(Math.max(tapValue() * 100, cps() * eff.cashGift));
+    if (eff.cashGift) addCash(windfallCash(eff.cashGift, C.CARDS.CASHGIFT_CAP_FRAC, 100));
     if (eff.trust) state.trust = clampTrust(state.trust + eff.trust);
     if (eff.vec) for (var k in eff.vec) state.vec[k] = Math.max(0, Math.min(C.RISK.MAX, state.vec[k] + eff.vec[k]));
     if (eff.penaltySec) state.incidentEndsAt = Date.now() + eff.penaltySec * 1000;
@@ -862,11 +882,7 @@
       state.eventEndsAt = Date.now() + def.duration * 1000;
       state.eventOutputMult = def.outputMult;
     } else { // instant
-      if (def.cashSeconds) {
-        var v = cps() * def.cashSeconds;
-        if (v <= 0) v = tapValue() * 100;
-        addCash(v);
-      }
+      if (def.cashSeconds) addCash(windfallCash(def.cashSeconds, C.WINDFALL.CAP_FRAC, 100));
       if (def.riskAdd) {
         // map world-event risk onto vectors: leaks hit data+reg, good PR cools reg+sec
         var clamp = function (x) { return Math.max(0, Math.min(C.RISK.MAX, x)); };
@@ -919,7 +935,7 @@
     var vars = {};
     if (r.id === 'frenzy') { state.frenzyEndsAt = Date.now() + r.duration * 1000; state.frenzyMult = r.mult; vars = { m: r.mult, t: r.duration }; }
     else if (r.id === 'clickFrenzy') { state.clickFrenzyEndsAt = Date.now() + r.duration * 1000; state.clickFrenzyMult = r.tapMult; vars = { m: r.tapMult, t: r.duration }; }
-    else if (r.id === 'lucky') { var v = cps() * r.cashSeconds; if (v <= 0) v = tapValue() * 200; addCash(v); vars = { v: window.GAME_FMT.fmt(v) }; }
+    else if (r.id === 'lucky') { var v = windfallCash(r.cashSeconds, C.WINDFALL.CAP_FRAC, 200); addCash(v); vars = { v: window.GAME_FMT.fmt(v) }; }
     state.insightsClaimed++;
     scheduleNextInsight();
     checkAchievements();
