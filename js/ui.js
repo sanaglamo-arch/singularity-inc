@@ -165,6 +165,26 @@
     $('creditsTxt').textContent = t('credits');
     $('versionTxt').textContent = t('version', { v: '1.0' });
     $('riskMiniLabel').innerHTML = '<span>' + t('risk_label') + '</span><span id="riskMiniPct"></span>';
+    // buy-mode bar: localize labels + ensure the explainer (ⓘ) tooltip is present
+    var bmb = $('buyModeBar');
+    if (bmb) {
+      var modeBtns = bmb.querySelectorAll('button[data-mode]');
+      for (var mbi = 0; mbi < modeBtns.length; mbi++) {
+        var mode = modeBtns[mbi].dataset.mode;
+        modeBtns[mbi].textContent = (mode === 'max') ? t('buy_max') : ('×' + mode);
+      }
+      if (!$('buyModeLabel')) {
+        var bmLab = document.createElement('span');
+        bmLab.id = 'buyModeLabel'; bmLab.className = 'bm-label';
+        bmb.insertBefore(bmLab, bmb.firstChild);
+      }
+      $('buyModeLabel').textContent = t('buy');
+      if (!bmb.querySelector('.info')) {
+        var holder = document.createElement('div');
+        holder.innerHTML = infoBtn('tip_buymodes');
+        bmb.appendChild(holder.firstChild);
+      }
+    }
     // sound seg labels
     var ssg = $('soundSeg').children;
     ssg[0].textContent = t('on'); ssg[1].textContent = t('off');
@@ -191,13 +211,13 @@
         '<div class="info">' +
           '<div class="name">' + t('g_' + g.id) + '</div>' +
           '<div class="desc">' + t('g_' + g.id + '_d') + '</div>' +
-          '<div class="sub"></div>' +
+          '<div class="each"></div>' +
           '<div class="milestoneBar"><div></div></div>' +
         '</div>' +
         '<div class="right">' +
+          '<div class="add"></div>' +
           '<div class="cost">0</div>' +
-          '<div class="count"></div>' +
-          '<div class="qty"></div>' +
+          '<div class="buylabel"></div>' +
         '</div>' +
         '<div class="ownedBadge hidden">0</div>';
       card.addEventListener('click', function (e) {
@@ -212,10 +232,10 @@
       genRefs[g.id] = {
         el: card,
         cost: card.querySelector('.cost'),
-        count: card.querySelector('.count'),
-        sub: card.querySelector('.sub'),
+        each: card.querySelector('.each'),
+        add: card.querySelector('.add'),
         mbar: card.querySelector('.milestoneBar > div'),
-        qty: card.querySelector('.qty'),
+        buylabel: card.querySelector('.buylabel'),
         badge: card.querySelector('.ownedBadge')
       };
     });
@@ -227,8 +247,6 @@
       var r = genRefs[g.id];
       if (!r) return;
       var owned = s.gens[g.id];
-      var qty = G.buyQty(g.id);
-      var cost = G.genCostCumulative(g.id, qty);
       // soft lock: a later generator stays hidden until it's within reach (≈half its
       // cost) OR the previous tier has hit its first milestone. Stage 1 = laptop only.
       var idx = C.GENERATORS.indexOf(g);
@@ -238,14 +256,20 @@
         return;
       }
       r.el.classList.remove('hidden');
-      var afford = s.cash >= cost && qty >= 1;
-      r.el.classList.toggle('affordable', afford);
-      r.el.classList.toggle('locked', !afford);
-      r.cost.textContent = fmt(cost);
-      r.cost.classList.toggle('cant', !afford);
-      r.count.textContent = owned;
-      r.qty.textContent = owned > 0 ? ('+' + qty) : (s.buyMode === 'max' ? '' : 'x' + (s.buyMode));
-      r.sub.textContent = owned > 0 ? (fmt(G.genOutput(g.id) * G.globalMult()) + '/sec') : t('produces', { v: fmt(g.baseOut * G.globalMult()) });
+      var p = G.genBuyPreview(g.id);
+      r.el.classList.toggle('affordable', p.affordable);
+      r.el.classList.toggle('locked', !p.affordable);
+      r.cost.textContent = fmt(p.cost);
+      r.cost.classList.toggle('cant', !p.affordable);
+      // headline per-unit value: what ONE of this generator produces, right now
+      r.each.textContent = t('gen_each', { v: fmt(p.perUnit) });
+      // what the CURRENT purchase (selected buy-mode) adds — hidden when buying just one (== "each")
+      if (p.qty > 1) { r.add.style.display = ''; r.add.textContent = t('gen_add', { v: fmt(p.addCps) }); }
+      else { r.add.style.display = 'none'; }
+      // buy-mode affordance: exact count for the selected mode
+      r.buylabel.textContent = (s.buyMode === 'max')
+        ? t('buy_max_n', { n: p.maxAffordable })
+        : t('buy_n', { n: s.buyMode });
       if (owned > 0) { r.badge.classList.remove('hidden'); r.badge.textContent = owned; }
       else r.badge.classList.add('hidden');
       var msLevel = owned >= 200 ? 3 : owned >= 100 ? 2 : owned >= 25 ? 1 : 0;
@@ -1029,6 +1053,8 @@
     toggleNav('navUpgradesBtn', G.upgradesUnlocked());
     toggleNav('navResearchBtn', G.researchUnlocked());
     toggleNav('navWorldBtn', wu);
+    // satirical news ticker is part of the World/News layer — hidden until it unlocks (Stage 6)
+    var tk = $('ticker'); if (tk) tk.classList.toggle('hidden', !wu);
     // Trust HUD rides with the World stage
     var th = $('trustHud');
     if (th) {
@@ -1195,6 +1221,7 @@
     var btns = $('buyModeBar').children;
     for (var i = 0; i < btns.length; i++) {
       var m = btns[i].dataset.mode;
+      if (!m) continue;  // skip the leading label + the ⓘ explainer
       var val = (m === 'max') ? 'max' : parseInt(m, 10);
       btns[i].classList.toggle('on', G.state.buyMode === val);
     }
@@ -1324,6 +1351,7 @@
     // buy mode
     var bms = $('buyModeBar').children;
     for (var k = 0; k < bms.length; k++) {
+      if (!bms[k].dataset.mode) continue;  // skip the leading label + the ⓘ explainer
       (function (btn) {
         btn.addEventListener('click', function () {
           var m = btn.dataset.mode;
