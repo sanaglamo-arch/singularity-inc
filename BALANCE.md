@@ -243,3 +243,95 @@ nav `[Lab, More]`, one generator, no risk bar, no buy-modes, no other tabs).
   or double offline earnings.
 - Interstitial: on prestige, min **120s** cooldown.
 - Sticky banner: shown when available.
+
+## Round 13 — Fun & Balance audit (deep multi-persona sim + economy hardening)
+
+A headless harness (`tmp/harness.js` + `tmp/sim.js`) drives the **real engine**
+under a virtual clock and plays the full arc as three personas, so every number
+below is measured from the shipping economy, not estimated. Probes:
+`tmp/risk.js` (alignment teeth), `tmp/mkt.js` (market printer).
+
+### Money printers found & closed (the headline fixes)
+
+1. **Market money printer — CRITICAL.** The old mean-reverting market let a
+   patient trader compound the reversion edge: a perfect 4h bot turned a 1M
+   bankroll into **25,361×**. A mean-reverting bounded market is *provably*
+   exploitable (buy-below-anchor has positive expectation; reinvestment
+   compounds it). **Fix:** made it a **driftless bounded random walk**
+   (`REVERT 0.06→0`), real fee (`FEE 1.5%→4%/side`), tighter visible band
+   (`BAND 0.55→0.25`). Now there is **no statistical edge** — buy-low/sell-high
+   is a coin-flip that loses to the fee. Perfect-bot 4h result: **~2–3×**
+   (flavor-tier; a normal player nets ~neutral). It can never fund the economy.
+2. **World `cashGift` printer.** News/opportunity cards paid `cps × seconds`
+   with values up to **6000s = 100 min** of production, scaling with cps and
+   resolved every ~2 min → **625B** of free cash in one optimizer arc, collapsing
+   the mid-game. **Fix:** cut values to thematic windfalls (raise-a-round 240s,
+   grant 300s, defense 420s, viral 180s, data-sale 120s), spaced news out
+   (`70–140s → 100–180s`), and **capped each gift at 4% of best proven run**
+   (`CARDS.CASHGIFT_CAP_FRAC`).
+3. **Buff-amplified windfall printer.** "X seconds of production" windfalls used
+   *current* cps, so claiming an Insight *Eureka* during a stacked ×15
+   Breakthrough + ×7 Frenzy paid ×105-inflated cash that compounded (**24.5
+   Qi** free cash in one arc). **Fix:** all windfalls (Eureka, event grant, ad
+   cash, cashGift) now use **`baseCps()`** — transient buffs stripped — and are
+   capped at **8% of best run** (`WINDFALL.CAP_FRAC`). Free cash per arc dropped
+   to the low millions.
+
+### Prestige-loop runaway — tamed
+
+After the printers were closed, the optimizer still hyper-accelerated (Singularity
+in ~16 min) via cross-run launchpads. Reduced them so reruns are a *head-start*,
+not a cannon: `p_seed` start-cash **5%→3%**, `p_seed2` **25%→10%**, `p_keepgen`
+**10%→6%**; raised the Singularity gate **700→1200 lifetime RP**. The loop still
+*accelerates* (each run faster) without the cps exploding into nonsense ranges.
+
+### Risk/Alignment — from "5-and-done" toggle to ongoing decision
+
+The probe showed **5 cheap alignment buys** zeroed all risk for an hour — the
+signature mechanic was trivially switch-off-able, and ignoring it spammed **28
+crises/hour** (naggy). **Fix:** per-unit suppression **0.20→0.12** (alignment is
+now an investment that scales with your capability — ~9 units at 1M cps, more as
+you grow), cost growth softened **1.18→1.16** so ongoing funding stays affordable,
+and crisis cadence spaced out (`CRISIS_CD_BASE 130→165`, `MIN 65→95`). Funding vs
+ignoring is now a real cash-vs-output / interruptions tradeoff.
+
+### Multi-persona pacing (measured, post-tuning)
+
+Time-to-beat (active **Casual** = 4 taps/s + manual buys; **Idle** = autopilot,
+2-min-active / 8-min-away cycles, light taps):
+
+| Beat | Casual (active) | Idle (low-effort) |
+|------|----------------:|------------------:|
+| First generator | 0s | seconds |
+| First milestone ×2 (10 owned) | ~13s | <2m |
+| Buy-modes unlock (250 earned) | ~15s | a few min |
+| Upgrades tab (500) | ~29s | — |
+| Insight Flash (1.5K) | ~1m | — |
+| Breakthrough (25K) | ~2.5m | — |
+| Managers (60K) | ~3m | — |
+| **First prestige ready (≥5 RP)** | ~6 min | **~26–32 min** |
+| First Singularity | ~22 min (try-hard) | **~1h40m–2h13m (6–9 prestiges)** |
+
+- **Hook (first 60s):** strong — a generator in the first second, first ×2
+  milestone ~13s, cash building from taps+combo. ✓
+- **First 10 min:** continuous unlocks + the next-goal nudge → never idle, never
+  lost. (Engaged players blow through the early unlock ladder fast — brisk, not a
+  slog. The idle path spreads the same beats over ~30 min.)
+- **No walls:** prestige cadence stays every few minutes; the nudge always points
+  at the next action.
+- **First prestige** lands in the intended **30–45 min** window for realistic
+  (idle/casual) play; try-hards can reach it sooner — a fair reward for effort.
+- **Offline vs active:** windfalls are capped to proven earnings and offline is
+  50%-rate capped, so active play (catching Insight, timing Breakthrough,
+  managing crises) stays meaningfully ahead without trivializing idle return.
+
+### Verdict
+
+No money printers, no infinite/instant paths, no dead walls; the prestige loop
+accelerates without exploding; the management layer is a genuine (if light)
+decision rather than filler. Honest caveat: a *frame-perfect* optimizer still
+reaches the first Singularity unusually fast (~22 min) — that is an upper bound no
+human/autopilot buy-rate achieves, and the realistic arc (≈2h, 6–9 prestiges) is
+healthy. The biggest remaining lever for "flagship" is **long-tail depth past the
+first Singularity** (Cores/endings pacing), which this round did not deepen
+(feature-freeze).
