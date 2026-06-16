@@ -89,6 +89,7 @@
       // R9 narrative campaign + race to AGI
       act: 0,                // current narrative act (monotonic)
       rivalAgi: {},          // rival id -> AGI progress 0..100
+      rivalShare: {},        // rival id -> market share % (GDD v3 race scoreboard)
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
       // ===== GDD v3 — continuous no-reset meta =====
@@ -959,7 +960,34 @@
   }
   function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
   function ensureRivals() { C.RIVALS.forEach(function (r) { if (typeof state.rivalAgi[r.id] !== 'number') state.rivalAgi[r.id] = 0; }); }
-  function agiProgress() { var t = state.singularities > 0 ? 100 : C.SINGULARITY.UNLOCK_RP; var v = state.singularities > 0 ? state.rp : state.totalRP; return Math.max(0, Math.min(100, 100 * v / t)); }
+  // GDD v3: AGI progress = how far up the model-generation ladder you are.
+  function agiProgress() { return Math.max(0, Math.min(100, 100 * state.modelGen / C.MODELGEN.length)); }
+  // ---- rival market-share race (the central scoreboard) ----
+  function rivalsActive() { return state.modelGen >= 1; } // race begins once you have a product
+  function ensureRivalShare() { C.RIVALS.forEach(function (r) { if (typeof state.rivalShare[r.id] !== 'number') state.rivalShare[r.id] = r.share0; }); }
+  function updateRivals(dt) {
+    if (!rivalsActive()) return;
+    ensureRivalShare(); ensureRivals();
+    C.RIVALS.forEach(function (r) {
+      // share creeps up, tapering toward the cap (so you can always overtake by shipping)
+      var cur = state.rivalShare[r.id];
+      var room = Math.max(0, (C.RIVAL_SHARE_CAP - cur) / C.RIVAL_SHARE_CAP);
+      state.rivalShare[r.id] = Math.min(C.RIVAL_SHARE_CAP, cur + r.shareRate * room * dt);
+      // AGI progress climbs on each rival's own timeline (the deadline / pressure)
+      state.rivalAgi[r.id] = Math.min(100, (state.rivalAgi[r.id] || 0) + r.agiRate * dt);
+    });
+  }
+  // standings: you + rivals, sorted by market share desc (for the race panel)
+  function standings() {
+    ensureRivalShare();
+    var rows = [{ id: 'you', share: state.marketShare, agi: agiProgress(), you: true }];
+    C.RIVALS.forEach(function (r) { rows.push({ id: r.id, share: state.rivalShare[r.id], agi: state.rivalAgi[r.id] || 0 }); });
+    rows.sort(function (a, b) { return b.share - a.share; });
+    return rows;
+  }
+  function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
+  function isMarketLeader() { return playerRank() === 1; }
+  function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
   function leadingRival() { ensureRivals(); var id = null, v = -1; C.RIVALS.forEach(function (r) { if (state.rivalAgi[r.id] > v) { v = state.rivalAgi[r.id]; id = r.id; } }); return { id: id, val: v }; }
   function maxRivalAgi() { return leadingRival().val; }
   function slowLeadingRival() { var l = leadingRival(); if (l.id) state.rivalAgi[l.id] = Math.max(0, state.rivalAgi[l.id] - C.RACE.SLOW_OPENSOURCE); }
@@ -1146,6 +1174,7 @@
     state.compute += computeRate() * dt;
     addCash(moneyRate() * dt);
     if (trainingActive() && Date.now() >= state.training.endsAt) finishTraining();
+    updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
     // Before that, "risks of scale" simply do not exist (clean early game).
@@ -1258,6 +1287,9 @@
     }
     if (!s.training || typeof s.training !== 'object') s.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     if (!s.funding || typeof s.funding !== 'object') s.funding = {};
+    // ---- v5: rival market-share race ----
+    if (!s.rivalShare || typeof s.rivalShare !== 'object') s.rivalShare = {};
+    C.RIVALS.forEach(function (r) { if (typeof s.rivalShare[r.id] !== 'number') s.rivalShare[r.id] = r.share0; });
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1331,6 +1363,7 @@
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
+    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,

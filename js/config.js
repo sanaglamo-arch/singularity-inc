@@ -303,11 +303,15 @@
   ];
 
   // ---- Rival labs — the Race to AGI (revealed at Act 3) -----------------
+  // GDD v3: rivals compete for MARKET SHARE and race to AGI on their own timelines.
+  // share0 = starting %, shareRate = market share gained per second (slow creep —
+  // you overtake by shipping generations), agiRate = AGI progress %/sec.
   var RIVALS = [
-    { id: 'helion',  speed: 0.0150 },  // reckless front-runner
-    { id: 'cerebra', speed: 0.0110 },  // steady
-    { id: 'omninet', speed: 0.0085 }   // cautious
+    { id: 'helion',  speed: 0.0150, share0: 17, shareRate: 0.00060, agiRate: 0.00050 },  // reckless front-runner
+    { id: 'cerebra', speed: 0.0110, share0: 13, shareRate: 0.00045, agiRate: 0.00038 },  // steady
+    { id: 'omninet', speed: 0.0085, share0: 9,  shareRate: 0.00032, agiRate: 0.00028 }   // cautious
   ];
+  var RIVAL_SHARE_CAP = 45;   // a rival's market share tapers toward this ceiling
   var RACE = {
     REVEAL_ACT: 3,
     PLAYER_TARGET_RP: 700,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
@@ -515,7 +519,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 4,          // GDD v3 meta rewrite (no-reset generations)
+    SAVE_VERSION: 5,          // GDD v3: + rival market-share race
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -541,6 +545,7 @@
     AUTOPILOT: AUTOPILOT,
     ACTS: ACTS,
     RIVALS: RIVALS,
+    RIVAL_SHARE_CAP: RIVAL_SHARE_CAP,
     RACE: RACE,
     ENDINGS: ENDINGS,
     TRUST: TRUST,

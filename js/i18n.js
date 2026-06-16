@@ -58,6 +58,12 @@
     fund_btn: 'Raise {name} · +{v}', fund_locked: 'Next round at {v} valuation',
     fund_done_toast: 'Raised {name}! +{v} cash · +{p}% revenue',
     tip_funding: 'Raise capital as your valuation grows: Seed → A → B → C → IPO. Each round is a big one-time cash injection and a permanent revenue boost. Replaces day-trading — grow the company, not a ticker.',
+    // rivals + market-share race (the central goal)
+    standings_title: 'Market share', standings_sub: 'race to AGI',
+    rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'You',
+    standings_leader: "You're #1 — now reach AGI first", standings_behind: '#{n} of {total} — ship models to climb',
+    agi_race_you: 'You {p}%', agi_race_lead: 'top rival {p}%',
+    tip_rivals: 'Rival labs compete for market share and race you to AGI. Ship model generations to climb the ranking — become #1, then reach AGI before they do.',
 
     upgrades_title: 'Global Upgrades',
     managers_title: 'Automation',
@@ -510,6 +516,11 @@
     fund_btn: 'Привлечь {name} · +{v}', fund_locked: 'Следующий раунд при оценке {v}',
     fund_done_toast: 'Привлечён {name}! +{v} денег · +{p}% выручки',
     tip_funding: 'Привлекай капитал по мере роста оценки: Seed → A → B → C → IPO. Каждый раунд — крупная разовая инъекция денег и перманентный буст выручки. Заменяет биржевой трейдинг — расти компанию, а не тикер.',
+    standings_title: 'Доля рынка', standings_sub: 'гонка к AGI',
+    rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'Ты',
+    standings_leader: 'Ты #1 — теперь достигни AGI первым', standings_behind: '#{n} из {total} — выпускай модели, чтобы подняться',
+    agi_race_you: 'Ты {p}%', agi_race_lead: 'лидер-конкурент {p}%',
+    tip_rivals: 'Лаборатории-конкуренты борются за долю рынка и гонятся к AGI. Выпускай поколения моделей, чтобы подняться в рейтинге — стань #1 и достигни AGI раньше них.',
 
     upgrades_title: 'Глобальные апгрейды',
     managers_title: 'Автоматизация',

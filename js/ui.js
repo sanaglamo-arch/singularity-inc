@@ -182,6 +182,11 @@
       $('rlVal').innerHTML = t('res_valuation') + infoBtn('tip_valuation');
       $('modelTitle').innerHTML = t('models_title') + infoBtn('tip_models');
     }
+    if ($('standingsTitle')) {
+      $('standingsTitle').innerHTML = t('standings_title') + infoBtn('tip_rivals');
+      $('standingsStatus') && ($('standingsStatus').textContent = '');
+      buildStandings();
+    }
     // buy-mode bar: localize labels + ensure the explainer (ⓘ) tooltip is present
     var bmb = $('buyModeBar');
     if (bmb) {
@@ -332,6 +337,39 @@
       btn.disabled = !can;
       setText(hint, can ? t('train_ready') : t('train_need', { v: fmt(g.computeReq) }));
     }
+  }
+
+  // ---------- GDD v3: rival market-share standings ----------
+  var standRefs = null;
+  function entityName(id) { return id === 'you' ? t('you_label') : t('rival_' + id); }
+  function buildStandings() {
+    var box = $('standingsRows'); if (!box) return;
+    box.innerHTML = ''; standRefs = {};
+    var ids = ['you']; C.RIVALS.forEach(function (r) { ids.push(r.id); });
+    ids.forEach(function (id) {
+      var row = el('div', 'standrow' + (id === 'you' ? ' you' : ''));
+      row.innerHTML = '<span class="srank"></span><span class="sname">' + entityName(id) + '</span>' +
+        '<span class="sbarwrap"><span class="sbar"></span></span><span class="sshare"></span>';
+      box.appendChild(row);
+      standRefs[id] = { row: row, rank: row.querySelector('.srank'), bar: row.querySelector('.sbar'), share: row.querySelector('.sshare') };
+    });
+  }
+  function updateStandings() {
+    if (!standRefs) buildStandings();
+    var rows = G.standings(), maxShare = 0;
+    rows.forEach(function (r) { if (r.share > maxShare) maxShare = r.share; });
+    maxShare = Math.max(maxShare, 1);
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], ref = standRefs[r.id]; if (!ref) continue;
+      setStyleP(ref.row, 'order', String(i));            // flex-order sort — no DOM reshuffle
+      setText(ref.rank, '#' + (i + 1));
+      setText(ref.share, (Math.round(r.share * 10) / 10) + '%');
+      setStyleP(ref.bar, 'width', (r.share / maxShare * 100).toFixed(1) + '%');
+      setClass(ref.row, 'lead', i === 0);
+    }
+    var rank = G.playerRank(), total = rows.length;
+    setText($('standingsStatus'), rank === 1 ? t('standings_leader') : t('standings_behind', { n: rank, total: total }));
+    setText($('agiRace'), t('agi_race_you', { p: Math.round(G.agiProgress()) }) + ' · ' + t('agi_race_lead', { p: Math.round(G.leadingRivalAgi()) }));
   }
 
   // ---------- upgrades ----------
@@ -1119,7 +1157,11 @@
     frameCompute = G.computeRate();
     frameMoney = G.moneyRate();
     updateTop();
-    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
+    if (currentTab === 'company') {
+      updateGenerators(); updateModelPanel();
+      var sp = $('standingsPanel');
+      if (G.rivalsActive()) { setClass(sp, 'hidden', false); updateStandings(); } else setClass(sp, 'hidden', true);
+    }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
     else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }
