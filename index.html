@@ -49,8 +49,10 @@
       <div class="scroll" id="upgradesPane">
         <h2 id="upgradesTitle"></h2>
         <div id="upgradeList"></div>
+        <div id="upgradeEmpty" class="empty-state hidden"></div>
         <h2 id="managersTitle"></h2>
         <div id="managerList"></div>
+        <div id="managerEmpty" class="empty-state hidden"></div>
       </div>
     </section>
 
@@ -175,6 +177,20 @@
 <div id="toastRoot"></div>
 <div id="modalRoot" class="hidden"></div>
 <div id="fxRoot"></div>
+
+<!-- Splash / loading screen (shown instantly, before JS parses; faded out on boot) -->
+<div id="splash">
+  <div class="splash-orb">
+    <svg viewBox="0 0 120 120" fill="none" stroke="#bfa6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="60" cy="60" r="7" fill="#fff" stroke="none"/>
+      <circle cx="60" cy="60" r="20"/><circle cx="60" cy="60" r="34" opacity="0.6"/><circle cx="60" cy="60" r="48" opacity="0.3"/>
+      <path d="M60 13v12M60 95v12M13 60h12M95 60h12M27 27l8 8M85 85l8 8M93 27l-8 8M35 85l-8 8"/>
+    </svg>
+  </div>
+  <div class="splash-title">SINGULARITY INC.</div>
+  <div class="splash-tag">From a garage script to an artificial god.</div>
+  <div class="splash-bar"><div></div></div>
+</div>
 
 <script src="js/config.js?v=4"></script>
 <script src="js/format.js?v=4"></script>

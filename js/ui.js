@@ -252,8 +252,8 @@
       card.classList.toggle('locked', !afford);
       card.querySelector('.cost').classList.toggle('cant', !afford);
     }
-    // empty hint
-    var hint = $('upgradeList').nextSibling;
+    var ue = $('upgradeEmpty');
+    if (ue) { ue.classList.toggle('hidden', anyVisible); if (!anyVisible) ue.innerHTML = '<div class="es-icon">' + ic('ic_upgrade') + '</div>' + t('no_upgrades'); }
   }
 
   // ---------- managers ----------
@@ -275,9 +275,11 @@
   function updateManagers() {
     var s = G.state;
     var nodes = $('managerList').children;
+    var anyVis = false;
     for (var i = 0; i < nodes.length; i++) {
       var card = nodes[i];
       var m = C.MANAGERS[i];
+      if (s.managers[m.id] || s.gens[m.gen] >= 1) anyVis = true;
       if (s.managers[m.id]) {
         card.classList.remove('locked', 'affordable');
         card.querySelector('.right').innerHTML = '<div class="bought">✓ ' + t('bought') + '</div>';
@@ -290,6 +292,8 @@
       card.classList.toggle('affordable', afford);
       card.classList.toggle('locked', !afford);
     }
+    var me = $('managerEmpty');
+    if (me) { me.classList.toggle('hidden', anyVis); if (!anyVis) me.innerHTML = '<div class="es-icon">' + ic('ic_manager') + '</div>' + t('no_managers'); }
   }
 
   // ---------- prestige upgrades ----------

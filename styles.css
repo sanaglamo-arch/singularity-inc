@@ -529,6 +529,28 @@ html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0
 .shockwave { position: absolute; width: 14px; height: 14px; border-radius: 50%; border-width: 3px; border-style: solid; transform: translate(-50%, -50%); pointer-events: none; will-change: width, height, opacity; animation: shockwave 0.72s cubic-bezier(0.16,1,0.3,1) forwards; box-shadow: 0 0 24px currentColor; }
 @keyframes shockwave { 0% { width: 14px; height: 14px; opacity: 0.9; } 100% { width: var(--sw, 520px); height: var(--sw, 520px); opacity: 0; } }
 
+/* ---------- splash / loading ---------- */
+#splash {
+  position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px;
+  background: radial-gradient(circle at 50% 38%, #16123a 0%, #0b0b18 55%, #06060f 100%);
+  transition: opacity 0.5s var(--ease);
+}
+#splash.hide { opacity: 0; pointer-events: none; }
+.splash-orb { width: 132px; height: 132px; filter: drop-shadow(0 0 30px var(--glow-violet)); animation: splashPulse 2.4s ease-in-out infinite; }
+.splash-orb svg { width: 132px; height: 132px; }
+@keyframes splashPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.06); opacity: 1; } }
+.splash-title { font-family: var(--font-display); font-weight: 900; font-size: 24px; letter-spacing: 3px; color: #fff; text-shadow: 0 0 26px var(--glow-violet); }
+.splash-tag { font-family: var(--font-ui); font-size: 12.5px; color: var(--fg-muted); max-width: 300px; }
+.splash-bar { width: 180px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 6px; }
+.splash-bar > div { height: 100%; width: 40%; border-radius: 4px; background: linear-gradient(90deg, var(--violet), var(--cyan)); animation: splashBar 1.1s ease-in-out infinite; }
+@keyframes splashBar { 0% { transform: translateX(-120%); } 100% { transform: translateX(380%); } }
+
+/* polished empty states */
+.empty-state { text-align: center; color: var(--fg-muted); font-size: 13px; padding: 26px 18px; border: 1px dashed var(--glass-border); border-radius: var(--radius); background: var(--surface); margin: 4px 0; }
+.empty-state .es-icon { width: 30px; height: 30px; margin: 0 auto 8px; opacity: 0.6; }
+.empty-state .es-icon svg { width: 30px; height: 30px; }
+
 .hidden { display: none !important; }
 
 /* ---------- focus accessibility ---------- */

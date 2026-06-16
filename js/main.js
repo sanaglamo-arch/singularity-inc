@@ -29,6 +29,13 @@
     startLoop();
     startAutosave();
 
+    // fade out the splash after a brief branded moment
+    var splash = document.getElementById('splash');
+    if (splash) {
+      var hideSplash = function () { splash.classList.add('hide'); setTimeout(function () { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 600); };
+      setTimeout(hideSplash, 1100);
+    }
+
     // lifecycle: save + gameplay stop/start
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) { window.GAME.save(); window.GAME_SDK.gameplayStop(); if (window.GAME_MUSIC) window.GAME_MUSIC.stop(); }
