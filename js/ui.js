@@ -724,6 +724,7 @@
     theme_aurora: 'linear-gradient(135deg, #34d399, #22d3ee)'
   };
   function lockReq(u) {
+    if (u.modelGen) return t('cos_locked_gen', { n: u.modelGen });
     if (u.prestiges) return t('cos_locked_prestiges', { n: u.prestiges });
     if (u.singularities) return t('cos_locked_singularities', { n: u.singularities });
     if (u.ach) return t('cos_locked_ach', { n: u.ach });

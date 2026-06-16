@@ -1494,7 +1494,8 @@
   function achCount() { var c = 0; for (var k in state.achievements) if (state.achievements[k]) c++; return c; }
   function cosmeticUnlocked(item) {
     var u = item.unlock || {};
-    if (u.prestiges && state.prestiges < u.prestiges) return false;
+    if (u.modelGen && state.modelGen < u.modelGen) return false;   // GDD v3: earned by shipping generations
+    if (u.prestiges && state.prestiges < u.prestiges) return false; // (legacy — no longer reachable)
     if (u.singularities && state.singularities < u.singularities) return false;
     if (u.ach && achCount() < u.ach) return false;
     return true;

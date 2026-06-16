@@ -440,14 +440,14 @@
   var COSMETICS = {
     orbs: [
       { id: 'orb_default', unlock: {} },
-      { id: 'orb_cyan',    unlock: { prestiges: 1 } },
-      { id: 'orb_gold',    unlock: { ach: 12 } },
-      { id: 'orb_crimson', unlock: { singularities: 1 } }
+      { id: 'orb_cyan',    unlock: { modelGen: 1 } },   // ship v1
+      { id: 'orb_gold',    unlock: { modelGen: 5 } },   // frontier territory
+      { id: 'orb_crimson', unlock: { modelGen: 11 } }   // AGI
     ],
     themes: [
       { id: 'theme_default', unlock: {} },
-      { id: 'theme_void',    unlock: { prestiges: 3 } },
-      { id: 'theme_aurora',  unlock: { singularities: 1 } }
+      { id: 'theme_void',    unlock: { modelGen: 3 } },
+      { id: 'theme_aurora',  unlock: { modelGen: 8 } }
     ]
   };
 

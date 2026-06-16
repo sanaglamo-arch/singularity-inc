@@ -466,7 +466,7 @@
     cosmetics_orb: 'TRAIN Orb', cosmetics_theme: 'Backdrop',
     orb_default: 'Violet', orb_cyan: 'Quantum', orb_gold: 'Golden', orb_crimson: 'Redline',
     theme_default: 'Default', theme_void: 'Void', theme_aurora: 'Aurora',
-    cos_locked_prestiges: 'Release {n} model(s)', cos_locked_singularities: 'Ascend {n}×', cos_locked_ach: 'Unlock {n} achievements',
+    cos_locked_gen: 'Reach model generation {n}', cos_locked_prestiges: 'Release {n} model(s)', cos_locked_singularities: 'Ascend {n}×', cos_locked_ach: 'Unlock {n} achievements',
     news: [
       ['Two founders, one GPU, infinite optimism.', 'Garage rent paid in equity and instant noodles.', 'Mom asks if "the AI thing" is going anywhere.'],
       ['Series A closed; the office now has a beanbag.', 'Hire #3 is a coffee machine with opinions.', 'Pitch deck adds the word "moat" eleven times.'],
@@ -921,7 +921,7 @@
     cosmetics_orb: 'Сфера ОБУЧЕНИЯ', cosmetics_theme: 'Фон',
     orb_default: 'Фиолет', orb_cyan: 'Квант', orb_gold: 'Золото', orb_crimson: 'Редлайн',
     theme_default: 'Стандарт', theme_void: 'Бездна', theme_aurora: 'Аврора',
-    cos_locked_prestiges: 'Выпусти {n} модель(ей)', cos_locked_singularities: 'Вознесись {n}×', cos_locked_ach: 'Открой {n} достижений',
+    cos_locked_gen: 'Достигни поколения модели {n}', cos_locked_prestiges: 'Выпусти {n} модель(ей)', cos_locked_singularities: 'Вознесись {n}×', cos_locked_ach: 'Открой {n} достижений',
     news: [
       ['Два основателя, одна GPU, бесконечный оптимизм.', 'Аренда гаража оплачена долями и дошираком.', 'Мама спрашивает, движется ли «эта штука с ИИ».'],
       ['Раунд A закрыт; в офисе появился пуфик.', 'Сотрудник №3 — кофемашина с мнением.', 'В питч-деке слово «ров» встречается одиннадцать раз.'],
