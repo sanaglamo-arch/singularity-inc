@@ -621,6 +621,47 @@
     } else eb.classList.add('hidden');
   }
 
+  // ---------- next-goal nudge ----------
+  function computeNudge() {
+    var s = G.state;
+    if (G.incidentActive()) return { key: 'nudge_incident', tone: 'urgent', icon: 'ic_risk' };
+    if (s.risk >= C.RISK.WARN_AT) return { key: 'nudge_risk', tone: 'urgent', icon: 'ic_risk' };
+    if (G.canSingularity && G.canSingularity()) return { key: 'nudge_singularity', vars: { n: G.coresGain() }, tone: 'go', icon: 'ic_core' };
+    var pg = G.prestigeGain();
+    if (pg >= Math.max(5, Math.floor(s.rp * 0.25))) return { key: 'nudge_prestige', vars: { n: pg }, tone: 'go', icon: 'ic_rp' };
+    var totalOwned = 0; C.GENERATORS.forEach(function (g) { totalOwned += s.gens[g.id]; });
+    if (totalOwned === 0) {
+      if (s.cash < C.GENERATORS[0].baseCost) return { key: 'nudge_tap', icon: 'ic_brain' };
+      return { key: 'nudge_buyfirst', vars: { name: t('g_' + C.GENERATORS[0].id) }, icon: 'gen_' + C.GENERATORS[0].id };
+    }
+    for (var i = 0; i < C.UPGRADES.length; i++) {
+      var u = C.UPGRADES[i];
+      if (!s.upgrades[u.id] && (!u.unlock || s.gens[u.unlock.gen] >= u.unlock.count) && s.cash >= u.cost)
+        return { key: 'nudge_upgrade', vars: { name: t(u.id) }, icon: 'ic_upgrade' };
+    }
+    for (var g2 = 0; g2 < C.GENERATORS.length; g2++) {
+      var gid = C.GENERATORS[g2].id, owned = s.gens[gid];
+      if (owned > 0) { var nm = G.nextMilestone(owned); if (nm && nm - owned <= 5) return { key: 'nudge_milestone', vars: { n: nm - owned, name: t('g_' + gid) }, icon: 'gen_' + gid }; }
+    }
+    for (var h = C.GENERATORS.length - 1; h >= 0; h--) {
+      var hg = C.GENERATORS[h];
+      if (s.gens[hg.id] === 0 && s.cash >= G.genCostCumulative(hg.id, 1)) return { key: 'nudge_buygen', vars: { name: t('g_' + hg.id) }, icon: 'gen_' + hg.id };
+    }
+    for (var n2 = 0; n2 < C.GENERATORS.length; n2++) {
+      var ng = C.GENERATORS[n2];
+      if (s.gens[ng.id] === 0) return { key: 'nudge_savegen', vars: { name: t('g_' + ng.id), v: fmt(G.genCostCumulative(ng.id, 1)) }, icon: 'gen_' + ng.id };
+    }
+    return null;
+  }
+  function updateNudge() {
+    var n = computeNudge(), box = $('nudge');
+    if (!n) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden', 'urgent', 'go');
+    if (n.tone) box.classList.add(n.tone);
+    box.querySelector('.nicon').innerHTML = ic(n.icon);
+    $('nudgeText').textContent = t(n.key, n.vars);
+  }
+
   // ---------- main per-frame update ----------
   function update() {
     updateTop();
@@ -632,7 +673,7 @@
     else if (currentTab === 'stats') updateStats();
     else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
-    if (currentTab === 'company') updateAlignment();
+    if (currentTab === 'company') { updateAlignment(); updateNudge(); }
     // reveal Singularity nav once unlocked
     var nsb = $('navSingBtn');
     if (nsb) nsb.classList.toggle('hidden', !G.singUnlocked());

@@ -124,6 +124,28 @@ so they spike engagement without breaking the long-term curve. RU+EN copy for al
 - No runaway: deep-run cps stays finite (≈55B in a boosted 1h run); numbers format
   cleanly into the suffix/scientific range.
 
+## Deep playtest (Round 5 — bot drives the real engine)
+
+A bot (`tmp/playtest.js`) plays the actual `game.js` with every mechanic active
+(tap+combo, generators, milestone ×2, upgrades, tech, prestige, artifacts+synergy,
+Singularity, risk/incidents, insight, breakthrough, events). Findings + fixes:
+
+- **Hook (first 60s):** strong — ~3K cash and the first generator within the first
+  minute; tap value scales with combo so early tapping feels good. ✓
+- **First prestige:** RP≥5 reached ~9–30 min depending on play intensity; the
+  natural first prestige lands when growth walls (~30 min). ✓
+- **Both prestige layers reachable:** Singularity reached in active play; cores
+  accrue steadily (no dead end). ✓
+- **Mid-game wall (fixed):** the sim exposed a stretch (~30 min) where the next
+  generator tier is far off. This is the *intended* first-prestige trigger — so the
+  fix is signposting, not flattening the curve: a **next-goal nudge** now tells the
+  player exactly what to do ("Growth is slowing — release a model for +N RP"),
+  eliminating the "lost at the wall" problem. The nudge also surfaces affordable
+  upgrades, near milestones (≤5 away), risk/incident warnings, and Singularity
+  readiness, in priority order.
+- **No trivialize:** insight/breakthrough/combo are time-boxed multipliers that
+  accelerate without breaking the curve; deep-run numbers stay finite.
+
 ## Offline
 
 - Earns **50%** of current cps for elapsed time, capped at **8h** (+4h per
