@@ -27,7 +27,8 @@ singularity-inc/
 │   ├── game.js             economy engine, tick, save/load, prestige, risk
 │   ├── audio.js            procedural WebAudio SFX (off by default)
 │   ├── fx.js               particle bursts, ripples, shake, vignette (juice)
-│   ├── icons.js            29 inline-SVG icons (no emoji anywhere)
+│   ├── icons.js            inline-SVG icon set (no emoji anywhere)
+│   ├── music.js            procedural ambient music (WebAudio, off by default)
 │   ├── ui.js               DOM rendering + interaction
 │   └── main.js             bootstrap, RAF loop, anti-hijack guards
 ├── icon-512.png            512×512 RGB (no alpha) store icon
@@ -107,7 +108,7 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
   `user-select:none`, `touch-action:manipulation`.
 - ✅ **Viewport:** `width=device-width, initial-scale=1, maximum-scale=1,
   user-scalable=no, viewport-fit=cover`; safe-area insets respected.
-- ✅ **Localization:** complete **RU + EN** (272/272 keys each, verified parity),
+- ✅ **Localization:** complete **RU + EN** (359/359 keys each, verified parity),
   runtime toggle, no untranslated strings.
 - ✅ **Icon:** 512×512, **RGB, no alpha**, square, an illustration.
 - ✅ **Cover:** 800×470 illustration (not a screenshot).
@@ -149,7 +150,17 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
 - **Breakthrough** — an ability (×10 output 20s, 180s cooldown); re-fire within
   8s of it ending to chain into ×15 for 25s.
 
-See `BALANCE.md` for the full economy.
+**Endgame / meta-progression (Round 4):**
+- **Tech Tree** (Research tab) — spend RP on a gated tree of category multipliers.
+- **Artifacts** — earn one per model-release; equip up to 3 and match tags for
+  **synergy** bonuses (build-crafting).
+- **The Singularity** (2nd prestige) — collapse everything into permanent
+  **Singularity Cores** (+10% global each) and a Core meta-tree. Unlocks at 500
+  lifetime RP or your first AGI Core.
+- **Climactic moments** — a prestige ritual cinematic, milestone celebrations, an
+  evolving backdrop that escalates toward AGI, and optional ambient music.
+
+See `BALANCE.md` for the full economy and the endgame audit.
 
 ---
 
