@@ -526,6 +526,8 @@ html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0
 @keyframes ritualTitle { from { opacity: 0; transform: scale(0.82) translateY(10px); } to { opacity: 1; transform: none; } }
 .screenflash { position: fixed; inset: 0; z-index: 46; pointer-events: none; animation: screenflash 0.6s ease-out forwards; }
 @keyframes screenflash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+.shockwave { position: absolute; width: 14px; height: 14px; border-radius: 50%; border-width: 3px; border-style: solid; transform: translate(-50%, -50%); pointer-events: none; will-change: width, height, opacity; animation: shockwave 0.72s cubic-bezier(0.16,1,0.3,1) forwards; box-shadow: 0 0 24px currentColor; }
+@keyframes shockwave { 0% { width: 14px; height: 14px; opacity: 0.9; } 100% { width: var(--sw, 520px); height: var(--sw, 520px); opacity: 0; } }
 
 .hidden { display: none !important; }
 
@@ -561,7 +563,7 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #app::before { animation: none; }
   #app.shake { animation: none; }
-  .particle, .ripple, .screenflash { display: none; }
+  .particle, .ripple, .screenflash, .shockwave { display: none; }
   .ritual-core, .ritual-sweep::before, .ritual-title, .ritual-sub { animation: none !important; }
   #tapBtn.squash, .card, .tab.active, .modal, .toast, #insightFlash { animation: none !important; }
   * { transition-duration: 0.01ms !important; }

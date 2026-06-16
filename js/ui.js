@@ -765,9 +765,11 @@
       var res = G.claimInsight();
       removeInsight();
       if (res) {
+        var ix = rect.left + rect.width / 2, iy = rect.top + rect.height / 2;
         window.GAME_AUDIO.insight();
-        window.GAME_FX.insightBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
-        window.GAME_FX.flash('rgba(251,191,36,0.3)');
+        window.GAME_FX.insightBurst(ix, iy);
+        window.GAME_FX.flash('rgba(251,191,36,0.38)');
+        window.GAME_FX.shockwave(ix, iy, 'rgba(251,191,36,0.85)', 560);
         toast(t('insight_' + res.reward, res.vars), 'gold');
       }
     }
@@ -890,8 +892,11 @@
     $('breakthroughBtn').addEventListener('click', function () {
       if (G.activateBreakthrough()) {
         window.GAME_AUDIO.prestige();
-        var cx = window.innerWidth / 2, cy = window.innerHeight * 0.42;
-        window.GAME_FX.milestoneBurst(cx, cy);
+        var bx = window.innerWidth / 2, by = window.innerHeight * 0.42;
+        window.GAME_FX.flash('rgba(34,211,238,0.4)');
+        window.GAME_FX.shockwave(bx, by, 'rgba(34,211,238,0.9)', 720);
+        window.GAME_FX.milestoneBurst(bx, by);
+        window.GAME_FX.confetti(30);
       }
     });
     G.on('breakthrough', function (d) {
@@ -977,8 +982,8 @@
       var x = b ? b.left + b.width / 2 : window.innerWidth / 2;
       var y = b ? b.top + b.height / 2 : window.innerHeight / 2;
       if (major) {
-        // real celebration at 25/50/100/...
-        window.GAME_FX.celebrate(window.innerWidth / 2, window.innerHeight * 0.4, '×2  ' + d.milestone + '!');
+        // real celebration at 25/50/100/... (bigger at 100+)
+        window.GAME_FX.celebrate(window.innerWidth / 2, window.innerHeight * 0.4, '×2  ' + d.milestone + '!', d.milestone >= 100);
         if (r && r.el) window.GAME_FX.cardFlash(r.el);
       } else {
         window.GAME_FX.milestoneBurst(x, y);

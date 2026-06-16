@@ -117,6 +117,19 @@
     }
   }
 
+  // expanding shockwave ring from a point
+  function shockwave(x, y, color, size) {
+    if (reduce) return;
+    var r = root(); if (!r) return;
+    var e = document.createElement('div');
+    e.className = 'shockwave';
+    e.style.left = x + 'px'; e.style.top = y + 'px';
+    e.style.setProperty('--sw', (size || 520) + 'px');
+    e.style.borderColor = color || 'rgba(34,211,238,0.7)';
+    r.appendChild(e);
+    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 760);
+  }
+
   // quick fullscreen color flash
   function flash(color) {
     if (reduce) return;
@@ -126,10 +139,12 @@
     setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 600);
   }
 
-  // celebration for a big milestone: center burst + big pop + flash
-  function celebrate(x, y, text) {
-    flash('rgba(34,211,238,0.35)');
+  // celebration for a big milestone: layered flash + shockwave + burst + pop
+  function celebrate(x, y, text, big) {
+    flash('rgba(34,211,238,0.4)');
+    shockwave(x, y, 'rgba(34,211,238,0.8)', big ? 640 : 460);
     milestoneBurst(x, y);
+    if (big) { milestoneBurst(x, y); confetti(40); }
     popText(x, y, text, 'crit');
   }
 
@@ -146,7 +161,12 @@
       '<div class="ritual-text"><div class="ritual-title">' + (opts.title || '') + '</div>' +
       '<div class="ritual-sub">' + (opts.subtitle || '') + '</div></div>';
     document.body.appendChild(ov);
-    confetti(70);
+    var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    var col = kind === 'singularity' ? 'rgba(34,211,238,0.85)' : 'rgba(139,92,246,0.85)';
+    flash(kind === 'singularity' ? 'rgba(34,211,238,0.4)' : 'rgba(139,92,246,0.4)');
+    shockwave(cx, cy, col, 900);
+    setTimeout(function () { shockwave(cx, cy, col, 700); }, 180);
+    confetti(80);
     var removed = false;
     function done() { if (removed) return; removed = true; ov.classList.add('out'); setTimeout(function () { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 350); }
     ov.addEventListener('click', done);
@@ -156,7 +176,7 @@
   window.GAME_FX = {
     tapBurst: tapBurst, buyBurst: buyBurst, milestoneBurst: milestoneBurst,
     insightBurst: insightBurst, ripple: ripple, confetti: confetti, flash: flash,
-    celebrate: celebrate, ritual: ritual,
+    shockwave: shockwave, celebrate: celebrate, ritual: ritual,
     popText: popText, cardFlash: cardFlash, incident: incident
   };
 })();
