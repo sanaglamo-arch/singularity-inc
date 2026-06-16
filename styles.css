@@ -686,6 +686,14 @@ html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0
 .empty-state .es-icon { width: 30px; height: 30px; margin: 0 auto 8px; opacity: 0.6; }
 .empty-state .es-icon svg { width: 30px; height: 30px; }
 
+/* ---------- info ⓘ affordance + tooltip ---------- */
+.info { display: inline-flex; vertical-align: middle; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 8px; margin: -8px 2px -8px 4px; box-sizing: content-box; color: var(--fg-muted); background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.info:active { color: var(--cyan); }
+.info svg { width: 16px; height: 16px; }
+#tooltip { position: fixed; z-index: 80; background: rgba(16,15,34,0.98); border: 1px solid var(--violet); border-radius: 12px; padding: 11px 14px; font-size: 12.5px; line-height: 1.45; color: var(--fg-dim); box-shadow: var(--shadow-2), 0 0 30px -10px var(--glow-violet); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: tipIn 0.16s var(--ease); }
+@keyframes tipIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+#trustHud { cursor: pointer; }
+
 .hidden { display: none !important; }
 
 /* ---------- focus accessibility ---------- */

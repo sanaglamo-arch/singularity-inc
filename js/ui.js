@@ -13,6 +13,19 @@
   var built = false;
   var ICON = window.GAME_ICONS || {};
   function buzz(pattern) { try { if (G.state.haptics && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
+  var INFO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v5"/><circle cx="12" cy="7.8" r="0.9" fill="currentColor" stroke="none"/></svg>';
+  function infoBtn(key) { return '<button class="info" data-tip="' + key + '" aria-label="info">' + INFO_SVG + '</button>'; }
+  function showTip(btn) {
+    var tip = document.getElementById('tooltip');
+    if (!tip) { tip = el('div'); tip.id = 'tooltip'; tip.className = 'hidden'; document.body.appendChild(tip); }
+    tip.textContent = t(btn.dataset.tip);
+    tip.classList.remove('hidden');
+    var r = btn.getBoundingClientRect(), w = Math.min(260, window.innerWidth - 24);
+    tip.style.width = w + 'px';
+    tip.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+    tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 12, r.bottom + 8) + 'px';
+  }
+  function hideTip() { var tip = document.getElementById('tooltip'); if (tip) tip.classList.add('hidden'); }
   var SW = ' fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
   var EXTRA = {
     ic_check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
@@ -89,17 +102,17 @@
     $('nav_research').textContent = t('tab_research');
     $('nav_singularity').textContent = t('tab_singularity');
     $('nav_world').textContent = t('tab_world');
-    $('worldNewsTitle').textContent = t('world_news_title');
-    $('worldMarketTitle').textContent = t('world_market_title');
+    $('worldNewsTitle').innerHTML = t('world_news_title') + infoBtn('tip_news');
+    $('worldMarketTitle').innerHTML = t('world_market_title') + infoBtn('tip_market');
     $('newsFlavorTitle').textContent = t('news_flavor_title');
     $('marketIntro').textContent = t('market_intro');
     buildMarket();
     buildEndings();
     // research-tab extras
-    $('artifactsTitle').textContent = t('artifacts_title');
-    $('techTitle').textContent = t('tech_title');
+    $('artifactsTitle').innerHTML = t('artifacts_title') + infoBtn('tip_artifacts');
+    $('techTitle').innerHTML = t('tech_title') + infoBtn('tip_tech');
     // singularity tab
-    $('singTitle').textContent = t('singularity_title');
+    $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
     $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
     $('metaTitle').textContent = t('meta_title');
     buildArtifacts(); buildTech(); buildMeta();
@@ -110,8 +123,8 @@
     // upgrades + autopilot
     $('upgradesTitle').textContent = t('upgrades_title');
     $('managersTitle').textContent = t('managers_title');
-    $('autopilotHdr').textContent = t('autopilot_title');
-    $('apReserveLabel').textContent = t('ap_reserve');
+    $('autopilotHdr').innerHTML = t('autopilot_title') + infoBtn('tip_autopilot');
+    $('apReserveLabel').innerHTML = t('ap_reserve') + infoBtn('tip_reserve');
     $('apModeLabel').textContent = t('ap_mode');
     $('apGensLabel').textContent = t('ap_gens');
     var apo = $('apOnSeg').children; apo[0].textContent = t('on'); apo[1].textContent = t('off');
@@ -122,7 +135,7 @@
     $('researchDesc').textContent = t('research_desc', { p: (C.PRESTIGE.BONUS * 100) });
     $('prestigeUpTitle').textContent = t('prestige_upgrades_title');
     // alignment
-    $('alignTitle').textContent = t('alignment_title');
+    $('alignTitle').innerHTML = t('alignment_title') + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
     $('alignIntro').textContent = t('alignment_intro');
     $('alignLabel').textContent = t('alignment_label');
     $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
@@ -895,7 +908,7 @@
     var rp = $('racePanel');
     if (!G.rivalsRevealed()) { rp.classList.add('hidden'); return; }
     rp.classList.remove('hidden');
-    $('raceTitle').textContent = t('race_title');
+    $('raceTitle').innerHTML = t('race_title') + infoBtn('tip_race');
     // standings: you + rivals, sorted desc by AGI
     var rows = [{ id: 'you', val: G.agiProgress(), you: true }];
     C.RIVALS.forEach(function (r) { rows.push({ id: r.id, val: G.state.rivalAgi[r.id] || 0 }); });
@@ -1145,6 +1158,7 @@
 
   // ---------- events ----------
   function bind() {
+    document.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-tip]') : null; if (b) { e.preventDefault(); e.stopPropagation(); showTip(b); } else hideTip(); }, true);
     // tap
     var tapBtn = $('tapBtn');
     function doTap(clientX, clientY) {
