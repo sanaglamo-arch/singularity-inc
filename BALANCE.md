@@ -103,6 +103,27 @@ a high-risk push can tip you into an incident).
 All multipliers stack multiplicatively with prestige/upgrades but are time-boxed,
 so they spike engagement without breaking the long-term curve. RU+EN copy for all.
 
+## Endgame / meta-progression (Round 4)
+
+- **Tech Tree** (12 techs, RP-cost 12→2000, gated by tech/generator reqs):
+  category multipliers — tap ×3/×5, early/mid/late hardware ×2/×2/×3, all ×1.5/×2/×3,
+  offline ×2/×3, risk ×0.7/×0.5. Persists across model-release; resets on Singularity.
+- **Artifacts** (9, granted 1 per model-release, equip up to 3): effects all×1.10–1.15,
+  tap×3, late-hw×1.25, risk×0.70–0.80, offline×2, plus a gamble (×0.6–3.0). Each tag
+  shared by ≥2 equipped artifacts → **+20% all per matched tag** (build-crafting).
+- **The Singularity** (2nd prestige): unlocks at **500 lifetime RP** or first **AGI Core**.
+  Cores = `floor(sqrt(RP / 100) × coreGain)`; each Core **+10% global forever**; resets
+  generators + tech + RP. 8-node Core meta-tree (Cores): global ×3/×5/×10, RP-gain ×2,
+  tap ×10, risk ×0.5, +24h offline, core-gain ×2 — permanent, never reset.
+
+**Balance audit (sim with all mechanics):**
+- Fresh 30-min run yields ~2 RP → first prestige lands in the **30–45 min** window.
+- First Singularity ≈ **10 prestiges / ~5h active** (faster with offline + ads + insight/
+  breakthrough) — a meaningful long-term goal, no dead wall.
+- Dual unlock path (500 RP *or* AGI Core) keeps it reachable for both idle and active styles.
+- No runaway: deep-run cps stays finite (≈55B in a boosted 1h run); numbers format
+  cleanly into the suffix/scientific range.
+
 ## Offline
 
 - Earns **50%** of current cps for elapsed time, capped at **8h** (+4h per
