@@ -473,6 +473,34 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .ob-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--glass-border); transition: background 0.2s; }
 .ob-dots .dot.on { background: var(--cyan); box-shadow: 0 0 8px var(--glow-cyan); }
 
+/* ---------- evolving backdrop stages (escalate toward AGI) ---------- */
+html[data-stage="1"] #app::before { filter: blur(28px) saturate(1.15); }
+html[data-stage="2"] #app::before { filter: blur(30px) saturate(1.25); }
+html[data-stage="3"] #app::before { filter: blur(30px) saturate(1.35); }
+html[data-stage="4"] #app::before, html[data-stage="5"] #app::before { filter: blur(32px) saturate(1.5) brightness(1.12); }
+html[data-stage="3"] #app, html[data-stage="4"] #app { background: linear-gradient(180deg, #0f0b26 0%, var(--bg-base) 46%, var(--bg-deep) 100%); }
+html[data-stage="4"] #app { box-shadow: inset 0 0 220px 50px rgba(139,92,246,0.07); }
+html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0b1c 46%, var(--bg-deep) 100%); box-shadow: inset 0 0 240px 60px rgba(34,211,238,0.09); }
+
+/* ---------- prestige / singularity ritual ---------- */
+.ritual { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; cursor: pointer; background: radial-gradient(circle at 50% 45%, rgba(22,16,54,0.5), rgba(4,4,12,0.86)); animation: ritualIn 0.4s var(--ease); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.ritual.out { animation: ritualOut 0.35s ease forwards; }
+.ritual-core { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, #fff, var(--violet) 58%, transparent 74%); box-shadow: 0 0 90px 36px var(--glow-violet); animation: ritualCore 2.2s var(--ease) forwards; }
+.ritual.singularity .ritual-core { background: radial-gradient(circle, #fff, var(--cyan) 58%, transparent 74%); box-shadow: 0 0 90px 36px var(--glow-cyan); }
+.ritual-sweep { position: absolute; inset: 0; overflow: hidden; }
+.ritual-sweep::before { content: ''; position: absolute; top: -50%; left: -60%; width: 45%; height: 200%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); transform: rotate(18deg); animation: sweep 1.25s var(--ease) 0.15s; }
+.ritual-text { position: relative; z-index: 2; text-align: center; padding: 0 24px; }
+.ritual-title { font-family: var(--font-display); font-weight: 900; font-size: 30px; letter-spacing: 2.5px; color: #fff; text-shadow: 0 0 34px var(--glow-violet); animation: ritualTitle 0.6s var(--ease-spring) 0.2s backwards; }
+.ritual.singularity .ritual-title { text-shadow: 0 0 34px var(--glow-cyan); }
+.ritual-sub { margin-top: 10px; color: var(--fg-dim); font-size: 13px; max-width: 320px; margin-left: auto; margin-right: auto; animation: ritualTitle 0.6s var(--ease) 0.45s backwards; }
+@keyframes ritualIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ritualOut { to { opacity: 0; } }
+@keyframes ritualCore { 0% { transform: scale(0.2); opacity: 0; } 22% { opacity: 1; } 60% { transform: scale(8); opacity: 0.5; } 100% { transform: scale(16); opacity: 0; } }
+@keyframes sweep { from { left: -60%; } to { left: 120%; } }
+@keyframes ritualTitle { from { opacity: 0; transform: scale(0.82) translateY(10px); } to { opacity: 1; transform: none; } }
+.screenflash { position: fixed; inset: 0; z-index: 46; pointer-events: none; animation: screenflash 0.6s ease-out forwards; }
+@keyframes screenflash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+
 .hidden { display: none !important; }
 
 /* ---------- focus accessibility ---------- */
@@ -498,7 +526,8 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #app::before { animation: none; }
   #app.shake { animation: none; }
-  .particle, .ripple { display: none; }
+  .particle, .ripple, .screenflash { display: none; }
+  .ritual-core, .ritual-sweep::before, .ritual-title, .ritual-sub { animation: none !important; }
   #tapBtn.squash, .card, .tab.active, .modal, .toast, #insightFlash { animation: none !important; }
   * { transition-duration: 0.01ms !important; }
 }

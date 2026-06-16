@@ -271,6 +271,7 @@
     sm_global1: 'Foom Protocol', sm_rp: 'Open Research', sm_tap: 'Neural Interface', sm_risk: 'Aligned by Design',
     sm_offline: 'Autonomous Agents', sm_global2: 'Compute Overhang', sm_core: 'Self-Replication', sm_global3: 'Intelligence Explosion',
     sing_flavor: 'Reality folds inward. You are the seed of a new intelligence.',
+    ritual_model: 'MODEL RELEASED', ritual_singularity: 'SINGULARITY',
 
     a_tech: 'First Principles', a_tech_d: 'Unlock a tech.',
     a_artifact: 'Relic Hunter', a_artifact_d: 'Equip an artifact.',
@@ -529,6 +530,7 @@
     sm_global1: 'Протокол Foom', sm_rp: 'Открытые исследования', sm_tap: 'Нейроинтерфейс', sm_risk: 'Безопасность в основе',
     sm_offline: 'Автономные агенты', sm_global2: 'Навес вычислений', sm_core: 'Саморепликация', sm_global3: 'Интеллектуальный взрыв',
     sing_flavor: 'Реальность сворачивается внутрь. Ты — семя нового разума.',
+    ritual_model: 'МОДЕЛЬ ВЫПУЩЕНА', ritual_singularity: 'СИНГУЛЯРНОСТЬ',
 
     a_tech: 'С нуля', a_tech_d: 'Открой технологию.',
     a_artifact: 'Охотник за реликвиями', a_artifact_d: 'Надень артефакт.',

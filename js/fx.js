@@ -92,9 +92,71 @@
 
   function insightBurst(x, y) { spawn(x, y, 'radial-gradient(circle,#fff3c4,#fbbf24)', 24, 150, 1.1); }
 
+  // confetti rain from the top (capped); mixed neon colors
+  function confetti(n) {
+    if (reduce) return;
+    var r = root(); if (!r) return;
+    var colors = ['#8b5cf6', '#22d3ee', '#fbbf24', '#34d399', '#fb5c78'];
+    n = Math.min(n || 60, MAX_PARTICLES - live);
+    var w = window.innerWidth;
+    for (var i = 0; i < n; i++) {
+      var p = document.createElement('div');
+      p.className = 'particle';
+      var sz = 6 + Math.random() * 7;
+      p.style.left = (Math.random() * w) + 'px';
+      p.style.top = '-10px';
+      p.style.width = sz + 'px'; p.style.height = sz + 'px';
+      p.style.background = colors[i % colors.length];
+      p.style.borderRadius = (Math.random() < 0.5 ? '50%' : '2px');
+      p.style.setProperty('--dx', (Math.random() * 80 - 40).toFixed(0) + 'px');
+      p.style.setProperty('--dy', (window.innerHeight + 40) + 'px');
+      var dur = 1.4 + Math.random() * 1.1;
+      p.style.animationDuration = dur + 's';
+      r.appendChild(p); live++;
+      (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); live--; }, dur * 1000 + 60); })(p);
+    }
+  }
+
+  // quick fullscreen color flash
+  function flash(color) {
+    if (reduce) return;
+    var f = document.createElement('div'); f.className = 'screenflash';
+    f.style.background = 'radial-gradient(circle at 50% 45%, ' + (color || 'rgba(139,92,246,0.5)') + ', transparent 70%)';
+    document.body.appendChild(f);
+    setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 600);
+  }
+
+  // celebration for a big milestone: center burst + big pop + flash
+  function celebrate(x, y, text) {
+    flash('rgba(34,211,238,0.35)');
+    milestoneBurst(x, y);
+    popText(x, y, text, 'crit');
+  }
+
+  // prestige / singularity ritual cinematic. opts: {title, subtitle, kind}
+  function ritual(opts) {
+    opts = opts || {};
+    var kind = opts.kind || 'prestige';
+    if (reduce) { flash(kind === 'singularity' ? 'rgba(34,211,238,0.5)' : 'rgba(139,92,246,0.5)'); return; }
+    var ov = document.createElement('div');
+    ov.className = 'ritual ' + kind;
+    ov.innerHTML =
+      '<div class="ritual-core"></div>' +
+      '<div class="ritual-sweep"></div>' +
+      '<div class="ritual-text"><div class="ritual-title">' + (opts.title || '') + '</div>' +
+      '<div class="ritual-sub">' + (opts.subtitle || '') + '</div></div>';
+    document.body.appendChild(ov);
+    confetti(70);
+    var removed = false;
+    function done() { if (removed) return; removed = true; ov.classList.add('out'); setTimeout(function () { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 350); }
+    ov.addEventListener('click', done);
+    setTimeout(done, 2300);
+  }
+
   window.GAME_FX = {
     tapBurst: tapBurst, buyBurst: buyBurst, milestoneBurst: milestoneBurst,
-    insightBurst: insightBurst, ripple: ripple,
+    insightBurst: insightBurst, ripple: ripple, confetti: confetti, flash: flash,
+    celebrate: celebrate, ritual: ritual,
     popText: popText, cardFlash: cardFlash, incident: incident
   };
 })();

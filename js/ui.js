@@ -558,6 +558,12 @@
     // atmosphere intensity rises with output toward AGI
     var inten = Math.max(0, Math.min(1, (Math.log10(G.cps() + 10) - 1) / 9));
     document.documentElement.style.setProperty('--intensity', inten.toFixed(3));
+    // discrete evolving backdrop stage (highest hardware tier + singularity)
+    var hi = -1;
+    for (var gx = 0; gx < C.GENERATORS.length; gx++) if (s.gens[C.GENERATORS[gx].id] > 0) hi = gx;
+    var stage = Math.min(4, Math.floor((hi + 1) / 2.6));
+    if (s.singularities > 0) stage = 5;
+    if (document.documentElement.getAttribute('data-stage') !== String(stage)) document.documentElement.setAttribute('data-stage', String(stage));
 
     // overclock heat -> combo bar + button glow
     var heat = s.comboHeat || 0;
@@ -798,10 +804,7 @@
         if (G.doPrestige()) {
           window.GAME_AUDIO.prestige();
           var f = t('flavor_' + Math.floor((G.state.prestiges) % 5));
-          toast(f, 'gold');
-          var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-          window.GAME_FX.milestoneBurst(cx, cy);
-          window.GAME_FX.popText(cx, cy, '+' + G.state.rp + ' RP', 'big');
+          window.GAME_FX.ritual({ kind: 'prestige', title: t('ritual_model'), subtitle: f });
           // interstitial on prestige (graceful)
           window.GAME_ADS.showInterstitial({});
         }
@@ -822,13 +825,13 @@
       $('sOk').onclick = function () {
         hideModal();
         if (G.doSingularity()) {
-          if (window.GAME_FX.ritual) window.GAME_FX.ritual('singularity');
+          window.GAME_FX.ritual({ kind: 'singularity', title: t('ritual_singularity'), subtitle: t('sing_flavor') });
           window.GAME_AUDIO.prestige();
           switchTab('company');
         }
       };
     });
-    G.on('singularity', function () { toast(t('sing_flavor'), 'gold'); });
+    // (singularity flavor shown in the ritual cinematic subtitle)
 
     // alignment buy
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
@@ -906,14 +909,20 @@
       toast(t('ev_' + d.id) + ' — ' + t('ev_' + d.id + '_d'), bad ? 'bad' : 'gold');
     });
     G.on('milestone', function (d) {
-      window.GAME_AUDIO.achievement();
+      var major = d.milestone >= 25;
+      if (major && window.GAME_AUDIO.milestone) window.GAME_AUDIO.milestone(); else window.GAME_AUDIO.achievement();
       var r = genRefs[d.id];
-      if (r && r.el) {
-        var b = r.el.getBoundingClientRect();
-        var x = b.left + b.width / 2, y = b.top + b.height / 2;
+      var b = r && r.el ? r.el.getBoundingClientRect() : null;
+      var x = b ? b.left + b.width / 2 : window.innerWidth / 2;
+      var y = b ? b.top + b.height / 2 : window.innerHeight / 2;
+      if (major) {
+        // real celebration at 25/50/100/...
+        window.GAME_FX.celebrate(window.innerWidth / 2, window.innerHeight * 0.4, '×2  ' + d.milestone + '!');
+        if (r && r.el) window.GAME_FX.cardFlash(r.el);
+      } else {
         window.GAME_FX.milestoneBurst(x, y);
         window.GAME_FX.popText(x, y, '×2!', 'big');
-        window.GAME_FX.cardFlash(r.el);
+        if (r && r.el) window.GAME_FX.cardFlash(r.el);
       }
     });
   }
