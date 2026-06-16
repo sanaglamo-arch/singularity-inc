@@ -108,7 +108,7 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
   `user-select:none`, `touch-action:manipulation`.
 - ✅ **Viewport:** `width=device-width, initial-scale=1, maximum-scale=1,
   user-scalable=no, viewport-fit=cover`; safe-area insets respected.
-- ✅ **Localization:** complete **RU + EN** (359/359 keys each, verified parity),
+- ✅ **Localization:** complete **RU + EN** (394/394 keys each, verified parity),
   runtime toggle, no untranslated strings.
 - ✅ **Icon:** 512×512, **RGB, no alpha**, square, an illustration.
 - ✅ **Cover:** 800×470 illustration (not a screenshot).
@@ -160,7 +160,17 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
 - **Climactic moments** — a prestige ritual cinematic, milestone celebrations, an
   evolving backdrop that escalates toward AGI, and optional ambient music.
 
-See `BALANCE.md` for the full economy and the endgame audit.
+**Polish & cohesion (Round 5):**
+- **Next-goal nudge** — the Lab screen always tells you what to do next (buy /
+  milestone / upgrade / fund Alignment / release a model / Ascend), so you're never lost.
+- **Spectacle** — layered flashes, shockwaves, particles and sound stings on every
+  dopamine peak (insight, breakthrough, milestones, prestige, Singularity).
+- **Identity** — branded splash/loading screen, polished empty states.
+- **Cosmetics** — earned TRAIN-orb skins + backdrop themes (Settings gallery), no pay-to-win.
+- **Narrative** — a stage-based satirical news ticker (garage → lab → AGI → Singularity).
+- **Perks** — several achievements grant small permanent global/tap bonuses.
+
+See `BALANCE.md` for the full economy, endgame audit, and the Round-5 playtest.
 
 ---
 

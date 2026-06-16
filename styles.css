@@ -154,7 +154,7 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 .cos-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--glass-border); }
 .cos-label { font-size: 13px; color: var(--fg-dim); flex: 0 0 84px; }
 .cos-list { display: flex; gap: 9px; flex-wrap: wrap; flex: 1; }
-.cos-swatch { width: 40px; height: 40px; border-radius: 11px; border: 2px solid var(--glass-border); cursor: pointer; position: relative; overflow: hidden; transition: transform 0.1s var(--ease-spring), border-color 0.2s; }
+.cos-swatch { width: 44px; height: 44px; border-radius: 11px; border: 2px solid var(--glass-border); cursor: pointer; position: relative; overflow: hidden; transition: transform 0.1s var(--ease-spring), border-color 0.2s; }
 .cos-swatch:active { transform: scale(0.92); }
 .cos-swatch.sel { border-color: var(--cyan); box-shadow: 0 0 12px var(--glow-cyan); }
 .cos-swatch.locked { cursor: not-allowed; filter: grayscale(0.7) brightness(0.5); }
