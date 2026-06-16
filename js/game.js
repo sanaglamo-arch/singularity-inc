@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -73,6 +73,15 @@
       // Smart Autopilot (decoupled from managers; never spends below reserve).
       // Default SAFE: off, no generators enabled, 50% reserve.
       autopilot: { on: false, reserve: 0.5, mode: 'roi', gens: {} },
+      // R7 management-sim layer
+      trust: 60,
+      cards: [],             // active actionable cards (crisis / decision / opportunity)
+      cardAllMult: 1,        // permanent multiplier from one-time opportunities (chip drops)
+      nextNewsAt: 0,
+      newsLog: [],           // recent headline strings for the News feed
+      market: null,          // {price:{id:n}, hold:{id:shares}, hist:{id:[...]}, nextAt}
+      crisesResolved: 0,
+      seen: {},              // one-time unlock hints shown
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -183,7 +192,7 @@
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     m *= techMult('all') * artifactMult('allMult') * artifactSynergyMult();
-    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global');
+    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global') * (state.cardAllMult || 1);
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
@@ -587,7 +596,113 @@
     var gap = E.MIN_GAP + Math.random() * (E.MAX_GAP - E.MIN_GAP);
     state.nextEventAt = Date.now() + gap * 1000;
   }
-  function triggerCrisis(vector) { /* Slice 2: spawns a decision card; penalty already applied in tick */ }
+  // ===== R7 World: Trust, cards (crises + news), market, gating =====
+  function worldUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
+  function marketUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
+  function clampTrust(v) { return Math.max(C.TRUST.MIN, Math.min(C.TRUST.MAX, v)); }
+  function hasCrisisCard() { for (var i = 0; i < state.cards.length; i++) if (state.cards[i].kind === 'crisis') return true; return false; }
+  var _uid = 1;
+
+  function applyEffect(eff) {
+    if (!eff) return;
+    if (eff.cashFrac) state.cash = Math.max(0, state.cash + state.cash * eff.cashFrac);
+    if (eff.cashGift) addCash(Math.max(tapValue() * 100, cps() * eff.cashGift));
+    if (eff.trust) state.trust = clampTrust(state.trust + eff.trust);
+    if (eff.vec) for (var k in eff.vec) state.vec[k] = Math.max(0, Math.min(C.RISK.MAX, state.vec[k] + eff.vec[k]));
+    if (eff.penaltySec) state.incidentEndsAt = Date.now() + eff.penaltySec * 1000;
+    if (eff.allMult) state.cardAllMult = (state.cardAllMult || 1) * eff.allMult;
+  }
+  function cardTemplate(card) {
+    var arr = card.kind === 'crisis' ? C.CARDS.crises : C.CARDS.news;
+    for (var i = 0; i < arr.length; i++) if (arr[i].id === card.id) return arr[i];
+    return null;
+  }
+  function resolveCard(uid, choiceId) {
+    var idx = -1; for (var i = 0; i < state.cards.length; i++) if (state.cards[i].uid === uid) idx = i;
+    if (idx < 0) return false;
+    var card = state.cards[idx], tpl = cardTemplate(card);
+    if (!tpl) { state.cards.splice(idx, 1); return false; }
+    var ch = null; for (var c = 0; c < tpl.choices.length; c++) if (tpl.choices[c].id === choiceId) ch = tpl.choices[c];
+    if (!ch) return false;
+    applyEffect(ch.effect);
+    state.cards.splice(idx, 1);
+    if (card.kind === 'crisis') state.crisesResolved++;
+    checkAchievements(); emit('change');
+    return true;
+  }
+  function spawnCrisisCard(vector) {
+    var tpl = null; for (var i = 0; i < C.CARDS.crises.length; i++) if (C.CARDS.crises[i].vector === vector) tpl = C.CARDS.crises[i];
+    if (!tpl) return;
+    state.cards.push({ uid: _uid++, kind: 'crisis', id: tpl.id, vector: vector, expiresAt: Date.now() + C.CARDS.CRISIS_EXPIRE * 1000 });
+    state.incidentsThisRun++; state.incidentsTotal++;
+    emit('card', { kind: 'crisis', id: tpl.id });
+  }
+  function spawnNews() {
+    var pool = C.CARDS.news.filter(function (n) { return !n.req || !n.req.trust || state.trust >= n.req.trust; });
+    if (!pool.length) return;
+    var n = pool[Math.floor(Math.random() * pool.length)];
+    state.cards.push({ uid: _uid++, kind: n.kind, id: n.id, expiresAt: Date.now() + C.CARDS.NEWS_LIFE * 1000 });
+    emit('card', { kind: n.kind, id: n.id });
+  }
+  function triggerCrisis(vector) {
+    if (worldUnlocked()) { if (!hasCrisisCard()) spawnCrisisCard(vector); }
+    else { state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000; state.incidentsThisRun++; state.incidentsTotal++; emit('incident', { active: true }); }
+  }
+  function updateCards() {
+    var now = Date.now(), changed = false;
+    for (var i = state.cards.length - 1; i >= 0; i--) {
+      var card = state.cards[i];
+      if (now >= card.expiresAt) {
+        if (card.kind === 'crisis') { // escalate: penalty + trust hit + vector re-raise
+          state.incidentEndsAt = now + C.RISK.INCIDENT_DURATION * 1000;
+          state.trust = clampTrust(state.trust - 8);
+          if (card.vector) state.vec[card.vector] = Math.min(C.RISK.MAX, state.vec[card.vector] + 20);
+          emit('card', { kind: 'escalate', vector: card.vector });
+        }
+        state.cards.splice(i, 1); changed = true;
+      }
+    }
+    if (worldUnlocked()) {
+      if (!state.nextNewsAt) state.nextNewsAt = now + (C.CARDS.NEWS_MIN + Math.random() * (C.CARDS.NEWS_MAX - C.CARDS.NEWS_MIN)) * 1000;
+      else if (now >= state.nextNewsAt && !hasCrisisCard()) { spawnNews(); state.nextNewsAt = now + (C.CARDS.NEWS_MIN + Math.random() * (C.CARDS.NEWS_MAX - C.CARDS.NEWS_MIN)) * 1000; changed = true; }
+    }
+    if (changed) emit('change');
+  }
+  // ---- Market ----
+  function ensureMarket() {
+    if (state.market && state.market.price) return;
+    var m = { price: {}, hold: {}, hist: {}, nextAt: 0 };
+    C.MARKET.assets.forEach(function (a) { m.price[a.id] = a.start; m.hold[a.id] = 0; m.hist[a.id] = [a.start]; });
+    state.market = m;
+  }
+  function updateMarket() {
+    if (!marketUnlocked()) return;
+    ensureMarket();
+    var now = Date.now(), m = state.market;
+    if (!m.nextAt) m.nextAt = now;
+    if (now >= m.nextAt) {
+      m.nextAt = now + C.MARKET.TICK * 1000;
+      C.MARKET.assets.forEach(function (a) {
+        var vol = a.id === 'ALN' ? C.MARKET.DRIFT * 0.5 : C.MARKET.DRIFT;
+        var chg = (Math.random() * 2 - 1) * vol * 2 + 0.0006;
+        m.price[a.id] = Math.max(1, m.price[a.id] * (1 + chg));
+        m.hist[a.id].push(m.price[a.id]); if (m.hist[a.id].length > 40) m.hist[a.id].shift();
+      });
+      emit('change');
+    }
+  }
+  function marketBuy(id, cashAmt) {
+    ensureMarket(); var m = state.market;
+    cashAmt = Math.min(cashAmt, state.cash); if (cashAmt <= 0) return false;
+    m.hold[id] += (cashAmt * (1 - C.MARKET.FEE)) / m.price[id];
+    state.cash -= cashAmt; emit('change'); return true;
+  }
+  function marketSell(id, frac) {
+    ensureMarket(); var m = state.market;
+    var sh = m.hold[id] * frac; if (sh <= 0) return false;
+    state.cash += sh * m.price[id] * (1 - C.MARKET.FEE); m.hold[id] -= sh; emit('change'); return true;
+  }
+
   function triggerEvent() {
     var E = C.EVENTS;
     var def = E.list[Math.floor(Math.random() * E.list.length)];
@@ -761,6 +876,8 @@
     updateEvents();
     updateInsight();
     updateBuffs(dt);
+    updateCards();
+    updateMarket();
 
     state.playtime += dt;
     checkAchievements();
@@ -906,6 +1023,8 @@
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
+    worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
+    cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
     autopilotUnlocked: autopilotUnlocked, apStatus: apStatus,
     setAutopilotOn: setAutopilotOn, setAutopilotReserve: setAutopilotReserve,
     setAutopilotMode: setAutopilotMode, toggleAutopilotGen: toggleAutopilotGen,

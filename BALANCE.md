@@ -146,6 +146,30 @@ Singularity, risk/incidents, insight, breakthrough, events). Findings + fixes:
 - **No trivialize:** insight/breakthrough/combo are time-boxed multipliers that
   accelerate without breaking the curve; deep-run numbers stay finite.
 
+## Management-sim layer (Round 7)
+
+- **Multi-vector risk** (replaces the single spam-defeatable bar): Capability (output
+  growth), Privacy/Data (data-heavy gens), Public Trust/Regulatory (hype + a +11 spike
+  per prestige), Security (accrues over time). Alignment investment suppresses ALL
+  vectors' growth (full on Capability, 50% on the rest). **No instant pay-to-clear** —
+  the reactive **Audit** only lowers the highest vector, costs 18% cash, 120s cooldown.
+  A maxed vector → output crisis. **The tap-to-zero exploit is removed** (verified in
+  the smoke suite: no `containIncident`; audit enforces a cooldown).
+- **Crises** are decision cards (gated to post-first-prestige): 4 types, each 2–3
+  tradeoff choices (pay cash / accept regulatory / accept an output crisis). Ignored
+  crises **escalate** (output penalty + −8 Trust + the vector jumps back up).
+- **News & Decisions / Trust**: news/opportunity cards spawn every 70–140s; choices
+  move **Trust** (0–100, starts 60), which gates content (e.g. the government contract
+  needs Trust ≥ 70). One-time opportunities (chip drop = +5% permanent output, raise a
+  round = cash) are time-limited.
+- **Market**: 4 assets (CMP/NVX/DTA/ALN), random-walk prices (ALN low-vol), 1% trade
+  fee, buy 10%-of-cash / sell-all. A bonus skill layer — the fee + volatility keep it
+  from being a risk-free exploit.
+- **Gating**: early game is just tap→buy. The World tab (Newsroom + Market), Trust HUD,
+  and crisis *cards* all unlock at the **first prestige**, each with a one-line hint.
+- Sim with everything active: hook strong (~3.7K @60s), both prestige layers reachable,
+  **no runaway** (deep-run cps finite), no new exploit.
+
 ## Offline
 
 - Earns **50%** of current cps for elapsed time, capped at **8h** (+4h per

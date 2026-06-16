@@ -19,7 +19,10 @@
     ic_artifact: '<svg viewBox="0 0 24 24"' + SW + '><path d="M6 3h12l3 5-9 13L3 8z"/><path d="M3 8h18M9 3 7.5 8 12 21 16.5 8 15 3"/></svg>',
     ic_core: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="2.4" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/></svg>',
     nav_singularity: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3a9 9 0 1 1-7 3.3"/><path d="M12 3a9 9 0 0 1 7 3.3" opacity="0.5"/></svg>',
-    ic_lock: '<svg viewBox="0 0 24 24"' + SW + '><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
+    ic_lock: '<svg viewBox="0 0 24 24"' + SW + '><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    ic_world: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 2.6 15.5 0 18M12 3c-2.6 2.5-2.6 15.5 0 18"/></svg>',
+    ic_market: '<svg viewBox="0 0 24 24"' + SW + '><path d="M4 19V5M4 19h16"/><path d="M7 15l3-4 3 2 4-6"/></svg>',
+    ic_trust: '<svg viewBox="0 0 24 24"' + SW + '><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
   function ic(key) { return EXTRA[key] || ICON[key] || ''; }
 
@@ -71,7 +74,8 @@
     $('tapLabel').textContent = t('tap_button');
     $('tapHint').textContent = t('tap_hint');
     // nav icons (replace emoji with inline SVG)
-    var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', singularity: 'nav_singularity', alignment: 'nav_alignment', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
+    var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', singularity: 'nav_singularity', alignment: 'nav_alignment', world: 'ic_world', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
+    $('trustHud').querySelector('.thi').innerHTML = ic('ic_trust');
     var navBtns = $('tabbar').children;
     for (var ni = 0; ni < navBtns.length; ni++) {
       var tabKey = navBtns[ni].dataset.tab;
@@ -83,6 +87,12 @@
     $('nav_upgrades').textContent = t('tab_upgrades');
     $('nav_research').textContent = t('tab_research');
     $('nav_singularity').textContent = t('tab_singularity');
+    $('nav_world').textContent = t('tab_world');
+    $('worldNewsTitle').textContent = t('world_news_title');
+    $('worldMarketTitle').textContent = t('world_market_title');
+    $('newsFlavorTitle').textContent = t('news_flavor_title');
+    $('marketIntro').textContent = t('market_intro');
+    buildMarket();
     // research-tab extras
     $('artifactsTitle').textContent = t('artifacts_title');
     $('techTitle').textContent = t('tech_title');
@@ -763,6 +773,90 @@
     } else eb.classList.add('hidden');
   }
 
+  // ---------- World: news cards, crises, market ----------
+  function cardTag(kind) { return kind === 'crisis' ? t('tag_crisis') : kind === 'opportunity' ? t('tag_opportunity') : t('tag_decision'); }
+  function cardChoiceLabel(cardId, choiceId) { return t(cardId + '_' + choiceId); }
+  function renderCardHTML(card) {
+    var tpl = G.cardTemplate(card); if (!tpl) return '';
+    var remain = Math.max(0, (card.expiresAt - Date.now()) / 1000);
+    var btns = tpl.choices.map(function (ch) {
+      return '<button class="cardchoice" data-uid="' + card.uid + '" data-ch="' + ch.id + '">' + cardChoiceLabel(card.id, ch.id) + '</button>';
+    }).join('');
+    return '<div class="newscard ' + card.kind + '">' +
+      '<div class="nc-tag">' + cardTag(card.kind) + '</div>' +
+      '<div class="nc-title">' + t(card.id + '_t') + '</div>' +
+      '<div class="nc-desc">' + t(card.id + '_d') + '</div>' +
+      '<div class="nc-timer muted small">' + t('card_expires', { t: FMT.fmtTime(remain) }) + '</div>' +
+      '<div class="nc-choices">' + btns + '</div></div>';
+  }
+  function wireCardButtons(container) {
+    var bs = container.querySelectorAll('.cardchoice');
+    for (var i = 0; i < bs.length; i++) {
+      (function (b) {
+        b.addEventListener('click', function () {
+          if (G.resolveCard(parseInt(b.dataset.uid, 10), b.dataset.ch)) {
+            window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); hideModal(); updateWorld();
+          }
+        });
+      })(bs[i]);
+    }
+  }
+  function showCrisisModal() {
+    var crisis = null; for (var i = 0; i < G.state.cards.length; i++) if (G.state.cards[i].kind === 'crisis') crisis = G.state.cards[i];
+    if (!crisis) return;
+    showModal('<div class="crisis-modal">' + renderCardHTML(crisis) + '</div>');
+    wireCardButtons($('modalRoot'));
+  }
+  function sparkline(hist) {
+    if (!hist || hist.length < 2) return '';
+    var min = Math.min.apply(null, hist), max = Math.max.apply(null, hist), rng = (max - min) || 1;
+    var n = hist.length, pts = hist.map(function (v, i) { return (i / (n - 1) * 60).toFixed(1) + ',' + (20 - (v - min) / rng * 18).toFixed(1); }).join(' ');
+    var up = hist[n - 1] >= hist[0];
+    return '<svg class="spark" viewBox="0 0 60 20" preserveAspectRatio="none"><polyline points="' + pts + '" fill="none" stroke="' + (up ? 'var(--green)' : 'var(--rose)') + '" stroke-width="1.5"/></svg>';
+  }
+  function buildMarket() {
+    var list = $('marketList'); if (!list) return; list.innerHTML = '';
+    C.MARKET.assets.forEach(function (a) {
+      var row = el('div', 'mkrow'); row.dataset.aid = a.id;
+      row.innerHTML =
+        '<div class="mk-info"><div class="mk-name">' + t('mk_' + a.id) + ' <span class="mk-sym">' + a.id + '</span></div>' +
+        '<div class="mk-hold muted small"></div></div>' +
+        '<div class="mk-spark"></div>' +
+        '<div class="mk-price"></div>' +
+        '<div class="mk-act"><button class="mk-buy" data-aid="' + a.id + '">' + t('market_buy') + '</button>' +
+        '<button class="mk-sell" data-aid="' + a.id + '">' + t('market_sell') + '</button></div>';
+      list.appendChild(row);
+      row.querySelector('.mk-buy').addEventListener('click', function () { if (G.marketBuy(a.id, G.state.cash * 0.1)) { window.GAME_AUDIO.buy(); updateWorld(); } });
+      row.querySelector('.mk-sell').addEventListener('click', function () { if (G.marketSell(a.id, 1)) { window.GAME_AUDIO.buy(); updateWorld(); } });
+    });
+  }
+  function updateWorld() {
+    var unlocked = G.worldUnlocked();
+    $('worldLocked').classList.toggle('hidden', unlocked);
+    ['worldNewsTitle', 'cardList', 'worldMarketTitle', 'marketIntro', 'marketList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
+    if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
+    // active cards (skip crises here — they appear as a modal; but still list them)
+    var cl = $('cardList'), html = '';
+    G.state.cards.forEach(function (c) { html += renderCardHTML(c); });
+    if (!html) html = '<div class="empty-state">' + t('ap_status_idle') + '</div>';
+    cl.innerHTML = html; wireCardButtons(cl);
+    // market
+    G.ensureMarket(); var m = G.state.market;
+    var rows = $('marketList').children;
+    for (var i = 0; i < rows.length; i++) {
+      var aid = rows[i].dataset.aid;
+      rows[i].querySelector('.mk-price').textContent = fmt(m.price[aid]);
+      rows[i].querySelector('.mk-spark').innerHTML = sparkline(m.hist[aid]);
+      var hold = m.hold[aid];
+      rows[i].querySelector('.mk-hold').textContent = hold > 0.0001 ? t('market_hold', { n: hold.toFixed(2), v: fmt(hold * m.price[aid]) }) : t('market_none');
+      rows[i].querySelector('.mk-sell').disabled = hold <= 0.0001;
+      rows[i].querySelector('.mk-buy').disabled = G.state.cash < 1;
+    }
+    // flavor headlines (stage-based)
+    var pool = currentNews();
+    $('newsFlavor').innerHTML = pool.map(function (h) { return '<div class="flavor-line">• ' + h + '</div>'; }).join('');
+  }
+
   // ---------- next-goal nudge ----------
   function computeNudge() {
     var s = G.state;
@@ -811,6 +905,7 @@
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
     else if (currentTab === 'singularity') updateSingularity();
+    else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
     else if (currentTab === 'achievements') updateAchievements();
@@ -819,6 +914,12 @@
     // reveal Singularity nav once unlocked
     var nsb = $('navSingBtn');
     if (nsb) nsb.classList.toggle('hidden', !G.singUnlocked());
+    // World: nav reveal + Trust HUD + one-time unlock hint
+    var wb = $('navWorldBtn'), wu = G.worldUnlocked();
+    if (wb) wb.classList.toggle('hidden', !wu);
+    var th = $('trustHud');
+    if (th) { th.classList.toggle('hidden', !wu); if (wu) $('trustVal').textContent = Math.round(G.state.trust); }
+    if (wu && !G.state.seen.world) { G.state.seen.world = true; toast(t('hint_world'), 'gold'); G.save(); }
     applyCosmetics();
     if (currentTab === 'settings') updateCosmetics();
     updateSettingsState();
@@ -1037,6 +1138,10 @@
       };
     });
     // (singularity flavor shown in the ritual cinematic subtitle)
+    G.on('card', function (d) {
+      if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
+      else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
+    });
 
     // alignment buy + reactive audit
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
@@ -1159,7 +1264,7 @@
     startTicker();
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
-    var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
+    var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, world: 1, stats: 1, achievements: 1, settings: 1 };
     var hash = (location.hash || '').replace('#', '');
     switchTab(validTabs[hash] ? hash : 'company');
     window.addEventListener('hashchange', function () {

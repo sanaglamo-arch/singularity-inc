@@ -260,6 +260,64 @@
     ]
   };
 
+  // ---- Trust / Reputation ----------------------------------------------
+  var TRUST = { START: 60, MAX: 100, MIN: 0 };
+
+  // ---- Unified card system: crises + news decisions + opportunities -----
+  // effect keys: cashFrac (-fraction of cash), trust (+/-), vec {id:delta},
+  // penaltySec (output crisis penalty), allMult (one-time permanent x), cashGift (x seconds of cps)
+  var CARDS = {
+    CRISIS_EXPIRE: 28,        // seconds to decide before a crisis escalates
+    NEWS_MIN: 70, NEWS_MAX: 140, // seconds between news/opportunity spawns
+    NEWS_LIFE: 45,            // seconds an actionable news item stays
+    crises: [
+      { id: 'c_cap', vector: 'cap', choices: [
+        { id: 'pull',   effect: { cashFrac: -0.18 } },
+        { id: 'spin',   effect: { trust: -10, vec: { reg: 18 } } },
+        { id: 'ignore', effect: { penaltySec: 90 } } ] },
+      { id: 'c_data', vector: 'data', choices: [
+        { id: 'disclose', effect: { cashFrac: -0.15, trust: 6 } },
+        { id: 'coverup',  effect: { trust: -16, vec: { reg: 22 } } },
+        { id: 'ignore',   effect: { penaltySec: 90 } } ] },
+      { id: 'c_reg', vector: 'reg', choices: [
+        { id: 'comply', effect: { cashFrac: -0.12, trust: 8 } },
+        { id: 'lobby',  effect: { cashFrac: -0.3, trust: -6 } },
+        { id: 'ignore', effect: { penaltySec: 90, trust: -4 } } ] },
+      { id: 'c_sec', vector: 'sec', choices: [
+        { id: 'patch',  effect: { cashFrac: -0.14 } },
+        { id: 'ransom', effect: { cashFrac: -0.28, trust: -5 } },
+        { id: 'ignore', effect: { penaltySec: 90, vec: { sec: 20 } } } ] }
+    ],
+    // news decisions (two-choice) + opportunities (single act). gated behind progress.
+    news: [
+      { id: 'n_oss', kind: 'decision', choices: [
+        { id: 'match',  effect: { cashFrac: -0.2, trust: 4 } },
+        { id: 'ignore', effect: { penaltySec: 45 } } ] },
+      { id: 'n_poach', kind: 'decision', choices: [
+        { id: 'counter', effect: { cashFrac: -0.15 } },
+        { id: 'letgo',   effect: { vec: { sec: 12 } } } ] },
+      { id: 'n_round', kind: 'opportunity', choices: [
+        { id: 'raise', effect: { cashGift: 1800, trust: -3 } } ] },
+      { id: 'n_chip', kind: 'opportunity', choices: [
+        { id: 'buy', effect: { allMult: 1.05 } } ] },
+      { id: 'n_grant', kind: 'opportunity', req: { trust: 70 }, choices: [
+        { id: 'accept', effect: { cashGift: 3000, trust: 3 } } ] }
+    ]
+  };
+
+  // ---- Market / investing minigame -------------------------------------
+  var MARKET = {
+    DRIFT: 0.015,            // per-tick volatility (random walk)
+    TICK: 6,                 // seconds between price updates
+    FEE: 0.01,               // 1% trade fee
+    assets: [
+      { id: 'CMP', start: 100 },  // Compute Futures
+      { id: 'NVX', start: 240 },  // Chip Co
+      { id: 'DTA', start: 60 },   // Data Corp
+      { id: 'ALN', start: 150 }   // Safety ETF (low volatility)
+    ]
+  };
+
   // ---- Autopilot (smart auto-buy; decoupled from managers) -------------
   var AUTOPILOT = {
     UNLOCK_PRESTIGES: 1,    // unlocks after the first model release
@@ -303,6 +361,9 @@
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
     AUTOPILOT: AUTOPILOT,
+    TRUST: TRUST,
+    CARDS: CARDS,
+    MARKET: MARKET,
     COSMETICS: COSMETICS,
     EVENTS: EVENTS,
     COMBO: COMBO,

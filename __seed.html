@@ -13,6 +13,16 @@ else { save.incidentEndsAt = 0; }
 if (p.get('insight')) { save.playtime = 200; save.nextInsightAt = Date.now() - 4000; save.insightExpiresAt = 0; }
 if (p.get('combo')) { save.comboHeat = 0.82; }
 if (p.get('bt')) { save.breakthroughEndsAt = Date.now() + 18000; save.breakthroughMult = 10; }
+save.trust = 64;
+if (p.get('vec')) { save.align = 2; save.vec = { cap: 62, data: 41, reg: 30, sec: 53 }; }
+if (p.get('cards')) {
+  var now = Date.now();
+  save.cards = [
+    { uid: 1, kind: 'decision', id: 'n_oss', expiresAt: now + 40000 },
+    { uid: 2, kind: 'opportunity', id: 'n_chip', expiresAt: now + 40000 }
+  ];
+}
+if (p.get('crisis2')) { save.cards = [{ uid: 9, kind: 'crisis', id: 'c_data', vector: 'data', expiresAt: Date.now() + 26000 }]; }
 if (p.get('end')) {
   save.totalRP = 820; save.rp = 660; save.gens.agiCore = 3; save.gens.dysonSwarm = 1;
   save.singUnlocked = true; save.singularities = 1; save.cores = 5; save.coresTotal = 5;

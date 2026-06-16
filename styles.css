@@ -143,6 +143,40 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 #eventBadge { left: 14px; max-width: 58%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(90deg, var(--gold), #f59e0b); }
 #eventBadge.bad { background: linear-gradient(90deg, var(--rose), #ff8aa0); color: #2a0710; }
 
+/* ---------- trust HUD ---------- */
+#trustHud { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--glass-border); font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--cyan); }
+#trustHud .thi { width: 15px; height: 15px; display: inline-flex; color: var(--cyan); }
+#trustHud .thi svg { width: 15px; height: 15px; }
+
+/* ---------- world: news cards + market ---------- */
+.newscard { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 11px; box-shadow: var(--shadow-1), var(--inset-hi); }
+.newscard.crisis { border-color: var(--rose); box-shadow: 0 0 22px -8px var(--glow-rose), var(--inset-hi); }
+.newscard.opportunity { border-color: var(--gold); }
+.nc-tag { display: inline-block; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; letter-spacing: 1px; padding: 2px 9px; border-radius: var(--radius-pill); margin-bottom: 7px; color: #08122a; background: var(--cyan); }
+.newscard.crisis .nc-tag { background: var(--rose); color: #2a0710; }
+.newscard.opportunity .nc-tag { background: var(--gold); color: #2a1e04; }
+.nc-title { font-weight: 700; font-size: 15px; }
+.nc-desc { font-size: 12.5px; color: var(--fg-dim); margin: 4px 0 6px; line-height: 1.4; }
+.nc-timer { margin-bottom: 9px; }
+.nc-choices { display: flex; flex-direction: column; gap: 8px; }
+.cardchoice { width: 100%; text-align: left; border: 1px solid var(--glass-border); background: var(--surface); color: var(--fg); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 44px; transition: transform 0.08s var(--ease-spring), background 0.2s, border-color 0.2s; }
+.cardchoice:active { transform: scale(0.98); }
+.cardchoice:hover { border-color: var(--cyan); background: var(--surface-2); }
+.crisis-modal .newscard { margin: 0; }
+.flavor-line { font-size: 12px; color: var(--fg-muted); padding: 5px 0; border-bottom: 1px solid var(--glass-border); }
+
+.mkrow { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 10px; box-shadow: var(--inset-hi); }
+.mk-name { font-weight: 600; font-size: 13px; }
+.mk-sym { font-family: var(--font-display); font-size: 10px; color: var(--violet-2); margin-left: 4px; }
+.mk-spark { width: 60px; height: 22px; }
+.mk-spark .spark { width: 60px; height: 22px; }
+.mk-price { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: 14px; min-width: 60px; text-align: right; }
+.mk-act { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 2px; }
+.mk-act button { flex: 1; border: none; border-radius: 10px; padding: 9px; min-height: 44px; font-family: var(--font-display); font-weight: 700; font-size: 12px; cursor: pointer; }
+.mk-buy { background: linear-gradient(100deg, #14794f, #2faa6f); color: #fff; }
+.mk-sell { background: var(--surface-2); color: var(--fg); border: 1px solid var(--glass-border) !important; }
+.mk-act button:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ---------- news ticker ---------- */
 #ticker { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 5px 16px; font-size: 11.5px; color: var(--fg-muted); border-bottom: 1px solid var(--glass-border); background: rgba(8,8,18,0.45); overflow: hidden; }
 #ticker .tk-ico { width: 13px; height: 13px; flex: 0 0 auto; border-radius: 50%; background: var(--rose); box-shadow: 0 0 8px var(--glow-rose); position: relative; }
