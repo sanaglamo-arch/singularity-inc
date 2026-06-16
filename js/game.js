@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -170,7 +170,16 @@
     }
     if (state.cash < cost) return false;
     state.cash -= cost;
+    var before = state.gens[id];
     state.gens[id] += qty;
+    var after = state.gens[id];
+    // detect crossing a milestone threshold for juice
+    var crossed = null;
+    for (var mi = 0; mi < C.MILESTONES.length; mi++) {
+      var m = C.MILESTONES[mi];
+      if (before < m && after >= m) crossed = m;
+    }
+    if (crossed) emit('milestone', { id: id, milestone: crossed, count: after });
     checkAchievements();
     emit('change');
     return true;

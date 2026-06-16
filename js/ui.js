@@ -107,8 +107,13 @@
           '<div class="qty"></div>' +
         '</div>' +
         '<div class="ownedBadge hidden">0</div>';
-      card.addEventListener('click', function () {
-        if (G.buyGen(g.id)) { window.GAME_AUDIO.buy(); }
+      card.addEventListener('click', function (e) {
+        if (G.buyGen(g.id)) {
+          window.GAME_AUDIO.buy();
+          window.GAME_FX.cardFlash(card);
+          var r = card.getBoundingClientRect();
+          window.GAME_FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
+        }
       });
       list.appendChild(card);
       genRefs[g.id] = {
@@ -468,6 +473,7 @@
       var v = G.tap();
       window.GAME_AUDIO.tap();
       floatText(clientX, clientY, '+' + fmt(v));
+      window.GAME_FX.tapBurst(clientX, clientY);
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
 
@@ -505,6 +511,9 @@
           window.GAME_AUDIO.prestige();
           var f = t('flavor_' + Math.floor((G.state.prestiges) % 5));
           toast(f, 'gold');
+          var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+          window.GAME_FX.milestoneBurst(cx, cy);
+          window.GAME_FX.popText(cx, cy, '+' + G.state.rp + ' RP', 'big');
           // interstitial on prestige (graceful)
           window.GAME_ADS.showInterstitial({});
         }
@@ -567,6 +576,17 @@
       var bad = (d.id === 'shortage' || d.id === 'leak');
       window.GAME_AUDIO.achievement();
       toast(t('ev_' + d.id) + ' — ' + t('ev_' + d.id + '_d'), bad ? 'bad' : 'gold');
+    });
+    G.on('milestone', function (d) {
+      window.GAME_AUDIO.achievement();
+      var r = genRefs[d.id];
+      if (r && r.el) {
+        var b = r.el.getBoundingClientRect();
+        var x = b.left + b.width / 2, y = b.top + b.height / 2;
+        window.GAME_FX.milestoneBurst(x, y);
+        window.GAME_FX.popText(x, y, '×2!', 'big');
+        window.GAME_FX.cardFlash(r.el);
+      }
     });
   }
 
