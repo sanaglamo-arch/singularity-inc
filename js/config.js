@@ -444,10 +444,75 @@
     ]
   };
 
+  // ====================================================================
+  // GDD v3 — CONTINUOUS NO-RESET META (model generations, real-time processes)
+  // ====================================================================
+
+  // ---- Core resources / economy (continuous growth) -------------------
+  // Generators now PRODUCE COMPUTE (the bottleneck). Money comes from your
+  // deployed product (current model generation) × market share. See GAME-DESIGN.md §2-§4.
+  var CORE = {
+    // generator output (baseOut in GENERATORS) is COMPUTE/sec, not money.
+    COMPUTE_PER_OUT: 1,
+    TAP_COMPUTE: 2,            // compute per tap (overclock combo still multiplies)
+    // product revenue: money/sec = REV_BASE * genRevenueMult * (1 + marketShare/100) * computeFactor
+    REV_BASE: 0.15,           // tuned in P9
+    REV_COMPUTE_FACTOR: 0.10, // revenue also scales gently with log(compute rate) (bigger infra serves more users)
+    // valuation = funding-implied; grows with revenue run-rate, model gen, market share
+    VAL_REV_MULT: 30,         // ARR multiple (≈ real frontier-lab multiples)
+    VAL_GEN_MULT: 1.0,
+    START_MONEY: 0
+  };
+
+  // ---- Model generations (replaces prestige). Forward-only ladder. ----
+  // Each: trainSec (base real-time to train, shortened by researchers/boosts),
+  // computeReq (compute STOCK spent to start training), revMult (PERMANENT product
+  // revenue ×), share (market-share % granted on completion), id (i18n key).
+  // ~month-long arc when paced with the real-time timers (balanced in P9).
+  var MODELGEN = [
+    { id: 'g_v1',     trainSec: 60,      computeReq: 50,        revMult: 2.2,  share: 1 },
+    { id: 'g_v2',     trainSec: 180,     computeReq: 400,       revMult: 2.4,  share: 2 },
+    { id: 'g_v3',     trainSec: 600,     computeReq: 4e3,       revMult: 3.0,  share: 4 },  // the "ChatGPT moment"
+    { id: 'g_v4',     trainSec: 1800,    computeReq: 4e4,       revMult: 3.5,  share: 6 },
+    { id: 'g_v5',     trainSec: 7200,    computeReq: 4e5,       revMult: 4.0,  share: 8 },
+    { id: 'g_v6',     trainSec: 21600,   computeReq: 4e6,       revMult: 5.0,  share: 10 },
+    { id: 'g_front1', trainSec: 64800,   computeReq: 5e7,       revMult: 6.0,  share: 12 }, // 18h
+    { id: 'g_front2', trainSec: 129600,  computeReq: 6e8,       revMult: 7.0,  share: 14 }, // 36h
+    { id: 'g_front3', trainSec: 259200,  computeReq: 8e9,       revMult: 9.0,  share: 16 }, // 3d
+    { id: 'g_proto',  trainSec: 432000,  computeReq: 1e11,      revMult: 12.0, share: 18 }, // 5d proto-AGI
+    { id: 'g_agi',    trainSec: 604800,  computeReq: 2e12,      revMult: 16.0, share: 22 }  // 7d — AGI (win)
+  ];
+
+  // ---- Timed processes (the month-long engine) ------------------------
+  var PROCESS = {
+    // training progress/sec = 1 (real time) * researcherSpeed * boostSpeed
+    RESEARCHER_SPEED_PER: 0.02,  // each researcher = +2% training/build/research speed
+    RESEARCHER_SPEED_CAP: 3.0,   // ≤ +300% from researchers (soft cap)
+    OFFLINE_PROCESS: true,       // timers advance offline (capped by offline cap)
+  };
+
+  // ---- Researchers / talent -------------------------------------------
+  var TALENT = {
+    baseCost: 5e3,            // money cost of researcher #1
+    growth: 1.15,             // cost(n) = baseCost * growth^hired
+    UNLOCK_GEN: 2             // hiring opens once you ship v2
+  };
+
+  // ---- Finance: funding rounds (replaces twitchy market) --------------
+  // Each round: one-time cash = fraction of current valuation; gated by valuation
+  // milestone; raises a permanent revenue/credibility multiplier. Seed→A→B→C→IPO.
+  var FUNDING = [
+    { id: 'seed', valReq: 5e4,  cashFrac: 0.20, mult: 1.10 },
+    { id: 'a',    valReq: 1e7,  cashFrac: 0.18, mult: 1.15 },
+    { id: 'b',    valReq: 5e8,  cashFrac: 0.16, mult: 1.20 },
+    { id: 'c',    valReq: 2e10, cashFrac: 0.14, mult: 1.25 },
+    { id: 'ipo',  valReq: 1e12, cashFrac: 0.12, mult: 1.40 }
+  ];
+
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 3,
+    SAVE_VERSION: 4,          // GDD v3 meta rewrite (no-reset generations)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -458,6 +523,11 @@
     UPGRADES: UPGRADES,
     MANAGERS: MANAGERS,
     PRESTIGE: PRESTIGE,
+    CORE: CORE,
+    MODELGEN: MODELGEN,
+    PROCESS: PROCESS,
+    TALENT: TALENT,
+    FUNDING: FUNDING,
     UNLOCKS: UNLOCKS,
     RISK: RISK,
     TAP: TAP,

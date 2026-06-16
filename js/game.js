@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -91,6 +91,13 @@
       rivalAgi: {},          // rival id -> AGI progress 0..100
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
+      // ===== GDD v3 — continuous no-reset meta =====
+      compute: 0,            // 🖥 compute STOCK (generators produce it; spent to train models)
+      researchers: 0,        // 👥 hired researchers (speed up timed processes)
+      modelGen: 0,           // # of model generations COMPLETED (0 = none yet); next = MODELGEN[modelGen]
+      marketShare: 0,        // your market share % (derived scoreboard, climbs on generation advance)
+      training: { active: false, gen: -1, startedAt: 0, endsAt: 0 }, // active timed training process
+      funding: {},           // funding round id -> true (Seed→A→B→C→IPO)
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -257,6 +264,122 @@
     v *= (1 + comboBonus());                       // overclock heat
     if (clickFrenzyActive()) v *= state.clickFrenzyMult;
     return v;
+  }
+
+  // ===================================================================
+  // GDD v3 — CONTINUOUS META engine (compute / money / generations /
+  // training / researchers / funding). Additive; wired into tick + UI in
+  // later increments. See GAME-DESIGN.md + REWRITE-PROGRESS.md.
+  // ===================================================================
+  // generic output multipliers that apply to COMPUTE production (NOT the removed
+  // prestige passives like rpMult/cores/trust — those get re-homed/removed).
+  function genericMult() {
+    var m = allUpgradeMult() * techMult('all') * artifactMult('allMult') * artifactSynergyMult();
+    m *= achPerkMult('global') * (state.cardAllMult || 1) * transientMult();
+    return m;
+  }
+  // 🖥 compute produced per second by all generators (generators = compute infra).
+  function computeRate() {
+    var sum = 0;
+    for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
+    return sum * C.CORE.COMPUTE_PER_OUT * genericMult();
+  }
+  function tapCompute() {
+    var v = C.CORE.TAP_COMPUTE * (1 + comboBonus()) * genericMult();
+    if (clickFrenzyActive()) v *= state.clickFrenzyMult;
+    return v;
+  }
+  // permanent product-revenue multiplier from shipped model generations + funding rounds
+  function genRevenueMult() {
+    var m = 1;
+    for (var i = 0; i < state.modelGen && i < C.MODELGEN.length; i++) m *= C.MODELGEN[i].revMult;
+    for (var f = 0; f < C.FUNDING.length; f++) if (state.funding[C.FUNDING[f].id]) m *= C.FUNDING[f].mult;
+    return m;
+  }
+  // 💵 money produced per second by your deployed product (current generation × share × infra)
+  function moneyRate() {
+    if (state.modelGen <= 0) return 0;            // no product shipped yet → tap/seed only
+    var cr = computeRate();
+    var infra = 1 + C.CORE.REV_COMPUTE_FACTOR * Math.log10(cr + 10);
+    return C.CORE.REV_BASE * genRevenueMult() * (1 + state.marketShare / 100) * infra;
+  }
+  // company valuation (derived scoreboard): ARR multiple + generation + share
+  function valuation() {
+    var arr = moneyRate() * 86400 * 30;           // ~monthly run-rate proxy
+    var v = arr * C.CORE.VAL_REV_MULT * (1 + state.marketShare / 100) * (1 + state.modelGen * C.CORE.VAL_GEN_MULT);
+    return Math.max(v, state.compute * 5);        // floor so early infra has some value
+  }
+
+  // ---- researchers / talent ----
+  function researcherSpeed() { return 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER); }
+  function researcherCost() { return Math.floor(C.TALENT.baseCost * Math.pow(C.TALENT.growth, state.researchers)); }
+  function talentUnlocked() { return state.modelGen >= C.TALENT.UNLOCK_GEN; }
+  function hireResearcher() {
+    var c = researcherCost();
+    if (state.cash < c) return false;
+    state.cash -= c; state.researchers++;
+    checkAchievements(); emit('change');
+    return true;
+  }
+
+  // ---- model generations (forward-only; TIMED training) ----
+  function nextGen() { return state.modelGen < C.MODELGEN.length ? C.MODELGEN[state.modelGen] : null; }
+  function isAGI() { return state.modelGen >= C.MODELGEN.length; }
+  function trainingActive() { return !!(state.training && state.training.active); }
+  // real-time duration for the next generation, shortened by researchers + boosts
+  function trainDuration() {
+    var g = nextGen(); if (!g) return 0;
+    var speed = researcherSpeed() * (boostActive() ? C.ADS.BOOST_MULT : 1);
+    return g.trainSec / speed;
+  }
+  function canStartTraining() {
+    var g = nextGen();
+    return !!g && !trainingActive() && state.compute >= g.computeReq;
+  }
+  function startTraining() {
+    var g = nextGen();
+    if (!canStartTraining()) return false;
+    state.compute -= g.computeReq;                // spend compute stock to kick off the run
+    var dur = trainDuration();
+    state.training = { active: true, gen: state.modelGen, startedAt: Date.now(), endsAt: Date.now() + dur * 1000 };
+    emit('change');
+    return true;
+  }
+  function trainingProgress() {
+    if (!trainingActive()) return 0;
+    var tr = state.training, total = tr.endsAt - tr.startedAt;
+    if (total <= 0) return 1;
+    return Math.max(0, Math.min(1, (Date.now() - tr.startedAt) / total));
+  }
+  function trainingTimeLeft() { return trainingActive() ? Math.max(0, (state.training.endsAt - Date.now()) / 1000) : 0; }
+  // complete the current training: PERMANENT leap, KEEP all infrastructure (no reset)
+  function finishTraining() {
+    if (!trainingActive()) return false;
+    var g = C.MODELGEN[state.training.gen];
+    state.modelGen = state.training.gen + 1;
+    state.marketShare = Math.min(100, state.marketShare + (g ? g.share : 0));
+    state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
+    checkAchievements();
+    emit('generation', { gen: state.modelGen, id: g ? g.id : null });
+    emit('change');
+    return true;
+  }
+
+  // ---- funding rounds ----
+  function nextFundingRound() {
+    for (var i = 0; i < C.FUNDING.length; i++) if (!state.funding[C.FUNDING[i].id]) return C.FUNDING[i];
+    return null;
+  }
+  function canTakeFunding() { var r = nextFundingRound(); return !!r && valuation() >= r.valReq; }
+  function takeFunding() {
+    var r = nextFundingRound();
+    if (!r || valuation() < r.valReq) return false;
+    state.funding[r.id] = true;
+    addCash(valuation() * r.cashFrac);
+    checkAchievements();
+    emit('funding', { id: r.id });
+    emit('change');
+    return true;
   }
 
   // ---- costs -----------------------------------------------------------
@@ -1108,6 +1231,21 @@
       if (s.prestigeUpgrades.p_start)  { s.prestigeUpgrades.p_seed  = true; delete s.prestigeUpgrades.p_start; }
       if (s.prestigeUpgrades.p_start2) { s.prestigeUpgrades.p_seed2 = true; delete s.prestigeUpgrades.p_start2; }
     }
+    // ---- v4: GDD v3 continuous no-reset meta (model generations) ----
+    // Convert old prestige progress into the forward-only ladder; never rob the player.
+    if (typeof s.compute !== 'number') s.compute = 0;
+    if (typeof s.researchers !== 'number') s.researchers = 0;
+    if (typeof s.modelGen !== 'number') {
+      // each old "prestige" (model release) ≈ one generation already shipped
+      s.modelGen = Math.max(0, Math.min(C.MODELGEN.length, s.prestiges || 0));
+    }
+    if (typeof s.marketShare !== 'number') {
+      // seed a sensible standing from how far they'd progressed
+      var seedShare = 0; for (var mg = 0; mg < s.modelGen; mg++) seedShare += (C.MODELGEN[mg] ? C.MODELGEN[mg].share : 0);
+      s.marketShare = Math.min(60, seedShare);
+    }
+    if (!s.training || typeof s.training !== 'object') s.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
+    if (!s.funding || typeof s.funding !== 'object') s.funding = {};
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1173,6 +1311,14 @@
     cps: cps, tapValue: tapValue, genOutput: genOutput,
     genCostCumulative: genCostCumulative, genMaxAffordable: genMaxAffordable, buyQty: buyQty,
     genPerUnitOutput: genPerUnitOutput, genBuyPreview: genBuyPreview,
+    // GDD v3 continuous meta
+    computeRate: computeRate, tapCompute: tapCompute, moneyRate: moneyRate, valuation: valuation,
+    genRevenueMult: genRevenueMult, nextGen: nextGen, isAGI: isAGI,
+    trainingActive: trainingActive, canStartTraining: canStartTraining, startTraining: startTraining,
+    trainingProgress: trainingProgress, trainingTimeLeft: trainingTimeLeft, finishTraining: finishTraining,
+    trainDuration: trainDuration,
+    researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
+    nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,
