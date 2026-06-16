@@ -3,6 +3,7 @@
 var save = {"version":1,"cash":420000000,"totalEarnedThisRun":910000000,"totalEarnedAllTime":7800000000,"gens":{"laptop":124,"gpuRig":98,"serverRack":72,"gpuCluster":46,"dataCenter":29,"superComp":13,"neuroArray":4,"quantumNode":0,"orbital":0,"agiCore":0},"upgrades":{"u_tap1":true,"u_tap2":true,"u_lap1":true,"u_rig1":true,"u_rack1":true,"u_clus1":true,"u_all1":true,"u_dc1":true},"managers":{"m_laptop":true,"m_gpuRig":true,"m_serverRack":true,"m_gpuCluster":true},"rp":28,"totalRP":46,"prestiges":2,"prestigeUpgrades":{"p_mult1":true,"p_tap":true,"p_align":true,"p_offline":true},"align":16,"risk":73.5,"incidentEndsAt":0,"incidentsThisRun":1,"incidentsTotal":1,"taps":612,"boostUntil":0,"achievements":{"a_firstTap":true,"a_tap100":true,"a_firstGen":true,"a_lap50":true,"a_cash1m":true,"a_cash1b":true,"a_prestige1":true,"a_incident":true,"a_align50":false},"playtime":7140,"sound":false,"lang":"en","buyMode":10,"lastSeen":1781558947427,"createdAt":1781551807427};
 var p = new URLSearchParams(location.search);
 save.lastSeen = Date.now() + 300000;
+save.onboarded = true; // mid-game seed: don't show first-run tour
 var lang = p.get('lang') || 'en';
 save.lang = lang;
 if (p.get('incident')) { save.incidentEndsAt = Date.now() + 90000; save.risk = 100; }

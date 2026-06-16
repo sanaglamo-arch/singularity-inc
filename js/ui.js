@@ -465,6 +465,37 @@
     };
   }
 
+  // ---------- onboarding tour ----------
+  function showOnboarding() {
+    var steps = [
+      { icon: '🧠', title: 'ob_1_title', body: 'ob_1_body' },
+      { icon: '💻', title: 'ob_2_title', body: 'ob_2_body' },
+      { icon: '🛡️', title: 'ob_3_title', body: 'ob_3_body' }
+    ];
+    var i = 0;
+    function finish() { G.setOnboarded(true); hideModal(); }
+    function render() {
+      var s = steps[i];
+      var dots = '';
+      for (var k = 0; k < steps.length; k++) dots += '<span class="dot' + (k === i ? ' on' : '') + '"></span>';
+      var lastBtn = (i === steps.length - 1) ? t('ob_done') : t('ob_next');
+      showModal(
+        '<div class="ob">' +
+        '<div class="ob-icon">' + s.icon + '</div>' +
+        '<h3>' + t(s.title) + '</h3>' +
+        '<p>' + t(s.body) + '</p>' +
+        '<div class="ob-dots">' + dots + '</div>' +
+        '<div class="row">' +
+        '<button class="secondary" id="obSkip">' + t('ob_skip') + '</button>' +
+        '<button class="primary" id="obNext">' + lastBtn + '</button>' +
+        '</div></div>'
+      );
+      $('obSkip').onclick = finish;
+      $('obNext').onclick = function () { if (i < steps.length - 1) { i++; render(); } else finish(); };
+    }
+    render();
+  }
+
   // ---------- events ----------
   function bind() {
     // tap
@@ -607,7 +638,12 @@
       if (validTabs[h]) switchTab(h);
     });
     update();
-    if (offline && offline.earned > 0) showOffline(offline);
+    if (offline && offline.earned > 0) {
+      showOffline(offline);
+      if (!G.state.onboarded) G.setOnboarded(true); // returning player; skip tour
+    } else if (!G.state.onboarded) {
+      showOnboarding();
+    }
   }
 
   window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic };
