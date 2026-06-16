@@ -11,6 +11,9 @@
   var currentTab = 'company';
   var genRefs = {};      // id -> {el, cost, count, sub, mbar, qty}
   var built = false;
+  var ICON = window.GAME_ICONS || {};
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  function ic(key) { return key === 'ic_check' ? CHECK_SVG : (ICON[key] || ''); }
 
   // ---------- helpers ----------
   function el(tag, cls, html) {
@@ -37,8 +40,18 @@
   function renderStatic() {
     document.documentElement.lang = window.GAME_I18N.getLang();
     $('brandName').textContent = t('game_title');
+    $('brandIcon').innerHTML = ic('ic_insight');
+    $('tapIcon').innerHTML = ic('ic_brain');
     $('tapLabel').textContent = t('tap_button');
     $('tapHint').textContent = t('tap_hint');
+    // nav icons (replace emoji with inline SVG)
+    var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', alignment: 'nav_alignment', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
+    var navBtns = $('tabbar').children;
+    for (var ni = 0; ni < navBtns.length; ni++) {
+      var tabKey = navBtns[ni].dataset.tab;
+      var tiEl = navBtns[ni].querySelector('.ti');
+      if (tiEl && navIcons[tabKey]) tiEl.innerHTML = ic(navIcons[tabKey]);
+    }
     // nav
     $('nav_company').textContent = t('tab_company');
     $('nav_upgrades').textContent = t('tab_upgrades');
@@ -94,7 +107,7 @@
     C.GENERATORS.forEach(function (g) {
       var card = el('div', 'card locked');
       card.innerHTML =
-        '<div class="emoji">' + g.icon + '</div>' +
+        '<div class="iconwrap">' + ic('gen_' + g.id) + '</div>' +
         '<div class="info">' +
           '<div class="name">' + t('g_' + g.id) + '</div>' +
           '<div class="desc">' + t('g_' + g.id + '_d') + '</div>' +
@@ -154,6 +167,10 @@
       r.sub.textContent = owned > 0 ? (fmt(G.genOutput(g.id) * G.globalMult()) + '/sec') : t('produces', { v: fmt(g.baseOut * G.globalMult()) });
       if (owned > 0) { r.badge.classList.remove('hidden'); r.badge.textContent = owned; }
       else r.badge.classList.add('hidden');
+      var msLevel = owned >= 200 ? 3 : owned >= 100 ? 2 : owned >= 25 ? 1 : 0;
+      r.el.classList.toggle('ms1', msLevel === 1);
+      r.el.classList.toggle('ms2', msLevel === 2);
+      r.el.classList.toggle('ms3', msLevel === 3);
       var nm = G.nextMilestone(owned);
       if (nm) { r.mbar.style.width = Math.min(100, (owned / nm) * 100) + '%'; r.mbar.parentNode.style.display = ''; }
       else { r.mbar.parentNode.style.display = 'none'; }
@@ -169,7 +186,7 @@
       var card = el('div', 'card locked');
       card.dataset.uid = u.id;
       card.innerHTML =
-        '<div class="emoji">✨</div>' +
+        '<div class="iconwrap">' + ic('ic_upgrade') + '</div>' +
         '<div class="info"><div class="name">' + t(u.id) + '</div>' +
         '<div class="desc">' + t(u.id + '_d') + '</div></div>' +
         '<div class="right"><div class="cost">' + fmt(u.cost) + '</div></div>';
@@ -206,7 +223,7 @@
       var card = el('div', 'card locked');
       card.dataset.mid = m.id;
       card.innerHTML =
-        '<div class="emoji">🤖</div>' +
+        '<div class="iconwrap">' + ic('ic_manager') + '</div>' +
         '<div class="info"><div class="name">' + t(m.id) + '</div>' +
         '<div class="desc">' + t('manager_auto', { name: t('g_' + m.gen) }) + '</div></div>' +
         '<div class="right"><div class="cost">' + fmt(m.cost) + '</div></div>';
@@ -243,6 +260,7 @@
       card.dataset.pid = p.id;
       var desc = (p.type === 'startCash') ? t(p.id + '_d', { v: fmt(p.value) }) : t(p.id + '_d');
       card.innerHTML =
+        '<div class="picon">' + ic('ic_rp') + '</div>' +
         '<div class="info"><div class="name">' + t(p.id) + '</div><div class="desc">' + desc + '</div></div>' +
         '<button>' + t('rp_cost', { n: p.cost }) + '</button>';
       card.querySelector('button').addEventListener('click', function () {
@@ -278,9 +296,9 @@
       var card = el('div', 'ach locked');
       card.dataset.aid = a.id;
       card.innerHTML =
-        '<div class="aemoji">🏆</div>' +
+        '<div class="aicon">' + ic('nav_achievements') + '</div>' +
         '<div><div class="aname">' + t(a.id) + '</div><div class="adesc">' + t(a.id + '_d') + '</div></div>' +
-        '<div class="check hidden">✓</div>';
+        '<div class="check hidden">' + ic('ic_check') + '</div>';
       list.appendChild(card);
     });
   }
