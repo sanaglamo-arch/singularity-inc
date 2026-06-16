@@ -299,10 +299,28 @@ h2:first-child { margin-top: 4px; }
 #tapBtn:active { transform: scale(0.9); }
 #tapBtn.squash { animation: squash 220ms var(--ease-spring); }
 @keyframes squash { 0% { transform: scale(0.88); } 45% { transform: scale(1.06); } 100% { transform: scale(1); } }
-#tapIcon { width: 58px; height: 58px; display: inline-flex; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.4)); }
+/* living energy core: a slow rotating conic shimmer inside the orb (GPU transform
+   only — no layout). Makes the centerpiece feel alive even when idle. */
+#orbSheen { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 0; overflow: hidden;
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(255,255,255,0.20) 28deg, transparent 70deg,
+    transparent 150deg, rgba(167,139,250,0.28) 196deg, transparent 248deg,
+    transparent 320deg, rgba(34,211,238,0.16) 344deg, transparent 360deg);
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 30%, #000 56%, transparent 90%);
+          mask: radial-gradient(circle at 50% 50%, transparent 30%, #000 56%, transparent 90%);
+  animation: orbSpin 9s linear infinite; opacity: 0.9; mix-blend-mode: screen; }
+/* thin counter-rotating orbital ring — reinforces the AI/compute identity */
+#orbRing { position: absolute; inset: 14px; border-radius: 50%; pointer-events: none; z-index: 0;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  -webkit-mask: conic-gradient(from 0deg, #000 0deg, transparent 60deg, #000 150deg, transparent 220deg, #000 320deg, transparent 360deg);
+          mask: conic-gradient(from 0deg, #000 0deg, transparent 60deg, #000 150deg, transparent 220deg, #000 320deg, transparent 360deg);
+  animation: orbSpin 14s linear infinite reverse; }
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+#tapIcon { position: relative; z-index: 1; width: 58px; height: 58px; display: inline-flex; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.4)); }
 #tapIcon svg { width: 58px; height: 58px; }
-#tapLabel { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-#tapValue { font-size: 13px; color: #e9e2ff; font-weight: 500; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tapLabel { position: relative; z-index: 1; font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+#tapValue { position: relative; z-index: 1; font-size: 13px; color: #e9e2ff; font-weight: 500; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { #orbSheen, #orbRing { animation: none; } }
 /* ripple element injected on tap */
 .ripple { position: fixed; border-radius: 50%; pointer-events: none; z-index: 41;
   background: radial-gradient(circle, rgba(255,255,255,0.45), transparent 70%);
@@ -716,9 +734,16 @@ html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0
   transition: opacity 0.5s var(--ease);
 }
 #splash.hide { opacity: 0; pointer-events: none; }
-.splash-orb { width: 132px; height: 132px; filter: drop-shadow(0 0 30px var(--glow-violet)); animation: splashPulse 2.4s ease-in-out infinite; }
-.splash-orb svg { width: 132px; height: 132px; }
+.splash-orb { position: relative; width: 132px; height: 132px; filter: drop-shadow(0 0 30px var(--glow-violet)); animation: splashPulse 2.4s ease-in-out infinite; display: grid; place-items: center; }
+.splash-orb svg { width: 132px; height: 132px; position: relative; z-index: 1; }
+/* slow rotating aura ring behind the splash mark */
+.splash-orb::before { content: ''; position: absolute; inset: -22px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, rgba(167,139,250,0.5), transparent 35%, transparent 65%, rgba(34,211,238,0.4), transparent);
+  -webkit-mask: radial-gradient(circle, transparent 56%, #000 60%, transparent 78%);
+          mask: radial-gradient(circle, transparent 56%, #000 60%, transparent 78%);
+  animation: orbSpin 6s linear infinite; }
 @keyframes splashPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.06); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .splash-orb, .splash-orb::before { animation: none; } }
 .splash-title { font-family: var(--font-display); font-weight: 900; font-size: 24px; letter-spacing: 3px; color: #fff; text-shadow: 0 0 26px var(--glow-violet); }
 .splash-tag { font-family: var(--font-ui); font-size: 12.5px; color: var(--fg-muted); max-width: 300px; }
 .splash-bar { width: 180px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 6px; }
@@ -756,6 +781,9 @@ button:focus:not(:focus-visible) { outline: none; }
 #incidentBox button:active:not(:disabled) { transform: scale(0.95); filter: brightness(1.08); }
 #tabbar button:active .ti { transform: scale(0.86); }
 #tabbar button .ti { transition: transform 0.1s var(--ease-spring); }
+.cardchoice, .cos-swatch, .mk-buy, .mk-sell, .sheet-item, .ach { transition: transform 0.09s var(--ease-spring), background 0.2s, border-color 0.2s, box-shadow 0.2s; }
+.cardchoice:active, .mk-buy:active:not(:disabled), .mk-sell:active:not(:disabled), .sheet-item:active { transform: scale(0.97); filter: brightness(1.06); }
+.cos-swatch:active { transform: scale(0.92); }
 
 /* ---------- desktop layout ---------- */
 @media (min-width: 720px) {
