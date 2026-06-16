@@ -12,6 +12,7 @@
   var genRefs = {};      // id -> {el, cost, count, sub, mbar, qty}
   var built = false;
   var ICON = window.GAME_ICONS || {};
+  function buzz(pattern) { try { if (G.state.haptics && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
   var SW = ' fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
   var EXTRA = {
     ic_check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
@@ -135,6 +136,8 @@
     $('soundLabel').textContent = t('sound');
     $('musicLabel').textContent = t('music');
     var msg = $('musicSeg').children; msg[0].textContent = t('on'); msg[1].textContent = t('off');
+    $('hapticsLabel').textContent = t('haptics');
+    var hpg = $('hapticsSeg').children; hpg[0].textContent = t('on'); hpg[1].textContent = t('off');
     $('adBoostLabel').textContent = t('ad_boost');
     $('adCashLabel').textContent = t('ad_cash');
     $('adBoostBtn').textContent = t('ad_boost');
@@ -185,7 +188,7 @@
         '<div class="ownedBadge hidden">0</div>';
       card.addEventListener('click', function (e) {
         if (G.buyGen(g.id)) {
-          window.GAME_AUDIO.buy();
+          window.GAME_AUDIO.buy(); buzz(12);
           window.GAME_FX.cardFlash(card);
           var r = card.getBoundingClientRect();
           window.GAME_FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
@@ -933,7 +936,7 @@
   }
   function showEndingCinematic(d) {
     window.GAME_FX.ritual({ kind: (d.id === 'aligned' || d.id === 'quiet') ? 'singularity' : 'prestige', title: t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
-    window.GAME_AUDIO.prestige();
+    window.GAME_AUDIO.prestige(); buzz([0,60,80,60,80,120]);
     toast(t('ending_unlocked_toast', { name: t('ending_' + d.id + '_t') }), 'gold');
   }
 
@@ -1021,6 +1024,9 @@
     var msg = $('musicSeg').children;
     msg[0].classList.toggle('on', s.music);
     msg[1].classList.toggle('on', !s.music);
+    var hpg = $('hapticsSeg').children;
+    hpg[0].classList.toggle('on', s.haptics);
+    hpg[1].classList.toggle('on', !s.haptics);
   }
 
   // ---------- tabs ----------
@@ -1095,7 +1101,7 @@
       removeInsight();
       if (res) {
         var ix = rect.left + rect.width / 2, iy = rect.top + rect.height / 2;
-        window.GAME_AUDIO.insight();
+        window.GAME_AUDIO.insight(); buzz([0,15,30,15]);
         window.GAME_FX.insightBurst(ix, iy);
         window.GAME_FX.flash('rgba(251,191,36,0.38)');
         window.GAME_FX.shockwave(ix, iy, 'rgba(251,191,36,0.85)', 560);
@@ -1148,6 +1154,7 @@
       floatText(clientX, clientY, '+' + fmt(v), cls);
       window.GAME_FX.tapBurst(clientX, clientY);
       window.GAME_FX.ripple(clientX, clientY, 130);
+      buzz(8);
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
@@ -1219,7 +1226,7 @@
     });
     // (singularity flavor shown in the ritual cinematic subtitle)
     G.on('card', function (d) {
-      if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
+      if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); buzz([0,40,60,40]); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
     });
     // R9: act intros + ending cinematics
@@ -1234,7 +1241,7 @@
     // breakthrough ability
     $('breakthroughBtn').addEventListener('click', function () {
       if (G.activateBreakthrough()) {
-        window.GAME_AUDIO.prestige();
+        window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
         var bx = window.innerWidth / 2, by = window.innerHeight * 0.42;
         window.GAME_FX.flash('rgba(34,211,238,0.4)');
         window.GAME_FX.shockwave(bx, by, 'rgba(34,211,238,0.9)', 720);
@@ -1281,6 +1288,11 @@
         });
       })(msg[mb]);
     }
+    // haptics
+    var hpg = $('hapticsSeg').children;
+    for (var hb = 0; hb < hpg.length; hb++) {
+      (function (btn) { btn.addEventListener('click', function () { var on = btn.dataset.haptics === 'on'; G.setHaptics(on); if (on) buzz(15); }); })(hpg[hb]);
+    }
     // ad buttons
     $('adBoostBtn').addEventListener('click', function () {
       window.GAME_ADS.showRewarded({
@@ -1319,7 +1331,7 @@
     });
     G.on('milestone', function (d) {
       var major = d.milestone >= 25;
-      if (major && window.GAME_AUDIO.milestone) window.GAME_AUDIO.milestone(); else window.GAME_AUDIO.achievement();
+      if (major && window.GAME_AUDIO.milestone) window.GAME_AUDIO.milestone(); else window.GAME_AUDIO.achievement(); buzz(major?[0,20,40,25]:18);
       var r = genRefs[d.id];
       var b = r && r.el ? r.el.getBoundingClientRect() : null;
       var x = b ? b.left + b.width / 2 : window.innerWidth / 2;

@@ -68,6 +68,7 @@
       playtime: 0,           // seconds
       sound: false,
       music: false,
+      haptics: true,         // vibration feedback (mobile)
       orb: 'orb_default',    // cosmetic: TRAIN orb skin
       theme: 'theme_default',// cosmetic: backdrop theme
       // Smart Autopilot (decoupled from managers; never spends below reserve).
@@ -1039,6 +1040,7 @@
   function setBuyMode(m) { state.buyMode = m; emit('change'); }
   function setSound(b) { state.sound = !!b; emit('change'); }
   function setMusic(b) { state.music = !!b; emit('change'); }
+  function setHaptics(b) { state.haptics = !!b; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
   function setOnboarded(b) { state.onboarded = !!b; save(); }
   function achCount() { var c = 0; for (var k in state.achievements) if (state.achievements[k]) c++; return c; }
@@ -1097,7 +1099,7 @@
     // persistence
     save: save, load: load, reset: reset, init: init,
     // setters
-    setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
+    setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
     crisisCdLeft: crisisCdLeft, trustMult: trustMult,
