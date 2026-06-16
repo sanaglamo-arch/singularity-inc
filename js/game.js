@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -82,7 +82,13 @@
       newsLog: [],           // recent headline strings for the News feed
       market: null,          // {price:{id:n}, hold:{id:shares}, hist:{id:[...]}, nextAt}
       crisesResolved: 0,
+      crisesEscalated: 0,
       seen: {},              // one-time unlock hints shown
+      // R9 narrative campaign + race to AGI
+      act: 0,                // current narrative act (monotonic)
+      rivalAgi: {},          // rival id -> AGI progress 0..100
+      raceStance: null,      // story choice at Act 3
+      endings: {},           // unlocked ending ids (persist forever)
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -193,7 +199,7 @@
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     m *= techMult('all') * artifactMult('allMult') * artifactSynergyMult();
-    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global') * (state.cardAllMult || 1) * trustMult();
+    m *= metaMul('globalMult') * singCoreMult() * achPerkMult('global') * (state.cardAllMult || 1) * trustMult() * endingPerkMult();
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
@@ -501,14 +507,22 @@
     return Math.floor(Math.sqrt(Math.max(0, state.rp) / C.SINGULARITY.SCALE) * metaMul('coreGain'));
   }
   function canSingularity() { return singUnlocked() && coresGain() >= 1; }
-  function doSingularity() {
-    if (!canSingularity()) return false;
-    var gain = coresGain();
+  // The AGI climax: resolves into an ENDING (forced='beaten' when a rival wins),
+  // unlocks its badge + meta-perk, then performs the Singularity reset + new race.
+  function doSingularity(forced) {
+    if (!forced && !canSingularity()) return false;
+    var ending = forced || determineEnding();
+    state.endings[ending] = true;
+    var gain = forced === 'beaten' ? Math.max(1, Math.floor(coresGain() / 2)) : Math.max(1, coresGain());
     state.cores += gain; state.coresTotal += gain; state.singularities++;
-    resetRun(true); // also clears tech + RP
+    state._endingFired = true;
+    emit('ending', { id: ending, gain: gain });
+    emit('singularity', { gain: gain });
+    resetRun(true); // clears tech + RP
+    C.RIVALS.forEach(function (r) { state.rivalAgi[r.id] = 0; }); // reset the race
+    state.raceStance = null; state._endingFired = false;
     rollGamble();
     checkAchievements();
-    emit('singularity', { gain: gain });
     emit('change');
     return true;
   }
@@ -662,7 +676,7 @@
           state.incidentEndsAt = now + C.RISK.INCIDENT_DURATION * C.RISK.ESCALATE_DUR_MULT * 1000;
           state.trust = clampTrust(state.trust - C.RISK.ESCALATE_TRUST);
           if (card.vector) state.vec[card.vector] = Math.min(C.RISK.MAX, state.vec[card.vector] + 25);
-          state.lastCrisisAt = now;
+          state.lastCrisisAt = now; state.crisesEscalated++;
           emit('card', { kind: 'escalate', vector: card.vector });
         }
         state.cards.splice(i, 1); changed = true;
@@ -710,6 +724,60 @@
     ensureMarket(); var m = state.market;
     var sh = m.hold[id] * frac; if (sh <= 0) return false;
     state.cash += sh * m.price[id] * (1 - C.MARKET.FEE); m.hold[id] -= sh; emit('change'); return true;
+  }
+
+  // ===== R9: Acts, Race to AGI, Endings =====
+  function currentAct() {
+    if (state.singularities > 0) return 4;
+    if (state.prestiges >= 2 || state.totalRP >= 120) return 3;
+    if (state.prestiges >= 1) return 2;
+    var owned = 0; GEN.forEach(function (g) { owned += state.gens[g.id]; });
+    return owned > 0 ? 1 : 0;
+  }
+  function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
+  function ensureRivals() { C.RIVALS.forEach(function (r) { if (typeof state.rivalAgi[r.id] !== 'number') state.rivalAgi[r.id] = 0; }); }
+  function agiProgress() { var t = state.singularities > 0 ? 100 : C.SINGULARITY.UNLOCK_RP; var v = state.singularities > 0 ? state.rp : state.totalRP; return Math.max(0, Math.min(100, 100 * v / t)); }
+  function leadingRival() { ensureRivals(); var id = null, v = -1; C.RIVALS.forEach(function (r) { if (state.rivalAgi[r.id] > v) { v = state.rivalAgi[r.id]; id = r.id; } }); return { id: id, val: v }; }
+  function maxRivalAgi() { return leadingRival().val; }
+  function slowLeadingRival() { var l = leadingRival(); if (l.id) state.rivalAgi[l.id] = Math.max(0, state.rivalAgi[l.id] - C.RACE.SLOW_OPENSOURCE); }
+  function updateRace(dt) {
+    // act advance + intro
+    var a = currentAct();
+    if (a > state.act) { state.act = a; emit('act', { act: a }); }
+    if (!rivalsRevealed()) return;
+    ensureRivals();
+    var heat = Math.max(agiProgress(), maxRivalAgi()) / 100 * C.RACE.HEAT;
+    var reckless = state.align < 2 ? C.RACE.RECKLESS_RIVAL_BONUS : 0;
+    C.RIVALS.forEach(function (r) { state.rivalAgi[r.id] = Math.min(100, state.rivalAgi[r.id] + r.speed * (1 + heat + reckless) * dt); });
+    if (maxRivalAgi() >= 100 && agiProgress() < 100 && !state._endingFired) { doSingularity('beaten'); }
+  }
+  function avgVec() { var s = 0; C.RISK.VECTORS.forEach(function (v) { s += state.vec[v]; }); return s / C.RISK.VECTORS.length; }
+  function determineEnding() {
+    var E = C.ENDINGS, av = avgVec();
+    if (state.trust >= E.QUIET_TRUST && av < E.QUIET_AVGVEC) return 'quiet';
+    if (state.trust < E.NATIONALIZED_TRUST || av > E.NATIONALIZED_AVGVEC || state.crisesEscalated >= E.NATIONALIZED_ESC) return 'nationalized';
+    if (state.align < E.FOOM_ALIGN || state.vec.cap > E.FOOM_CAP) return 'foom';
+    return 'aligned';
+  }
+  function endingPerkMult() { var n = 0; for (var k in state.endings) if (state.endings[k]) n++; return 1 + n * C.ENDINGS.PERK_PER; }
+  function endingsUnlocked() { var n = 0; for (var k in state.endings) if (state.endings[k]) n++; return n; }
+  function applyRaceStance(stance) {
+    state.raceStance = stance;
+    if (stance === 'safe') state.align += 2;
+    else if (stance === 'open') { state.trust = clampTrust(state.trust + 10); slowLeadingRival(); }
+    else if (stance === 'fast') { state.boostUntil = Date.now() + C.ADS.BOOST_DURATION * 1000; }
+    emit('change');
+  }
+
+  function raceOpenReady() { return !state.raceOpenAt || Date.now() - state.raceOpenAt >= 90000; }
+  function raceOpenSource() { // slow the leader: +Trust but a capability/progress dip; cooldown
+    if (!rivalsRevealed() || !raceOpenReady()) return false;
+    slowLeadingRival();
+    state.trust = clampTrust(state.trust + 5);
+    if (state.singularities > 0) state.rp = Math.max(0, state.rp * 0.92); else state.totalRP = Math.max(0, state.totalRP * 0.96);
+    state.raceOpenAt = Date.now();
+    emit('change');
+    return true;
   }
 
   function triggerEvent() {
@@ -885,6 +953,7 @@
     updateBuffs(dt);
     updateCards();
     updateMarket();
+    updateRace(dt);
 
     state.playtime += dt;
     checkAchievements();
@@ -1032,6 +1101,10 @@
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
     crisisCdLeft: crisisCdLeft, trustMult: trustMult,
+    currentAct: currentAct, rivalsRevealed: rivalsRevealed, agiProgress: agiProgress,
+    leadingRival: leadingRival, maxRivalAgi: maxRivalAgi, slowLeadingRival: slowLeadingRival,
+    endingPerkMult: endingPerkMult, endingsUnlocked: endingsUnlocked, applyRaceStance: applyRaceStance,
+    raceOpenSource: raceOpenSource, raceOpenReady: raceOpenReady,
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
     autopilotUnlocked: autopilotUnlocked, apStatus: apStatus,
     setAutopilotOn: setAutopilotOn, setAutopilotReserve: setAutopilotReserve,

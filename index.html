@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06060f">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=8">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="fonts.css?v=9">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 <div id="app">
@@ -24,6 +24,8 @@
 
   <!-- Satirical news ticker (narrative arc, stage-based) -->
   <div id="ticker"><span class="tk-ico"></span><span id="tickerText"></span></div>
+  <!-- Act / campaign progress indicator -->
+  <div id="actBar" class="hidden"><span id="actLabel"></span><div class="actbar-track"><div id="actFill"></div></div></div>
 
   <!-- Content tabs -->
   <main id="content">
@@ -45,8 +47,10 @@
           <div class="bar"><div id="riskMiniFill"></div></div>
         </div>
       </div>
-      <div id="nudge" class="hidden"><span class="nicon"></span><span id="nudgeText"></span></div>
-      <div class="scroll" id="genList"></div>
+      <div id="labMain">
+        <div id="nudge" class="hidden"><span class="nicon"></span><span id="nudgeText"></span></div>
+        <div class="scroll" id="genList"></div>
+      </div>
     </section>
 
     <section class="tab" data-tab="upgrades">
@@ -100,6 +104,11 @@
 
     <section class="tab" data-tab="singularity">
       <div class="scroll" id="singPane">
+        <div id="racePanel" class="glass-panel hidden">
+          <div class="race-head"><span id="raceTitle"></span><span id="raceWarn" class="muted small"></span></div>
+          <div id="raceStandings"></div>
+          <button id="raceOpenBtn"></button>
+        </div>
         <h2 id="singTitle"></h2>
         <p id="singDesc" class="muted"></p>
         <div id="singBox" class="glass-panel">
@@ -110,6 +119,10 @@
         </div>
         <h2 id="metaTitle"></h2>
         <div id="metaList"></div>
+        <h2 id="endingsTitle"></h2>
+        <div id="endingsProgress" class="muted small"></div>
+        <div id="endingsList"></div>
+        <p id="endingPerkNote" class="muted small"></p>
       </div>
     </section>
 
@@ -229,17 +242,17 @@
   <div class="splash-bar"><div></div></div>
 </div>
 
-<script src="js/config.js?v=8"></script>
-<script src="js/format.js?v=8"></script>
-<script src="js/i18n.js?v=8"></script>
-<script src="js/sdk.js?v=8"></script>
-<script src="js/ads.js?v=8"></script>
-<script src="js/game.js?v=8"></script>
-<script src="js/audio.js?v=8"></script>
-<script src="js/fx.js?v=8"></script>
-<script src="js/icons.js?v=8"></script>
-<script src="js/music.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/main.js?v=8"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/format.js?v=9"></script>
+<script src="js/i18n.js?v=9"></script>
+<script src="js/sdk.js?v=9"></script>
+<script src="js/ads.js?v=9"></script>
+<script src="js/game.js?v=9"></script>
+<script src="js/audio.js?v=9"></script>
+<script src="js/fx.js?v=9"></script>
+<script src="js/icons.js?v=9"></script>
+<script src="js/music.js?v=9"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="js/main.js?v=9"></script>
 </body>
 </html>

@@ -23,6 +23,11 @@ if (p.get('cards')) {
   ];
 }
 if (p.get('crisis2')) { save.cards = [{ uid: 9, kind: 'crisis', id: 'c_data', vector: 'data', expiresAt: Date.now() + 26000 }]; }
+// R9: race standings + endings collection + act intro
+save.act = 3; save.rivalAgi = { helion: 58, cerebra: 34, omninet: 21 };
+save.endings = { aligned: true, foom: true };
+save.totalRP = 280;
+if (p.get('actintro')) { save.act = 2; }  // act will advance to 3 on load -> Race intro fires
 if (p.get('end')) {
   save.totalRP = 820; save.rp = 660; save.gens.agiCore = 3; save.gens.dysonSwarm = 1;
   save.singUnlocked = true; save.singularities = 1; save.cores = 5; save.coresTotal = 5;

@@ -93,6 +93,7 @@
     $('newsFlavorTitle').textContent = t('news_flavor_title');
     $('marketIntro').textContent = t('market_intro');
     buildMarket();
+    buildEndings();
     // research-tab extras
     $('artifactsTitle').textContent = t('artifacts_title');
     $('techTitle').textContent = t('tech_title');
@@ -858,6 +859,84 @@
     $('newsFlavor').innerHTML = pool.map(function (h) { return '<div class="flavor-line">• ' + h + '</div>'; }).join('');
   }
 
+  // ---------- R9: acts, race, endings ----------
+  function actId(i) { return C.ACTS[Math.max(0, Math.min(C.ACTS.length - 1, i))].id; }
+  function updateActBar() {
+    var a = G.state.act, bar = $('actBar');
+    if (a < 1) { bar.classList.add('hidden'); return; }
+    bar.classList.remove('hidden');
+    $('actLabel').textContent = t('act_' + actId(a) + '_t');
+    var prog = a >= 2 ? G.agiProgress() : (a * 20);
+    $('actFill').style.width = prog + '%';
+  }
+  function showActIntro(a) {
+    var id = actId(a);
+    var body = '<div class="act-intro"><div class="act-num">' + t('act_label', { n: a + 1 }) + '</div>' +
+      '<h3>' + t('act_' + id + '_t') + '</h3><p>' + t('act_' + id + '_intro') + '</p>' +
+      '<p class="act-goal">▸ ' + t('act_' + id + '_goal') + '</p>';
+    if (id === 'race') {
+      body += '<div class="act-num" style="margin-top:14px">' + t('stance_title') + '</div><div class="nc-choices">' +
+        ['safe', 'fast', 'open'].map(function (s) { return '<button class="cardchoice" data-stance="' + s + '"><b>' + t('stance_' + s) + '</b> — ' + t('stance_' + s + '_d') + '</button>'; }).join('') + '</div>';
+    } else {
+      body += '<div class="row"><button class="primary" id="actOk">' + t('act_continue') + '</button></div>';
+    }
+    body += '</div>';
+    showModal(body);
+    window.GAME_FX.flash('rgba(139,92,246,0.25)');
+    if (id === 'race') {
+      var bs = $('modalRoot').querySelectorAll('[data-stance]');
+      for (var i = 0; i < bs.length; i++) (function (b) { b.addEventListener('click', function () { G.applyRaceStance(b.dataset.stance); window.GAME_AUDIO.buy(); hideModal(); }); })(bs[i]);
+    } else { $('actOk').onclick = hideModal; }
+  }
+  function updateRace() {
+    var rp = $('racePanel');
+    if (!G.rivalsRevealed()) { rp.classList.add('hidden'); return; }
+    rp.classList.remove('hidden');
+    $('raceTitle').textContent = t('race_title');
+    // standings: you + rivals, sorted desc by AGI
+    var rows = [{ id: 'you', val: G.agiProgress(), you: true }];
+    C.RIVALS.forEach(function (r) { rows.push({ id: r.id, val: G.state.rivalAgi[r.id] || 0 }); });
+    rows.sort(function (x, y) { return y.val - x.val; });
+    $('raceStandings').innerHTML = rows.map(function (r) {
+      var name = r.you ? t('race_you') : t('rv_' + r.id);
+      var col = r.you ? 'var(--cyan)' : 'var(--rose)';
+      return '<div class="race-row' + (r.you ? ' you' : '') + '"><div class="race-name">' + name + '</div>' +
+        '<div class="bar"><div class="race-fill" style="width:' + r.val.toFixed(1) + '%;background:' + col + '"></div></div>' +
+        '<div class="race-pct">' + Math.floor(r.val) + '%</div></div>';
+    }).join('');
+    var lead = G.leadingRival();
+    $('raceWarn').textContent = (lead.val >= 60 && lead.val > G.agiProgress()) ? t('race_warn', { name: t('rv_' + lead.id), n: Math.ceil(100 - lead.val) }) : '';
+    var ob = $('raceOpenBtn');
+    if (G.raceOpenReady()) { ob.disabled = false; ob.textContent = t('race_opensource'); }
+    else { ob.disabled = true; ob.textContent = t('race_opensource_cd', { t: FMT.fmtTime(Math.max(0, 90 - (Date.now() - G.state.raceOpenAt) / 1000)) }); }
+  }
+  function buildEndings() {
+    var list = $('endingsList'); if (!list) return; list.innerHTML = '';
+    C.ENDINGS.list.forEach(function (id) {
+      var c = el('div', 'ending-card'); c.dataset.eid = id;
+      c.innerHTML = '<div class="ec-badge">' + ic('nav_singularity') + '</div><div class="ec-info"><div class="ec-name"></div><div class="ec-desc"></div></div>';
+      list.appendChild(c);
+    });
+  }
+  function updateEndings() {
+    var s = G.state, n = G.endingsUnlocked(), m = C.ENDINGS.list.length;
+    $('endingsTitle').textContent = t('endings_title');
+    $('endingsProgress').textContent = t('endings_progress', { n: n, m: m });
+    $('endingPerkNote').textContent = t('ending_perk_note', { p: Math.round(C.ENDINGS.PERK_PER * 100) });
+    var nodes = $('endingsList').children;
+    for (var i = 0; i < nodes.length; i++) {
+      var id = nodes[i].dataset.eid, has = !!s.endings[id];
+      nodes[i].classList.toggle('locked', !has);
+      nodes[i].querySelector('.ec-name').textContent = has ? t('ending_' + id + '_t') : '???';
+      nodes[i].querySelector('.ec-desc').textContent = has ? t('ending_' + id + '_d') : t('ending_locked');
+    }
+  }
+  function showEndingCinematic(d) {
+    window.GAME_FX.ritual({ kind: (d.id === 'aligned' || d.id === 'quiet') ? 'singularity' : 'prestige', title: t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
+    window.GAME_AUDIO.prestige();
+    toast(t('ending_unlocked_toast', { name: t('ending_' + d.id + '_t') }), 'gold');
+  }
+
   // ---------- next-goal nudge ----------
   function computeNudge() {
     var s = G.state;
@@ -905,7 +984,7 @@
     if (currentTab === 'company') updateGenerators();
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
-    else if (currentTab === 'singularity') updateSingularity();
+    else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
@@ -914,7 +993,7 @@
     if (currentTab === 'company') { updateAlignment(); updateNudge(); }
     // reveal Singularity nav once unlocked
     var nsb = $('navSingBtn');
-    if (nsb) nsb.classList.toggle('hidden', !G.singUnlocked());
+    if (nsb) nsb.classList.toggle('hidden', !(G.singUnlocked() || G.rivalsRevealed()));
     // World: nav reveal + Trust HUD + one-time unlock hint
     var wb = $('navWorldBtn'), wu = G.worldUnlocked();
     if (wb) wb.classList.toggle('hidden', !wu);
@@ -924,6 +1003,7 @@
       if (wu) { var tr = G.state.trust; $('trustVal').textContent = Math.round(tr); th.classList.toggle('low', tr < 35); th.classList.toggle('high', tr >= 75); }
     }
     if (wu && !G.state.seen.world) { G.state.seen.world = true; toast(t('hint_world'), 'gold'); G.save(); }
+    updateActBar();
     applyCosmetics();
     if (currentTab === 'settings') updateCosmetics();
     updateSettingsState();
@@ -1134,11 +1214,7 @@
       $('sCancel').onclick = hideModal;
       $('sOk').onclick = function () {
         hideModal();
-        if (G.doSingularity()) {
-          window.GAME_FX.ritual({ kind: 'singularity', title: t('ritual_singularity'), subtitle: t('sing_flavor') });
-          window.GAME_AUDIO.prestige();
-          switchTab('company');
-        }
+        if (G.doSingularity()) { switchTab('company'); } // ending cinematic fires via the 'ending' event
       };
     });
     // (singularity flavor shown in the ritual cinematic subtitle)
@@ -1146,6 +1222,10 @@
       if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
     });
+    // R9: act intros + ending cinematics
+    G.on('act', function (d) { showActIntro(d.act); });
+    G.on('ending', function (d) { showEndingCinematic(d); });
+    $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); updateRace(); } });
 
     // alignment buy + reactive audit
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
@@ -1276,6 +1356,8 @@
       if (validTabs[h]) switchTab(h);
     });
     update();
+    // replay the current act's intro beat (also lets the player revisit it)
+    if (location.hash === '#__intro') { setTimeout(function () { showActIntro(Math.max(1, G.currentAct())); }, 60); }
     if (offline && offline.earned > 0) {
       showOffline(offline);
       if (!G.state.onboarded) G.setOnboarded(true); // returning player; skip tour

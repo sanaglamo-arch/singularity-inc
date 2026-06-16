@@ -14,27 +14,35 @@
     if (e.touches && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
 
+  // ---- splash (never let it trap the player) ----
+  function hideSplash() {
+    var s = document.getElementById('splash');
+    if (s) { s.classList.add('hide'); setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 600); }
+  }
+
   // ---- boot ----
   function boot() {
-    var offline = window.GAME.init();      // loads save, computes offline
-    window.GAME_UI.init(offline);          // build UI, show offline modal
+    // ABSOLUTE FAILSAFE: dismiss the loader no matter what happens below.
+    setTimeout(hideSplash, 3500);
+
+    var offline = null;
+    try { offline = window.GAME.init(); }   // load() is internally safe (bad save -> fresh)
+    catch (e) { try { console.error('init error', e); window.GAME.reset(); offline = window.GAME.init(); } catch (e2) { console.error(e2); } }
+    try { window.GAME_UI.init(offline); }
+    catch (e) { console.error('UI init error', e); }
 
     // SDK init (async, non-blocking). Game already works without it.
-    window.GAME_SDK.init(function () {
-      window.GAME_SDK.loadingReady();
-      window.GAME_SDK.gameplayStart();
-      if (window.GAME_ADS.available()) window.GAME_ADS.showSticky();
-    });
+    try {
+      window.GAME_SDK.init(function () {
+        window.GAME_SDK.loadingReady();
+        window.GAME_SDK.gameplayStart();
+        if (window.GAME_ADS.available()) window.GAME_ADS.showSticky();
+      });
+    } catch (e) {}
 
     startLoop();
     startAutosave();
-
-    // fade out the splash after a brief branded moment
-    var splash = document.getElementById('splash');
-    if (splash) {
-      var hideSplash = function () { splash.classList.add('hide'); setTimeout(function () { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 600); };
-      setTimeout(hideSplash, 1100);
-    }
+    setTimeout(hideSplash, 1100);   // normal branded-moment dismissal
 
     // lifecycle: save + gameplay stop/start
     document.addEventListener('visibilitychange', function () {

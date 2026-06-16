@@ -265,6 +265,39 @@
     ]
   };
 
+  // ---- Narrative campaign: Acts (monotonic, derived from lifetime progress) ----
+  var ACTS = [
+    { id: 'garage' },       // 0: start
+    { id: 'startup' },      // 1: first generator owned
+    { id: 'frontier' },     // 2: first model release (prestige)
+    { id: 'race' },         // 3: rivals revealed (prestiges>=2 or totalRP>=120)
+    { id: 'singularity' }   // 4: first Singularity reached (stays here; race+endings loop)
+  ];
+
+  // ---- Rival labs — the Race to AGI (revealed at Act 3) -----------------
+  var RIVALS = [
+    { id: 'helion',  speed: 0.0150 },  // reckless front-runner
+    { id: 'cerebra', speed: 0.0110 },  // steady
+    { id: 'omninet', speed: 0.0085 }   // cautious
+  ];
+  var RACE = {
+    REVEAL_ACT: 3,
+    PLAYER_TARGET_RP: 500,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
+    HEAT: 0.6,              // as the leader nears AGI, everyone speeds up (climax tension)
+    SLOW_OPENSOURCE: 14,    // open-sourcing knocks the leading rival back this much AGI%
+    RECKLESS_RIVAL_BONUS: 0.4 // racing recklessly (low alignment) lets rivals gain faster too
+  };
+
+  // ---- Endings (resolve at the AGI climax; each = badge + small meta-perk) ----
+  var ENDINGS = {
+    PERK_PER: 0.04,         // +4% permanent global output per UNIQUE ending unlocked
+    list: ['aligned', 'foom', 'nationalized', 'beaten', 'quiet'],
+    // thresholds evaluated at ascension (avgVec = mean of risk vectors)
+    QUIET_TRUST: 85, QUIET_AVGVEC: 18,
+    NATIONALIZED_TRUST: 30, NATIONALIZED_AVGVEC: 65, NATIONALIZED_ESC: 3,
+    FOOM_ALIGN: 3, FOOM_CAP: 55
+  };
+
   // ---- Trust / Reputation ----------------------------------------------
   // Trust matters every second: output x scales 0.90 (trust 0) -> 1.00 (50) -> 1.10 (100).
   // High Trust unlocks premium contracts; low Trust adds regulatory pressure.
@@ -395,6 +428,10 @@
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
     AUTOPILOT: AUTOPILOT,
+    ACTS: ACTS,
+    RIVALS: RIVALS,
+    RACE: RACE,
+    ENDINGS: ENDINGS,
     TRUST: TRUST,
     CARDS: CARDS,
     MARKET: MARKET,
