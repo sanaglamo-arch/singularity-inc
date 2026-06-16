@@ -133,8 +133,12 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
 - **TRAIN** (tap the big button) for early cash bursts.
 - Buy **hardware** (10 tiers, Laptop → AGI Core); each auto-generates revenue.
   Every 10/25/50/100… owned **doubles** that tier's output.
-- Spend cash on **Upgrades** (global & per-tier multipliers) and **Automation**
-  (managers auto-buy a tier and add +50% output).
+- Spend cash on **Upgrades** (global & per-tier multipliers) and **Managers**
+  (a permanent **+50% output** buff per generator — they never spend your cash).
+- **Autopilot** (unlocks after your first model release): a smart auto-buyer that
+  spends only **above a reserve you set** and always buys the **best-value** generator
+  (lowest cost per +output/sec) — never blindly the cheapest. Per-generator toggles
+  and a "fill to next milestone then pause" mode. Your bank is never silently drained.
 - **Alignment Lab:** scaling raises **Risk**. Fund **Alignment** to suppress it.
   At 100% Risk a **misalignment incident** cuts output ×0.2 until it resolves or
   you pay to **contain** it.

@@ -378,6 +378,23 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .pcard button:disabled { background: var(--surface-2); color: var(--fg-muted); }
 .pcard.owned button { background: transparent; color: var(--green); border: 1px solid rgba(52,211,153,0.4); }
 
+/* ---------- autopilot panel ---------- */
+#autopilotPanel { margin-bottom: 4px; }
+.ap-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.ap-status { flex: 1; font-size: 12.5px; color: var(--fg-dim); line-height: 1.35; }
+.ap-status.live { color: var(--cyan); }
+.ap-row { display: flex; align-items: center; gap: 12px; margin: 12px 0 2px; font-size: 13px; }
+.ap-row > span:first-child { flex: 0 0 auto; color: var(--fg-dim); }
+#apReserve { flex: 1; min-height: 44px; accent-color: var(--cyan); cursor: pointer; background: transparent; }
+.ap-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ap-chip { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--glass-border); border-radius: var(--radius-pill); padding: 7px 12px; min-height: 44px; cursor: pointer; color: var(--fg-muted); font-size: 12px; font-weight: 600; transition: transform 0.08s var(--ease-spring), border-color 0.2s, background 0.2s, color 0.2s; }
+.ap-chip:active { transform: scale(0.95); }
+.ap-chip .api { width: 16px; height: 16px; display: inline-flex; }
+.ap-chip .api svg { width: 16px; height: 16px; }
+.ap-chip .apdot { width: 9px; height: 9px; border-radius: 50%; background: var(--glass-border); }
+.ap-chip.on { color: var(--fg); border-color: var(--cyan); background: rgba(34,211,238,0.12); }
+.ap-chip.on .apdot { background: var(--cyan); box-shadow: 0 0 8px var(--glow-cyan); }
+
 /* ---------- tech / artifacts ---------- */
 .card .minibtn { border: none; border-radius: 10px; padding: 9px 12px; min-height: 44px; font-family: var(--font-display); font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; color: #0a0a18; background: linear-gradient(100deg, var(--violet), var(--cyan)); }
 .card .minibtn:disabled { background: var(--surface-2); color: var(--fg-muted); }

@@ -247,6 +247,13 @@
     ]
   };
 
+  // ---- Autopilot (smart auto-buy; decoupled from managers) -------------
+  var AUTOPILOT = {
+    UNLOCK_PRESTIGES: 1,    // unlocks after the first model release
+    DEFAULT_RESERVE: 0.5,   // keep 50% of cash by default
+    FILL_RANGE: 15          // 'fill to milestone' only acts within N of the next breakpoint
+  };
+
   // ---- Cosmetics (earned, no pay-to-win) -------------------------------
   // unlock: {} always | {prestiges:n} | {singularities:n} | {ach:n owned}
   var COSMETICS = {
@@ -266,7 +273,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 1,
+    SAVE_VERSION: 2,
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -282,6 +289,7 @@
     OFFLINE: OFFLINE,
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
+    AUTOPILOT: AUTOPILOT,
     COSMETICS: COSMETICS,
     EVENTS: EVENTS,
     COMBO: COMBO,

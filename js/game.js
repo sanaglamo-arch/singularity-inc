@@ -69,6 +69,9 @@
       music: false,
       orb: 'orb_default',    // cosmetic: TRAIN orb skin
       theme: 'theme_default',// cosmetic: backdrop theme
+      // Smart Autopilot (decoupled from managers; never spends below reserve).
+      // Default SAFE: off, no generators enabled, 50% reserve.
+      autopilot: { on: false, reserve: 0.5, mode: 'roi', gens: {} },
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -300,6 +303,62 @@
     emit('change');
     return true;
   }
+
+  // ---- Smart Autopilot (ROI-based, reserve-protected) ------------------
+  function autopilotUnlocked() {
+    return state.prestiges >= C.AUTOPILOT.UNLOCK_PRESTIGES || state.singularities > 0;
+  }
+  // marginal output/sec gained by buying one more of `id` (incl milestone jump + global)
+  function genMarginalOutput(id) {
+    var before = genOutput(id);
+    state.gens[id]++;
+    var after = genOutput(id);
+    state.gens[id]--;
+    return (after - before) * globalMult();
+  }
+  function apEligible(id) {
+    var ap = state.autopilot;
+    if (!ap.gens[id]) return false;
+    if (ap.mode === 'milestone') {
+      var nm = nextMilestone(state.gens[id]);
+      if (nm === null) return false;                 // all milestones reached
+      if (nm - state.gens[id] > C.AUTOPILOT.FILL_RANGE) return false; // too far -> pause (no endless drain)
+    }
+    return true;
+  }
+  function runAutopilot() {
+    var ap = state.autopilot;
+    if (!ap.on || !autopilotUnlocked()) { state._apStatus = { kind: ap.on ? 'locked' : 'off' }; return; }
+    var spendable = state.cash * (1 - ap.reserve);
+    if (spendable <= 0) { state._apStatus = { kind: 'reserve' }; return; }
+    // choose the BEST-VALUE buy: lowest cost per +output/sec (never cheapest-blindly)
+    var best = null, bestRatio = Infinity, bestCost = 0;
+    for (var i = 0; i < GEN.length; i++) {
+      var g = GEN[i];
+      if (!apEligible(g.id)) continue;
+      var cost = genCostCumulative(g.id, 1);
+      if (cost > spendable) continue;
+      var dOut = genMarginalOutput(g.id);
+      if (dOut <= 0) continue;
+      var ratio = cost / dOut;             // lower = better value
+      if (ratio < bestRatio) { bestRatio = ratio; best = g; bestCost = cost; }
+    }
+    if (!best) { state._apStatus = { kind: 'idle' }; return; }
+    // execute the single best purchase
+    state.cash -= bestCost;
+    var before = state.gens[best.id];
+    state.gens[best.id]++;
+    var after = state.gens[best.id];
+    var crossed = null;
+    for (var mi = 0; mi < C.MILESTONES.length; mi++) { var m = C.MILESTONES[mi]; if (before < m && after >= m) crossed = m; }
+    if (crossed) emit('milestone', { id: best.id, milestone: crossed, count: after });
+    state._apStatus = { kind: 'buy', id: best.id, mode: ap.mode };
+  }
+  function apStatus() { return state._apStatus || { kind: state.autopilot.on ? 'idle' : 'off' }; }
+  function setAutopilotOn(b) { state.autopilot.on = !!b; emit('change'); }
+  function setAutopilotReserve(r) { state.autopilot.reserve = Math.max(0, Math.min(0.95, r)); emit('change'); }
+  function setAutopilotMode(mode) { if (mode === 'roi' || mode === 'milestone') { state.autopilot.mode = mode; emit('change'); } }
+  function toggleAutopilotGen(id, on) { state.autopilot.gens[id] = !!on; emit('change'); }
 
   function buyAlignment() {
     var n = (state.buyMode === 'max') ? 1 : state.buyMode; // alignment buys one batch at a time for clarity
@@ -637,13 +696,7 @@
   // ---- tick ------------------------------------------------------------
   function tick(dt) {
     if (dt <= 0) return;
-    // managers auto-buy their generator when affordable (one step per tick)
-    C.MANAGERS.forEach(function (m) {
-      if (state.managers[m.id]) {
-        var c = genCostCumulative(m.gen, 1);
-        if (state.cash >= c) { state.cash -= c; state.gens[m.gen] += 1; }
-      }
-    });
+    runAutopilot();    // smart, ROI-based, reserve-protected (replaces dumb manager auto-buy)
 
     var rate = cps();
     addCash(rate * dt);
@@ -704,6 +757,14 @@
     var base = newState();
     for (var k in base) if (!(k in s)) s[k] = base[k];
     GEN.forEach(function (g) { if (s.gens[g.id] === undefined) s.gens[g.id] = 0; });
+    // Autopilot migration — never auto-spend a returning player's bank on load:
+    // ensure the object exists and force it OFF for any pre-Autopilot save.
+    if (!s.autopilot || typeof s.autopilot !== 'object') s.autopilot = { on: false, reserve: 0.5, mode: 'roi', gens: {} };
+    if (typeof s.autopilot.on !== 'boolean') s.autopilot.on = false;
+    if (typeof s.autopilot.reserve !== 'number' || s.autopilot.reserve < 0 || s.autopilot.reserve > 0.95) s.autopilot.reserve = 0.5;
+    if (s.autopilot.mode !== 'roi' && s.autopilot.mode !== 'milestone') s.autopilot.mode = 'roi';
+    if (!s.autopilot.gens || typeof s.autopilot.gens !== 'object') s.autopilot.gens = {};
+    if (s.version < 2) s.autopilot.on = false; // legacy saves: start safe (the old manager-autobuy is gone)
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -799,6 +860,9 @@
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setLang: setLang, setOnboarded: setOnboarded,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
+    autopilotUnlocked: autopilotUnlocked, apStatus: apStatus,
+    setAutopilotOn: setAutopilotOn, setAutopilotReserve: setAutopilotReserve,
+    setAutopilotMode: setAutopilotMode, toggleAutopilotGen: toggleAutopilotGen,
     newState: newState
   };
 })();

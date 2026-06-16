@@ -4,6 +4,8 @@ var save = {"version":1,"cash":420000000,"totalEarnedThisRun":910000000,"totalEa
 var p = new URLSearchParams(location.search);
 save.lastSeen = Date.now() + 300000;
 save.onboarded = true;
+save.version = 2; // current-format save (not a legacy v1) so Autopilot state is preserved
+save.autopilot = { on: true, reserve: 0.5, mode: 'roi', gens: { gpuRig: true, serverRack: true, gpuCluster: true, dataCenter: true } };
 var lang = p.get('lang') || 'en';
 save.lang = lang;
 if (p.get('incident')) { save.incidentEndsAt = Date.now() + 90000; save.risk = 100; }
