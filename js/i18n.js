@@ -38,6 +38,22 @@
     milestone_next: 'Next x2 at {n}',
     maxed: 'MAXED',
 
+    // ===== GDD v3: continuous meta — resources, model generations, training =====
+    res_compute: 'Compute', res_share: 'Market share', res_valuation: 'Valuation', res_researchers: 'Researchers',
+    models_title: 'Models', model_current: 'Shipped: {name}', model_none: 'No model shipped yet',
+    model_progress: 'Generation {n} / {total}',
+    train_btn: 'Train {name}', train_need: 'Need {v} compute', train_active: 'Training {name}…',
+    train_left: '{t} left', train_ready: 'Ready to train',
+    train_done_toast: 'Shipped {name}! +{p}% revenue · +{s}% market share',
+    agi_title: 'AGI ACHIEVED', agi_desc: 'You built artificial general intelligence first. The frontier is yours.',
+    tip_models: 'Ship better model generations (v1→AGI). Each needs compute + training time, then permanently boosts revenue and market share — you never reset; your infrastructure is kept forever.',
+    tip_compute: 'Compute is produced by your hardware (and taps). It is the bottleneck: spend it to start training the next model generation.',
+    tip_share: 'Your slice of the AI market. Climbs each time you ship a new model generation. Reach #1, then race rivals to AGI.',
+    tip_valuation: 'What investors think the company is worth (revenue run-rate × market). Funding rounds unlock as it grows.',
+    // model generation names (generic, no trademarks)
+    g_v1: 'Model v1', g_v2: 'Model v2', g_v3: 'Model v3', g_v4: 'Model v4', g_v5: 'Model v5', g_v6: 'Model v6',
+    g_front1: 'Frontier v7', g_front2: 'Frontier v8', g_front3: 'Frontier v9', g_proto: 'Proto-AGI', g_agi: 'AGI',
+
     upgrades_title: 'Global Upgrades',
     managers_title: 'Automation',
     no_upgrades: 'No upgrades available yet. Keep scaling.',
@@ -470,6 +486,21 @@
     produces: '{v}/сек',
     milestone_next: 'Следующий x2 при {n}',
     maxed: 'МАКС',
+
+    // ===== GDD v3: непрерывная мета — ресурсы, поколения моделей, обучение =====
+    res_compute: 'Компьют', res_share: 'Доля рынка', res_valuation: 'Оценка', res_researchers: 'Исследователи',
+    models_title: 'Модели', model_current: 'Выпущена: {name}', model_none: 'Модель ещё не выпущена',
+    model_progress: 'Поколение {n} / {total}',
+    train_btn: 'Обучить {name}', train_need: 'Нужно {v} компьюта', train_active: 'Обучение {name}…',
+    train_left: 'осталось {t}', train_ready: 'Готово к обучению',
+    train_done_toast: 'Выпущена {name}! +{p}% выручки · +{s}% доли рынка',
+    agi_title: 'AGI ДОСТИГНУТ', agi_desc: 'Ты первым создал общий искусственный интеллект. Передовая — твоя.',
+    tip_models: 'Выпускай поколения моделей (v1→AGI). Каждое требует компьюта и времени обучения, затем навсегда повышает выручку и долю рынка — без сбросов; инфраструктура остаётся навсегда.',
+    tip_compute: 'Компьют производит твоё железо (и тапы). Это боттлнек: трать его, чтобы начать обучение следующего поколения модели.',
+    tip_share: 'Твоя доля рынка ИИ. Растёт с каждым новым поколением модели. Стань #1 и обгони конкурентов к AGI.',
+    tip_valuation: 'Сколько инвесторы считают компанию стоящей (run-rate выручки × рынок). С её ростом открываются раунды.',
+    g_v1: 'Модель v1', g_v2: 'Модель v2', g_v3: 'Модель v3', g_v4: 'Модель v4', g_v5: 'Модель v5', g_v6: 'Модель v6',
+    g_front1: 'Передовая v7', g_front2: 'Передовая v8', g_front3: 'Передовая v9', g_proto: 'Прото-AGI', g_agi: 'AGI',
 
     upgrades_title: 'Глобальные апгрейды',
     managers_title: 'Автоматизация',

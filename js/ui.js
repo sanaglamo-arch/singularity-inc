@@ -175,6 +175,13 @@
     $('creditsTxt').textContent = t('credits');
     $('versionTxt').textContent = t('version', { v: '1.0' });
     $('riskMiniLabel').innerHTML = '<span>' + t('risk_label') + '</span><span id="riskMiniPct"></span>';
+    // GDD v3 model/training panel static labels (+ ⓘ tooltips)
+    if ($('rlCompute')) {
+      $('rlCompute').innerHTML = t('res_compute') + infoBtn('tip_compute');
+      $('rlShare').innerHTML = t('res_share') + infoBtn('tip_share');
+      $('rlVal').innerHTML = t('res_valuation') + infoBtn('tip_valuation');
+      $('modelTitle').innerHTML = t('models_title') + infoBtn('tip_models');
+    }
     // buy-mode bar: localize labels + ensure the explainer (ⓘ) tooltip is present
     var bmb = $('buyModeBar');
     if (bmb) {
@@ -290,6 +297,35 @@
       if (nm) { setStyleP(r.mbar, 'width', Math.min(100, (owned / nm) * 100).toFixed(1) + '%'); setStyleP(r.mbar.parentNode, 'display', ''); }
       else { setStyleP(r.mbar.parentNode, 'display', 'none'); }
     });
+  }
+
+  // ---------- GDD v3: model-generation training panel ----------
+  function updateModelPanel() {
+    var s = G.state;
+    setText($('computeVal'), fmt(s.compute));
+    setText($('computeRate'), '+' + fmt(frameCompute) + '/s');
+    setText($('shareVal'), (Math.round(s.marketShare * 10) / 10) + '%');
+    setText($('valVal'), '$' + fmt(G.valuation()));
+    setText($('modelProg'), t('model_progress', { n: s.modelGen, total: C.MODELGEN.length }));
+    var btn = $('trainBtn'), prog = $('trainProg'), hint = $('trainHint');
+    if (G.isAGI()) {
+      setClass(btn, 'hidden', true); setClass(prog, 'hidden', true);
+      setText(hint, t('agi_title')); setClass(hint, 'agi', true);
+      return;
+    }
+    var g = G.nextGen(), name = t(g.id);
+    if (G.trainingActive()) {
+      setClass(btn, 'hidden', true); setClass(prog, 'hidden', false);
+      setStyleP($('trainFill'), 'width', (G.trainingProgress() * 100).toFixed(1) + '%');
+      setText($('trainTimer'), t('train_active', { name: t(C.MODELGEN[s.training.gen].id) }) + ' · ' + t('train_left', { t: FMT.fmtTime(G.trainingTimeLeft()) }));
+      setText(hint, '');
+    } else {
+      setClass(prog, 'hidden', true); setClass(btn, 'hidden', false);
+      setText(btn, t('train_btn', { name: name }));
+      var can = G.canStartTraining();
+      btn.disabled = !can;
+      setText(hint, can ? t('train_ready') : t('train_need', { v: fmt(g.computeReq) }));
+    }
   }
 
   // ---------- upgrades ----------
@@ -1070,12 +1106,13 @@
   }
 
   // ---------- main per-frame update ----------
-  var frameCps = 0, frameGM = 1, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
+  var frameCps = 0, frameGM = 1, frameCompute = 0, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
   function update() {
-    frameCps = G.cps();           // compute the two hottest values ONCE per frame
+    frameCps = G.cps();           // compute the hottest values ONCE per frame
     frameGM = G.globalMult();
+    frameCompute = G.computeRate();
     updateTop();
-    if (currentTab === 'company') updateGenerators();
+    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
     else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }
@@ -1442,6 +1479,26 @@
     $('auditBtn').addEventListener('click', function () { if (G.doAudit()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(52,211,153,0.25)'); } });
 
     // breakthrough ability
+    // GDD v3: start training the next model generation
+    var trainBtn = $('trainBtn');
+    if (trainBtn) trainBtn.addEventListener('click', function () {
+      if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
+      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    G.on('generation', function (d) {
+      var g = (d.gen >= 1 && C.MODELGEN[d.gen - 1]) ? C.MODELGEN[d.gen - 1] : null;
+      var name = g ? t(g.id) : '';
+      window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
+      var cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
+      window.GAME_FX.celebrate(cx, cy, name, true);
+      if (G.isAGI()) {
+        window.GAME_FX.ritual({ kind: 'singularity', title: t('agi_title'), subtitle: t('agi_desc') });
+        window.GAME_AUDIO.singularity();
+      } else if (g) {
+        toast(t('train_done_toast', { name: name, p: Math.round((g.revMult - 1) * 100), s: g.share }), 'gold');
+      }
+    });
+
     $('breakthroughBtn').addEventListener('click', function () {
       if (G.activateBreakthrough()) {
         window.GAME_AUDIO.breakthrough(); buzz([0,30,40,30]);

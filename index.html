@@ -51,6 +51,20 @@
       </div>
       <div id="labMain">
         <div id="nudge" class="hidden"><span class="nicon"></span><span id="nudgeText"></span></div>
+        <!-- GDD v3: continuous model-generation training (replaces prestige) -->
+        <div id="modelPanel" class="glass-panel">
+          <div id="resRow">
+            <div class="res"><span class="rlabel" id="rlCompute"></span><span class="rval" id="computeVal">0</span><span class="rsub" id="computeRate"></span></div>
+            <div class="res"><span class="rlabel" id="rlShare"></span><span class="rval" id="shareVal">0%</span></div>
+            <div class="res"><span class="rlabel" id="rlVal"></span><span class="rval" id="valVal">$0</span></div>
+          </div>
+          <div id="modelHead"><span id="modelTitle"></span><span id="modelProg" class="muted small"></span></div>
+          <div id="trainBox">
+            <button id="trainBtn"></button>
+            <div id="trainProg" class="hidden"><div class="bar"><div id="trainFill"></div></div><div id="trainTimer" class="muted small"></div></div>
+            <div id="trainHint" class="muted small"></div>
+          </div>
+        </div>
         <!-- Guided first model-release CTA (appears only when the first prestige is worth it) -->
         <button id="prestigeCta" class="hidden"><span class="cta-title"></span><span class="cta-sub"></span></button>
         <div class="scroll" id="genList"></div>
