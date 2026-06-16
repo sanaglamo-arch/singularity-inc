@@ -1041,6 +1041,19 @@
     $('worldLocked').classList.toggle('hidden', unlocked);
     ['standingsPanel', 'worldNewsTitle', 'cardList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
     if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
+    // AGI finale banner (win / beaten) + optional Founder's Legacy
+    var fb = $('finaleBanner');
+    if (fb) {
+      if (G.isGameOver()) {
+        setClass(fb, 'hidden', false);
+        var won = G.state.won, eid = G.state.ending || 'aligned';
+        setText($('finaleTitle'), won ? t('agi_title') : t('finale_beaten'));
+        setClass($('finaleTitle'), 'beaten', !won);
+        setText($('finaleDesc'), t('ending_' + eid + '_t') + ' — ' + t('ending_' + eid + '_d'));
+        setText($('legacyBtn'), t('legacy_btn', { p: Math.round(G.legacyNextBonus() * 100) }));
+        setText($('legacyNote'), t('legacy_note'));
+      } else setClass(fb, 'hidden', true);
+    }
     updateStandings();   // the race standings live here now (GDD v3)
     // active cards (skip crises here — they appear as a modal; but still list them).
     // Only REBUILD the list when the card set changes; tick the countdowns cheaply.
@@ -1138,7 +1151,8 @@
     }
   }
   function showEndingCinematic(d) {
-    window.GAME_FX.ritual({ kind: (d.id === 'aligned' || d.id === 'quiet') ? 'singularity' : 'prestige', title: t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
+    var won = d.won !== false && d.id !== 'beaten';
+    window.GAME_FX.ritual({ kind: won ? 'singularity' : 'prestige', title: (won ? t('agi_title') + ' · ' : '') + t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
     window.GAME_AUDIO.singularity(); buzz([0,60,80,60,80,120]);
     toast(t('ending_unlocked_toast', { name: t('ending_' + d.id + '_t') }), 'gold');
   }
@@ -1578,6 +1592,14 @@
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
+    // GDD v3: Founder's Legacy (optional, non-forced replay after the finale)
+    var legacyBtn = $('legacyBtn');
+    if (legacyBtn) legacyBtn.addEventListener('click', function () {
+      showModal('<h3>' + t('legacy_title') + '</h3><p>' + t('legacy_confirm', { p: Math.round(G.legacyNextBonus() * 100) }) + '</p>' +
+        '<div class="row"><button class="secondary" id="lgCancel">✕</button><button class="primary" id="lgOk">' + t('legacy_btn_short') + '</button></div>');
+      $('lgCancel').onclick = hideModal;
+      $('lgOk').onclick = function () { if (G.startLegacy()) { hideModal(); window.GAME_AUDIO.prestige(); window.GAME_FX.ritual({ kind: 'singularity', title: t('legacy_title'), subtitle: t('legacy_started') }); switchTab('company'); } };
+    });
     // GDD v3: activate an earned boost (speeds all timers)
     var boostBtn = $('boostBtn');
     if (boostBtn) boostBtn.addEventListener('click', function () {
@@ -1621,12 +1643,8 @@
       window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
       var cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
       window.GAME_FX.celebrate(cx, cy, name, true);
-      if (G.isAGI()) {
-        window.GAME_FX.ritual({ kind: 'singularity', title: t('agi_title'), subtitle: t('agi_desc') });
-        window.GAME_AUDIO.singularity();
-      } else if (g) {
-        toast(t('train_done_toast', { name: name, p: Math.round((g.revMult - 1) * 100), s: g.share }), 'gold');
-      }
+      // (the AGI finale cinematic is fired by the 'ending' event, not here, to avoid double-firing)
+      if (!G.isAGI() && g) toast(t('train_done_toast', { name: name, p: Math.round((g.revMult - 1) * 100), s: g.share }), 'gold');
     });
 
     $('breakthroughBtn').addEventListener('click', function () {

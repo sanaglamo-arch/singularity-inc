@@ -106,6 +106,11 @@
       boostTokens: 0,        // earned boosts (speed all timers) — from daily/achievements/idle
       lastDailyDay: 0,       // last day index a daily reward was claimed
       dailyStreak: 0,        // consecutive-day login streak (forgiving)
+      gameOver: false,       // AGI finale fired (win or beaten)
+      ending: null,          // chosen ending id (aligned/foom/nationalized/beaten)
+      won: false,            // reached AGI first
+      legacyCount: 0,        // Founder's Legacy replays completed (optional, non-forced)
+      legacyMult: 1,         // permanent multiplier kept across Founder's Legacy
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -283,7 +288,7 @@
   // prestige passives like rpMult/cores/trust — those get re-homed/removed).
   function genericMult() {
     var m = allUpgradeMult() * techMult('all') * artifactMult('allMult') * artifactSynergyMult();
-    m *= achPerkMult('global') * (state.cardAllMult || 1) * transientMult();
+    m *= achPerkMult('global') * (state.cardAllMult || 1) * transientMult() * (state.legacyMult || 1);
     return m;
   }
   // 🖥 compute produced per second by all generators (generators = compute infra),
@@ -395,6 +400,7 @@
     state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     checkAchievements();
     emit('generation', { gen: state.modelGen, id: g ? g.id : null });
+    if (state.modelGen >= C.MODELGEN.length) triggerFinale(determineEnding(), true); // AGI — you won
     emit('change');
     return true;
   }
@@ -1063,12 +1069,44 @@
     if (maxRivalAgi() >= 100 && agiProgress() < 100 && !state._endingFired) { doSingularity('beaten'); }
   }
   function avgVec() { var s = 0; C.RISK.VECTORS.forEach(function (v) { s += state.vec[v]; }); return s / C.RISK.VECTORS.length; }
+  // GDD v3: the ending you WIN AGI with, decided by your play style at the finale.
   function determineEnding() {
     var E = C.ENDINGS, av = avgVec();
-    if (state.trust >= E.QUIET_TRUST && av < E.QUIET_AVGVEC) return 'quiet';
-    if (state.trust < E.NATIONALIZED_TRUST || av > E.NATIONALIZED_AVGVEC || state.crisesEscalated >= E.NATIONALIZED_ESC) return 'nationalized';
-    if (state.align < E.FOOM_ALIGN || state.vec.cap > E.FOOM_CAP) return 'foom';
+    if (state.trust < E.NATIONALIZED_TRUST || state.vec.reg > E.NATIONALIZED_AVGVEC || state.crisesEscalated >= E.NATIONALIZED_ESC) return 'nationalized';
+    if (state.align < E.FOOM_ALIGN || state.vec.cap > E.FOOM_CAP || av > 50) return 'foom'; // reckless
     return 'aligned';
+  }
+  // fire the AGI finale exactly once (win = you reached AGI; beaten = a rival did)
+  function triggerFinale(ending, won) {
+    if (state.gameOver) return false;
+    state.gameOver = true; state.ending = ending; state.won = !!won;
+    state.endings[ending] = true;
+    checkAchievements();
+    emit('ending', { id: ending, won: !!won });
+    return true;
+  }
+  function isGameOver() { return !!state.gameOver; }
+  // ---- Founder's Legacy (optional, NON-forced replay) ----
+  function legacyNextBonus() { return 0.25; } // +25% permanent compute/revenue per legacy
+  function startLegacy() {
+    if (!state.gameOver) return false;   // only offered after the finale
+    state.legacyCount = (state.legacyCount || 0) + 1;
+    state.legacyMult = (state.legacyMult || 1) * (1 + legacyNextBonus());
+    // new company: reset the run, KEEP legacy bonus + endings + achievements + cosmetics + boosts
+    GEN.forEach(function (g) { state.gens[g.id] = 0; });
+    state.upgrades = {}; state.managers = {};
+    state.cash = 0; state.compute = 0; state.researchers = 0;
+    state.modelGen = 0; state.marketShare = 0;
+    state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
+    state.build = { active: false, startedAt: 0, endsAt: 0 }; state.datacenters = 0;
+    state.research2 = { active: false, startedAt: 0, endsAt: 0 }; state.researchLevel = 0;
+    state.funding = {};
+    state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0;
+    state.rivalShare = {}; state.rivalAgi = {}; ensureRivalShare();
+    state.gameOver = false; state.ending = null; state.won = false;
+    state.totalEarnedThisRun = 0;
+    emit('change');
+    return true;
   }
   function endingPerkMult() { var n = 0; for (var k in state.endings) if (state.endings[k]) n++; return 1 + n * C.ENDINGS.PERK_PER; }
   function endingsUnlocked() { var n = 0; for (var k in state.endings) if (state.endings[k]) n++; return n; }
@@ -1238,6 +1276,7 @@
     if (buildActive() && Date.now() >= state.build.endsAt) finishBuild();        // parallel timers
     if (researchActive() && Date.now() >= state.research2.endsAt) finishResearch();
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
+    if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
     // Before that, "risks of scale" simply do not exist (clean early game).
@@ -1371,6 +1410,12 @@
     if (typeof s.boostTokens !== 'number') s.boostTokens = 0;
     if (typeof s.lastDailyDay !== 'number') s.lastDailyDay = 0;
     if (typeof s.dailyStreak !== 'number') s.dailyStreak = 0;
+    // ---- v8: AGI finale + endings + Founder's Legacy ----
+    if (typeof s.gameOver !== 'boolean') s.gameOver = false;
+    if (typeof s.ending === 'undefined') s.ending = null;
+    if (typeof s.won !== 'boolean') s.won = false;
+    if (typeof s.legacyCount !== 'number') s.legacyCount = 0;
+    if (typeof s.legacyMult !== 'number') s.legacyMult = 1;
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1495,6 +1540,7 @@
     currentAct: currentAct, rivalsRevealed: rivalsRevealed, agiProgress: agiProgress,
     leadingRival: leadingRival, maxRivalAgi: maxRivalAgi, slowLeadingRival: slowLeadingRival,
     endingPerkMult: endingPerkMult, endingsUnlocked: endingsUnlocked, applyRaceStance: applyRaceStance,
+    determineEnding: determineEnding, isGameOver: isGameOver, startLegacy: startLegacy, legacyNextBonus: legacyNextBonus,
     raceOpenSource: raceOpenSource, raceOpenReady: raceOpenReady,
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
     autopilotUnlocked: autopilotUnlocked, apStatus: apStatus,

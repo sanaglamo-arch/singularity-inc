@@ -21,7 +21,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [x] P5 finance — valuation fixed (ARR×multiple); funding rounds Seed→A→B→C→IPO UI live (realistic valReqs; moneyRate compression pending P9)
 - [x] P6 re-home: World->RACE, Research->TEAM(hiring+R&D); market+singularity-tab retired; safety/comms still on (riskUnlocked@gen3, worldcards@gen1). next-goal nudge rewritten for new systems.
 - [x] P7 retention: offline summary + next-goal nudge + earned-boost economy (tokens from daily/achievements/idle; activate to ×2 all timers) + daily login reward & forgiving streak. SAVE_VERSION 7.
-- [ ] P8 endgame + endings + legacy
+- [x] P8 endgame: AGI finale (win) + endings by play style (Aligned/Reckless=foom/Nationalized) + Beaten (rival hits AGI first) → cinematic+badge+Race finale banner; optional NON-forced Founder's Legacy (+25%/replay, keeps endings). SAVE_VERSION 8.
 - [x] P9 balance — sim-tuned month arc (engaged ~19d to AGI, casual/offline ~month+), 0% dead time, no walls, funding gated by generation; BALANCE.md updated. (late-game $ exponential — documented)
 - [ ] P10 polish (layout/clarity/feel/perf)
 

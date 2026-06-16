@@ -378,6 +378,14 @@ h2:first-child { margin-top: 4px; }
 .standrow.you .sshare { color: var(--cyan); }
 .standrow.lead .srank { color: var(--gold); }
 #agiRace { margin-top: 9px; text-align: center; letter-spacing: 0.3px; }
+/* AGI finale banner */
+#finaleBanner { margin: 0 0 12px; padding: 14px; text-align: center; border: 1px solid rgba(251,191,36,0.4); }
+#finaleTitle { font-family: var(--font-display); font-weight: 900; font-size: 18px; letter-spacing: 2px; color: var(--gold); text-shadow: 0 0 18px var(--glow-gold); }
+#finaleTitle.beaten { color: var(--rose); text-shadow: 0 0 18px var(--glow-rose); }
+#finaleDesc { margin: 6px 0 12px; }
+#legacyBtn { width: 100%; min-height: 48px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 13px; color: #06121a; background: linear-gradient(100deg, var(--violet-2), var(--cyan)); box-shadow: 0 8px 24px -10px var(--glow-violet); transition: transform 0.09s var(--ease-spring), filter 0.2s; }
+#legacyBtn:active { transform: scale(0.98); filter: brightness(1.07); }
+#legacyNote { margin-top: 8px; }
 /* ---------- GDD v3: Team (hiring) ---------- */
 #teamPanel { padding: 14px; border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); box-shadow: var(--shadow-1), var(--inset-hi); }
 #teamStats { display: flex; gap: 10px; margin-bottom: 12px; }
