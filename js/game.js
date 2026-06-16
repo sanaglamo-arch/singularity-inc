@@ -1019,12 +1019,14 @@
   }
 
   // ===== R9: Acts, Race to AGI, Endings =====
+  // GDD v3: acts track your model-generation stage (garage→startup→frontier→race→AGI)
   function currentAct() {
-    if (state.singularities > 0) return 4;
-    if (state.prestiges >= 2 || state.totalRP >= 120) return 3;
-    if (state.prestiges >= 1) return 2;
+    if ((state.gameOver && state.won) || state.modelGen >= 9) return 4; // AGI / endgame
+    if (state.modelGen >= 6) return 3;   // race to AGI
+    if (state.modelGen >= 3) return 2;   // frontier lab
+    if (state.modelGen >= 1) return 1;   // startup (shipped v1)
     var owned = 0; GEN.forEach(function (g) { owned += state.gens[g.id]; });
-    return owned > 0 ? 1 : 0;
+    return owned > 0 ? 1 : 0;            // garage (act intro 1 once you buy a generator)
   }
   function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
   function ensureRivals() { C.RIVALS.forEach(function (r) { if (typeof state.rivalAgi[r.id] !== 'number') state.rivalAgi[r.id] = 0; }); }
