@@ -312,6 +312,11 @@
     setText($('computeRate'), '+' + fmt(frameCompute) + '/s');
     setText($('shareVal'), (Math.round(s.marketShare * 10) / 10) + '%');
     setText($('valVal'), '$' + fmt(G.valuation()));
+    // Stage-1 garage cleanliness: market-share, valuation and datacenter builds only
+    // appear once you've shipped your first product (modelGen ≥ 1).
+    var preProduct = s.modelGen < 1, rc = $('resRow').children;
+    setClass(rc[1], 'hidden', preProduct); setClass(rc[2], 'hidden', preProduct);
+    setClass($('buildBox'), 'hidden', preProduct);
     setText($('modelProg'), t('model_progress', { n: s.modelGen, total: C.MODELGEN.length }));
     // funding round (P5): appears when valuation clears the next round's milestone
     var fb = $('fundingBtn'), round = G.nextFundingRound();
