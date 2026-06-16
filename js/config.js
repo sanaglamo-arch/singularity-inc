@@ -138,7 +138,11 @@
     { id: 'a_cash1qa',    cond: { type: 'totalCash', n: 1e15 } },
     { id: 'a_insight',    cond: { type: 'insights', n: 1 } },
     { id: 'a_breakthrough', cond: { type: 'breakthroughs', n: 1 } },
-    { id: 'a_overclock',  cond: { type: 'maxheat', n: 1 } }
+    { id: 'a_overclock',  cond: { type: 'maxheat', n: 1 } },
+    { id: 'a_tech',       cond: { type: 'tech', n: 1 } },
+    { id: 'a_artifact',   cond: { type: 'artifacts', n: 1 } },
+    { id: 'a_singularity', cond: { type: 'singularities', n: 1 } },
+    { id: 'a_cores10',    cond: { type: 'cores', n: 10 } }
   ];
 
   // ---- Tap combo / Overclock heat -------------------------------------
@@ -164,6 +168,65 @@
     mult: 10, duration: 20, cooldown: 180,
     chainWindow: 8,            // re-fire within Ns of the last one ending => bonus
     chainMult: 15, chainDuration: 25
+  };
+
+  // ---- Generator classes (for tech/artifact category multipliers) ------
+  var GEN_CLASS = {
+    low:  ['laptop', 'gpuRig', 'serverRack'],
+    mid:  ['gpuCluster', 'dataCenter', 'superComp', 'neuroArray'],
+    high: ['quantumNode', 'orbital', 'agiCore', 'dysonSwarm', 'matrioshka']
+  };
+
+  // ---- Tech Tree (RP-gated; persists across model-release, resets on Singularity)
+  // cat: tap | gen_low | gen_mid | gen_high | all | offline | risk
+  // req: {} | {tech:id} | {gen:id, count:n}
+  var TECH = [
+    { id: 't_tap1',  cat: 'tap',      mult: 3,   cost: 12,   req: {} },
+    { id: 't_low1',  cat: 'gen_low',  mult: 2,   cost: 18,   req: {} },
+    { id: 't_off1',  cat: 'offline',  mult: 2,   cost: 25,   req: {} },
+    { id: 't_risk1', cat: 'risk',     mult: 0.7, cost: 30,   req: {} },
+    { id: 't_all1',  cat: 'all',      mult: 1.5, cost: 60,   req: { tech: 't_low1' } },
+    { id: 't_mid1',  cat: 'gen_mid',  mult: 2,   cost: 90,   req: { gen: 'dataCenter', count: 25 } },
+    { id: 't_tap2',  cat: 'tap',      mult: 5,   cost: 120,  req: { tech: 't_tap1' } },
+    { id: 't_off2',  cat: 'offline',  mult: 3,   cost: 160,  req: { tech: 't_off1' } },
+    { id: 't_all2',  cat: 'all',      mult: 2,   cost: 350,  req: { tech: 't_all1' } },
+    { id: 't_high1', cat: 'gen_high', mult: 3,   cost: 600,  req: { gen: 'quantumNode', count: 10 } },
+    { id: 't_risk2', cat: 'risk',     mult: 0.5, cost: 450,  req: { tech: 't_risk1' } },
+    { id: 't_all3',  cat: 'all',      mult: 3,   cost: 2000, req: { tech: 't_all2' } }
+  ];
+
+  // ---- Prestige Artifacts (granted on model-release; equip up to SLOTS) -
+  // tags drive synergy: each tag shared by >=2 equipped artifacts => +SYNERGY all
+  var ARTIFACT_SLOTS = 3;
+  var ARTIFACT_SYNERGY = 0.20; // +20% all per tag that has a matched pair equipped
+  var ARTIFACTS = [
+    { id: 'ar_chip',    tags: ['hw'],            effect: { type: 'allMult',     value: 1.10 } },
+    { id: 'ar_cooler',  tags: ['hw', 'safety'],  effect: { type: 'riskMult',    value: 0.80 } },
+    { id: 'ar_gpu',     tags: ['hw'],            effect: { type: 'genHighMult', value: 1.25 } },
+    { id: 'ar_oracle',  tags: ['ai'],            effect: { type: 'tapMult',     value: 3 } },
+    { id: 'ar_dataset', tags: ['ai'],            effect: { type: 'allMult',     value: 1.15 } },
+    { id: 'ar_charter', tags: ['ai', 'safety'],  effect: { type: 'riskMult',    value: 0.70 } },
+    { id: 'ar_vault',   tags: ['money'],         effect: { type: 'offlineMult', value: 2 } },
+    { id: 'ar_fund',    tags: ['money'],         effect: { type: 'allMult',     value: 1.12 } },
+    { id: 'ar_dice',    tags: ['gamble'],        effect: { type: 'gamble' } } // rolls 0.6..3.0 all, per run
+  ];
+
+  // ---- Second prestige: The Singularity (meta-currency: Singularity Cores) --
+  var SINGULARITY = {
+    UNLOCK_RP: 500,            // unlocks at this lifetime RP ...
+    UNLOCK_GEN: 'agiCore',     // ... or once an AGI Core exists
+    SCALE: 100,                // cores = floor( sqrt(rp / SCALE) * coreGainMult )
+    CORE_BONUS: 0.10,          // each Core = +10% global (passive)
+    meta: [                    // permanent forever (Cores), never reset
+      { id: 'sm_global1', type: 'globalMult',  value: 3,    cost: 1 },
+      { id: 'sm_rp',      type: 'rpGain',      value: 2,    cost: 2 },
+      { id: 'sm_tap',     type: 'tapMult',     value: 10,   cost: 2 },
+      { id: 'sm_risk',    type: 'riskMult',    value: 0.5,  cost: 2 },
+      { id: 'sm_offline', type: 'offlineCap',  value: 24,   cost: 3 },
+      { id: 'sm_global2', type: 'globalMult',  value: 5,    cost: 5 },
+      { id: 'sm_core',    type: 'coreGain',    value: 2,    cost: 6 },
+      { id: 'sm_global3', type: 'globalMult',  value: 10,   cost: 12 }
+    ]
   };
 
   // ---- Random timed events --------------------------------------------
@@ -203,6 +266,12 @@
     COMBO: COMBO,
     INSIGHT: INSIGHT,
     BREAKTHROUGH: BREAKTHROUGH,
+    GEN_CLASS: GEN_CLASS,
+    TECH: TECH,
+    ARTIFACTS: ARTIFACTS,
+    ARTIFACT_SLOTS: ARTIFACT_SLOTS,
+    ARTIFACT_SYNERGY: ARTIFACT_SYNERGY,
+    SINGULARITY: SINGULARITY,
     SETTINGS: SETTINGS
   };
 })();

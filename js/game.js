@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -54,6 +54,15 @@
       breakthroughEndsAt: 0, breakthroughMult: 1,
       breakthroughReadyAt: 0, lastBreakthroughEndAt: 0,
       breakthroughsUsed: 0,
+      // endgame meta-progression
+      tech: {},                // bought tech ids (RP); reset on Singularity
+      artifactsOwned: {},      // id -> true (kept across both prestiges)
+      artifactsEquipped: [],   // up to ARTIFACT_SLOTS ids
+      gambleRoll: 1,           // rolled when a gamble artifact is equipped / on prestige
+      cores: 0, coresTotal: 0, // Singularity Cores (meta-currency, never reset)
+      meta: {},                // bought meta-upgrade ids (Cores); never reset
+      singularities: 0,
+      singUnlocked: false,
       achievements: achs,
       playtime: 0,           // seconds
       sound: false,
@@ -103,6 +112,44 @@
   }
   function managerMult(id) { return state.managers['m_' + id] ? 1.5 : 1; }
 
+  // ---- endgame multipliers (tech / artifacts / singularity) ------------
+  var GEN_OF_CLASS = {};
+  Object.keys(C.GEN_CLASS).forEach(function (cl) { C.GEN_CLASS[cl].forEach(function (id) { GEN_OF_CLASS[id] = cl; }); });
+
+  function techMult(cat) {
+    var m = 1;
+    for (var i = 0; i < C.TECH.length; i++) { var tk = C.TECH[i]; if (state.tech[tk.id] && tk.cat === cat) m *= tk.mult; }
+    return m;
+  }
+  function artifactById(id) { for (var i = 0; i < C.ARTIFACTS.length; i++) if (C.ARTIFACTS[i].id === id) return C.ARTIFACTS[i]; return null; }
+  function equippedArtifacts() { return (state.artifactsEquipped || []).map(artifactById).filter(Boolean); }
+  function artifactSynergyMult() {
+    var tagCount = {};
+    equippedArtifacts().forEach(function (a) { a.tags.forEach(function (tg) { tagCount[tg] = (tagCount[tg] || 0) + 1; }); });
+    var pairs = 0;
+    Object.keys(tagCount).forEach(function (tg) { if (tagCount[tg] >= 2) pairs++; });
+    return 1 + pairs * C.ARTIFACT_SYNERGY;
+  }
+  function artifactMult(type) {
+    var m = 1;
+    equippedArtifacts().forEach(function (a) {
+      if (a.effect.type === type) m *= a.effect.value;
+      if (a.effect.type === 'gamble' && type === 'allMult') m *= (state.gambleRoll || 1);
+    });
+    return m;
+  }
+  function metaMul(type) {
+    var v = 1;
+    C.SINGULARITY.meta.forEach(function (mu) { if (state.meta[mu.id] && mu.type === type) v *= mu.value; });
+    return v;
+  }
+  function metaAdd(type) {
+    var v = 0;
+    C.SINGULARITY.meta.forEach(function (mu) { if (state.meta[mu.id] && mu.type === type) v += mu.value; });
+    return v;
+  }
+  function singCoreMult() { return 1 + (state.cores || 0) * C.SINGULARITY.CORE_BONUS; }
+
   function rpMult() { return 1 + state.rp * C.PRESTIGE.BONUS; }
   function allUpgradeMult() {
     var m = 1;
@@ -120,6 +167,8 @@
 
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
+    m *= techMult('all') * artifactMult('allMult') * artifactSynergyMult();
+    m *= metaMul('globalMult') * singCoreMult();
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
@@ -130,7 +179,7 @@
   function tapMult() {
     var m = 1;
     C.UPGRADES.forEach(function (u) { if (u.target === 'tap' && state.upgrades[u.id]) m *= u.mult; });
-    return m * puValue('tapMult', 1);
+    return m * puValue('tapMult', 1) * techMult('tap') * artifactMult('tapMult') * metaMul('tapMult');
   }
 
   // ---- production ------------------------------------------------------
@@ -138,7 +187,10 @@
     var g = GENBYID[id];
     var count = state.gens[id];
     if (!count) return 0;
-    return g.baseOut * count * milestoneMult(count) * perGenUpgradeMult(id) * managerMult(id);
+    var classM = 1, cl = GEN_OF_CLASS[id];
+    if (cl) classM *= techMult('gen_' + cl);
+    if (cl === 'high') classM *= artifactMult('genHighMult');
+    return g.baseOut * count * milestoneMult(count) * perGenUpgradeMult(id) * managerMult(id) * classM;
   }
   function cps() {
     var sum = 0;
@@ -259,7 +311,8 @@
   function riskGainRate() {
     var rate = cps();
     var capFactor = Math.log10(rate + 10) / C.RISK.CAP_DIV;
-    return C.RISK.GAIN * capFactor;
+    var reduce = techMult('risk') * artifactMult('riskMult') * metaMul('riskMult'); // <=1 reduces
+    return C.RISK.GAIN * capFactor * reduce;
   }
 
   function containIncident() {
@@ -277,9 +330,39 @@
   // ---- prestige --------------------------------------------------------
   function prestigeGain() {
     var raw = C.PRESTIGE.K * Math.sqrt(state.totalEarnedThisRun / C.PRESTIGE.SCALE);
-    return Math.floor(raw);
+    return Math.floor(raw * metaMul('rpGain'));
   }
   function canPrestige() { return prestigeGain() >= C.PRESTIGE.MIN_TO_PRESTIGE; }
+
+  // in-place reset of everything that is scoped to one model-release run.
+  // Tech/artifacts/meta/cores/rp persist; pass clearTechAndRp=true for Singularity.
+  function resetRun(clearTechAndRp) {
+    C.GENERATORS.forEach(function (g) { state.gens[g.id] = 0; });
+    state.upgrades = {}; state.managers = {};
+    state.align = 0; state.risk = 0; state.incidentEndsAt = 0; state.incidentsThisRun = 0;
+    state.totalEarnedThisRun = 0;
+    // transient buffs / events
+    state.comboHeat = 0; state.maxHeatHit = state.maxHeatHit;
+    state.frenzyEndsAt = 0; state.frenzyMult = 1; state.clickFrenzyEndsAt = 0; state.clickFrenzyMult = 1;
+    state.breakthroughEndsAt = 0; state.breakthroughMult = 1; state.breakthroughReadyAt = 0; state.lastBreakthroughEndAt = 0;
+    state.eventEndsAt = 0; state.eventId = null; state.eventOutputMult = 1; state.nextEventAt = 0;
+    state.insightExpiresAt = 0; state.nextInsightAt = 0;
+    if (clearTechAndRp) { state.tech = {}; state.rp = 0; }
+    state.cash = puValue('startCash', 0);
+  }
+
+  function grantArtifact() {
+    var unowned = C.ARTIFACTS.filter(function (a) { return !state.artifactsOwned[a.id]; });
+    if (!unowned.length) return null;
+    var a = unowned[Math.floor(Math.random() * unowned.length)];
+    state.artifactsOwned[a.id] = true;
+    checkAchievements();
+    return a.id;
+  }
+  function rollGamble() {
+    var hasDice = equippedArtifacts().some(function (a) { return a.effect.type === 'gamble'; });
+    state.gambleRoll = hasDice ? (0.6 + Math.random() * 2.4) : 1;
+  }
 
   function doPrestige() {
     if (!canPrestige()) return false;
@@ -288,28 +371,85 @@
     state.rp += gain;
     state.totalRP += gain;
     state.prestiges++;
-
-    // reset run-scoped progress
-    var keepRP = state.rp, keepTotalRP = state.totalRP, keepPrest = state.prestiges;
-    var keepPU = state.prestigeUpgrades, keepAch = state.achievements;
-    var keepPlay = state.playtime, keepSound = state.sound, keepLang = state.lang;
-    var keepBuy = state.buyMode, keepIncTotal = state.incidentsTotal, keepCreated = state.createdAt;
-    var fresh = newState();
-    fresh.rp = keepRP; fresh.totalRP = keepTotalRP; fresh.prestiges = keepPrest;
-    fresh.prestigeUpgrades = keepPU; fresh.achievements = keepAch;
-    fresh.playtime = keepPlay; fresh.sound = keepSound; fresh.lang = keepLang;
-    fresh.buyMode = keepBuy; fresh.incidentsTotal = keepIncTotal; fresh.createdAt = keepCreated;
-    fresh.eventsSeen = state.eventsSeen; // lifetime stat survives prestige
-    fresh.onboarded = state.onboarded;
-    // carry the clean-run flag onto the fresh state so it persists across save/reload
-    fresh._lastRunClean = cleanRun;
-    // war chest
-    fresh.cash = puValue('startCash', 0);
-    state = fresh;
-
+    state._lastRunClean = cleanRun;
+    resetRun(false);
+    var artifact = grantArtifact();
+    rollGamble();
     if (cleanRun) state.achievements['a_safe'] = true;
     checkAchievements();
-    emit('prestige', { gain: gain, clean: cleanRun });
+    emit('prestige', { gain: gain, clean: cleanRun, artifact: artifact });
+    emit('change');
+    return true;
+  }
+
+  // ---- Second prestige: The Singularity --------------------------------
+  function singUnlocked() {
+    if (state.singUnlocked || state.singularities > 0) return true;
+    if (state.totalRP >= C.SINGULARITY.UNLOCK_RP) { state.singUnlocked = true; return true; }
+    if (state.gens[C.SINGULARITY.UNLOCK_GEN] >= 1) { state.singUnlocked = true; return true; }
+    return false;
+  }
+  function coresGain() {
+    return Math.floor(Math.sqrt(Math.max(0, state.rp) / C.SINGULARITY.SCALE) * metaMul('coreGain'));
+  }
+  function canSingularity() { return singUnlocked() && coresGain() >= 1; }
+  function doSingularity() {
+    if (!canSingularity()) return false;
+    var gain = coresGain();
+    state.cores += gain; state.coresTotal += gain; state.singularities++;
+    resetRun(true); // also clears tech + RP
+    rollGamble();
+    checkAchievements();
+    emit('singularity', { gain: gain });
+    emit('change');
+    return true;
+  }
+  function buyMeta(id) {
+    if (state.meta[id]) return false;
+    var mu = null;
+    for (var i = 0; i < C.SINGULARITY.meta.length; i++) if (C.SINGULARITY.meta[i].id === id) mu = C.SINGULARITY.meta[i];
+    if (!mu || state.cores < mu.cost) return false;
+    state.cores -= mu.cost; state.meta[id] = true;
+    checkAchievements(); emit('change');
+    return true;
+  }
+
+  // ---- Tech tree -------------------------------------------------------
+  function techReqMet(tk) {
+    if (!tk.req) return true;
+    if (tk.req.tech && !state.tech[tk.req.tech]) return false;
+    if (tk.req.gen && state.gens[tk.req.gen] < tk.req.count) return false;
+    return true;
+  }
+  function techAvailable(id) {
+    var tk = null;
+    for (var i = 0; i < C.TECH.length; i++) if (C.TECH[i].id === id) tk = C.TECH[i];
+    return tk && !state.tech[id] && techReqMet(tk);
+  }
+  function buyTech(id) {
+    var tk = null;
+    for (var i = 0; i < C.TECH.length; i++) if (C.TECH[i].id === id) tk = C.TECH[i];
+    if (!tk || state.tech[id] || !techReqMet(tk) || state.rp < tk.cost) return false;
+    state.rp -= tk.cost; state.tech[id] = true;
+    checkAchievements(); emit('change');
+    return true;
+  }
+
+  // ---- Artifacts -------------------------------------------------------
+  function equipArtifact(id) {
+    if (!state.artifactsOwned[id]) return false;
+    if (state.artifactsEquipped.indexOf(id) >= 0) return false;
+    if (state.artifactsEquipped.length >= C.ARTIFACT_SLOTS) return false;
+    state.artifactsEquipped.push(id);
+    rollGamble();
+    checkAchievements(); emit('change');
+    return true;
+  }
+  function unequipArtifact(id) {
+    var i = state.artifactsEquipped.indexOf(id);
+    if (i < 0) return false;
+    state.artifactsEquipped.splice(i, 1);
+    rollGamble();
     emit('change');
     return true;
   }
@@ -466,6 +606,10 @@
       case 'insights': return state.insightsClaimed >= c.n;
       case 'breakthroughs': return state.breakthroughsUsed >= c.n;
       case 'maxheat': return !!state.maxHeatHit;
+      case 'tech': { var tc = 0; for (var k in state.tech) if (state.tech[k]) tc++; return tc >= c.n; }
+      case 'artifacts': return (state.artifactsEquipped || []).length >= c.n;
+      case 'singularities': return state.singularities >= c.n;
+      case 'cores': return state.coresTotal >= c.n;
       default: return false;
     }
   }
@@ -520,11 +664,12 @@
 
   // ---- offline ---------------------------------------------------------
   function computeOffline(elapsedSec, doubled) {
-    var capHours = C.OFFLINE.BASE_CAP_HOURS + (puValue('offlineCap', 0));
+    var capHours = C.OFFLINE.BASE_CAP_HOURS + puValue('offlineCap', 0) + metaAdd('offlineCap');
     var cap = capHours * 3600;
     var eff = Math.min(elapsedSec, cap);
     var rate = cps();
-    var earned = rate * eff * C.OFFLINE.RATE * (doubled ? 2 : 1);
+    var offMult = techMult('offline') * artifactMult('offlineMult');
+    var earned = rate * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
     return { earned: earned, effSec: eff, cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap };
   }
   function applyOffline(earned) { addCash(earned); emit('change'); }
@@ -610,6 +755,12 @@
     buyAlignment: buyAlignment, containIncident: containIncident,
     prestigeGain: prestigeGain, canPrestige: canPrestige, doPrestige: doPrestige,
     buyPrestigeUpgrade: buyPrestigeUpgrade,
+    // endgame
+    techMult: techMult, techAvailable: techAvailable, techReqMet: techReqMet, buyTech: buyTech,
+    artifactById: artifactById, equippedArtifacts: equippedArtifacts, artifactSynergyMult: artifactSynergyMult,
+    equipArtifact: equipArtifact, unequipArtifact: unequipArtifact,
+    singUnlocked: singUnlocked, coresGain: coresGain, canSingularity: canSingularity,
+    doSingularity: doSingularity, buyMeta: buyMeta, singCoreMult: singCoreMult,
     applyBoost: applyBoost, addCashBurst: addCashBurst,
     // achievements
     checkAchievements: checkAchievements,
