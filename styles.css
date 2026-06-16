@@ -78,6 +78,14 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
   color: #0b1020; font-weight: 800; font-size: 11px; padding: 3px 10px;
   border-radius: 0 0 10px 10px; z-index: 5;
 }
+#eventBadge {
+  position: absolute; left: 12px; top: 100%;
+  color: #08122a; font-weight: 800; font-size: 11px; padding: 3px 10px;
+  border-radius: 0 0 10px 10px; z-index: 5; max-width: 60%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(90deg, var(--gold), var(--warn));
+}
+#eventBadge.bad { background: linear-gradient(90deg, var(--bad), #ff8aa0); color: #2a0710; }
 
 /* ---- Content ---- */
 #content { flex: 1 1 auto; position: relative; overflow: hidden; }

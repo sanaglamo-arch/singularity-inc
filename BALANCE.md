@@ -32,15 +32,22 @@ the reasoning. The curve was validated with a greedy progression simulation
 | 8 | quantumNode | 330M | 1.105 | 44,000 |
 | 9 | orbital | 5.1B | 1.110 | 260,000 |
 | 10 | agiCore | 75B | 1.120 | 1,600,000 |
+| 11 | dysonSwarm | 1.1T | 1.125 | 9,500,000 |
+| 12 | matrioshka | 17T | 1.130 | 58,000,000 |
 
-Growth rises with tier (1.07 → 1.12) so higher tiers stay aspirational.
+Growth rises with tier (1.07 → 1.13) so higher tiers stay aspirational. Tiers
+11–12 are post-AGI mega-structures that extend the ceiling for long-term players
+without changing the validated early/mid curve (they are only reachable after
+several prestiges).
 
 ## Prestige
 
 - RP gain `floor(sqrt(totalEarnedThisRun / 1e6))`.
 - Each RP: **+5% global output** (passive, based on current RP held).
 - Permanent research (RP cost): globalx2 (5), globalx3 (50), globalx5 (500),
-  tapx10 (10), +4h offline (25), alignment suppression x2 (20), start-cash 1M (40).
+  tapx10 (10), +4h offline (25), alignment suppression x2 (20), start-cash 1M (40),
+  **globalx10 (5000)**, **+12h offline (200)**, **start-cash 1B (1500)**.
+  (10 permanent upgrades total; the last three deepen the long-term loop.)
 
 **Simulated progression (from the validated sim):**
 - First run reaches ~125K/sec and ~109M total at 60 min.
@@ -61,6 +68,22 @@ Growth rises with tier (1.07 → 1.12) so higher tiers stay aspirational.
 Tension: scaling fast raises capability → risk climbs; the player must divert
 cash/RP into alignment or eat an incident. This is the decision layer on top of
 "numbers go up."
+
+## Random world events
+
+Every **150–300s** (no earlier than 75s of play, never overlapping a timed one)
+one of five events fires, each with RU+EN copy and a toast + top badge:
+
+| id | kind | effect |
+|----|------|--------|
+| Research Grant | instant | +10 min of current production as cash |
+| AI Hype Cycle | timed 60s | output ×2 |
+| GPU Shortage | timed 45s | output ×0.5 |
+| Data Leak | instant | Risk +25 (can trigger an incident) |
+| Open-Source Release | instant | Risk −30 |
+
+Events add light variance and interact with the Risk system (a Data Leak during
+a high-risk push can tip you into an incident).
 
 ## Offline
 

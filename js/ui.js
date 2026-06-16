@@ -378,6 +378,12 @@
       bb.classList.remove('hidden');
       bb.textContent = t('boost_active', { t: FMT.fmtTime((s.boostUntil - Date.now()) / 1000) });
     } else bb.classList.add('hidden');
+    var eb = $('eventBadge');
+    if (G.eventActive() && s.eventId) {
+      eb.classList.remove('hidden');
+      eb.classList.toggle('bad', s.eventId === 'shortage');
+      eb.textContent = t('ev_active', { name: t('ev_' + s.eventId), t: FMT.fmtTime((s.eventEndsAt - Date.now()) / 1000) });
+    } else eb.classList.add('hidden');
   }
 
   // ---------- main per-frame update ----------
@@ -553,7 +559,13 @@
       toast(t('ach_unlocked', { name: t(d.id) }), 'gold');
     });
     G.on('toast', function (d) { toast(t(d.key, d.vars), d.key === 'incident_resolved' ? '' : ''); });
-    G.on('incident', function (d) { if (d.active) { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); } });
+    G.on('incident', function (d) { if (d.active) { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); if (window.GAME_FX) window.GAME_FX.incident(); } });
+    G.on('gameevent', function (d) {
+      if (d.kind === 'end') return;
+      var bad = (d.id === 'shortage' || d.id === 'leak');
+      window.GAME_AUDIO.achievement();
+      toast(t('ev_' + d.id) + ' — ' + t('ev_' + d.id + '_d'), bad ? 'bad' : 'gold');
+    });
   }
 
   // ---------- init ----------

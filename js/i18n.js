@@ -173,7 +173,42 @@
     flavor_1: 'Investors called it "a paradigm shift".',
     flavor_2: 'It passed the bar exam, then unionized.',
     flavor_3: 'Trained on the entire internet. Twice.',
-    flavor_4: 'The board was, briefly, very surprised.'
+    flavor_4: 'The board was, briefly, very surprised.',
+
+    // --- new generators ---
+    g_dysonSwarm: 'Dyson Swarm', g_dysonSwarm_d: 'Eat a star to run inference. Worth it.',
+    g_matrioshka: 'Matrioshka Brain', g_matrioshka_d: 'A computer around a computer around a sun.',
+    // --- new managers ---
+    m_dysonSwarm: 'Megastructure Ops', m_matrioshka: 'Stellar Architect',
+    // --- new upgrades ---
+    u_agi1: 'Recursive Self-Improvement', u_agi1_d: 'AGI Cores x3',
+    u_dyson1: 'Stellar Harvesting', u_dyson1_d: 'Dyson Swarms x3',
+    u_matr1: 'Nested Shells', u_matr1_d: 'Matrioshka Brains x3',
+    u_all5: 'Acquired by No One', u_all5_d: 'All output x10',
+    // --- new prestige upgrades ---
+    p_mult4: 'Test-Time Compute', p_mult4_d: 'Global output x10',
+    p_offline2: 'Edge Deployment', p_offline2_d: '+12h offline cap',
+    p_start2: 'Sovereign Fund', p_start2_d: 'Start each run with {v} cash',
+    // --- new achievements ---
+    a_event: 'Black Swan', a_event_d: 'Experience a world event.',
+    a_matrioshka: 'Kardashev II', a_matrioshka_d: 'Build a Matrioshka Brain.',
+    a_cash1qa: 'Post-Economic', a_cash1qa_d: 'Earn 1Qa total.',
+    // --- world events ---
+    ev_grant: 'Research Grant', ev_grant_d: 'A government grant lands — instant cash injection!',
+    ev_hype: 'AI Hype Cycle', ev_hype_d: 'The hype is real — output ×2!',
+    ev_shortage: 'GPU Shortage', ev_shortage_d: 'Chips are scarce — output ×0.5.',
+    ev_leak: 'Data Leak', ev_leak_d: 'A breach hits the news — Risk spikes!',
+    ev_opensource: 'Open-Source Release', ev_opensource_d: 'The community audits your model — Risk drops!',
+    ev_active: '{name}: {t}',
+    // --- achievements tab + onboarding ---
+    tab_achievements: 'Awards',
+    ob_skip: 'Skip', ob_next: 'Next', ob_done: 'Got it!',
+    ob_1_title: 'Train your model',
+    ob_1_body: 'Tap the big TRAIN button to earn your first cash.',
+    ob_2_title: 'Buy hardware',
+    ob_2_body: 'Spend cash on generators — they earn automatically, even offline.',
+    ob_3_title: 'Mind the Risk',
+    ob_3_body: 'Scaling raises Risk. Open the Alignment lab and fund it, or an incident will cut your output.'
   };
 
   var RU = {
@@ -340,7 +375,35 @@
     flavor_1: 'Инвесторы назвали это «сменой парадигмы».',
     flavor_2: 'Она сдала экзамен на адвоката и создала профсоюз.',
     flavor_3: 'Обучена на всём интернете. Дважды.',
-    flavor_4: 'Совет директоров был, недолго, очень удивлён.'
+    flavor_4: 'Совет директоров был, недолго, очень удивлён.',
+
+    g_dysonSwarm: 'Сфера Дайсона', g_dysonSwarm_d: 'Скормить звезду ради инференса. Оно того стоит.',
+    g_matrioshka: 'Мозг-матрёшка', g_matrioshka_d: 'Компьютер вокруг компьютера вокруг звезды.',
+    m_dysonSwarm: 'Операторы мегаструктур', m_matrioshka: 'Звёздный архитектор',
+    u_agi1: 'Рекурсивное самоулучшение', u_agi1_d: 'Ядра AGI x3',
+    u_dyson1: 'Сбор энергии звезды', u_dyson1_d: 'Сферы Дайсона x3',
+    u_matr1: 'Вложенные оболочки', u_matr1_d: 'Мозги-матрёшки x3',
+    u_all5: 'Нас никто не купил', u_all5_d: 'Вся выработка x10',
+    p_mult4: 'Вычисления на инференсе', p_mult4_d: 'Общая выработка x10',
+    p_offline2: 'Развёртывание на краю', p_offline2_d: '+12ч к оффлайн-лимиту',
+    p_start2: 'Суверенный фонд', p_start2_d: 'Начинать забег с {v} денег',
+    a_event: 'Чёрный лебедь', a_event_d: 'Застань мировое событие.',
+    a_matrioshka: 'Кардашёв II', a_matrioshka_d: 'Построй мозг-матрёшку.',
+    a_cash1qa: 'Постэкономика', a_cash1qa_d: 'Заработай 1Qa всего.',
+    ev_grant: 'Исследовательский грант', ev_grant_d: 'Прилетел госгрант — мгновенный приток денег!',
+    ev_hype: 'Цикл ИИ-хайпа', ev_hype_d: 'Хайп не врёт — выработка ×2!',
+    ev_shortage: 'Дефицит GPU', ev_shortage_d: 'Чипов не хватает — выработка ×0.5.',
+    ev_leak: 'Утечка данных', ev_leak_d: 'Взлом попал в новости — Риск подскочил!',
+    ev_opensource: 'Релиз в опенсорс', ev_opensource_d: 'Сообщество проверяет твою модель — Риск падает!',
+    ev_active: '{name}: {t}',
+    tab_achievements: 'Награды',
+    ob_skip: 'Пропустить', ob_next: 'Далее', ob_done: 'Понятно!',
+    ob_1_title: 'Обучай модель',
+    ob_1_body: 'Жми большую кнопку ОБУЧАТЬ, чтобы заработать первые деньги.',
+    ob_2_title: 'Покупай железо',
+    ob_2_body: 'Трать деньги на генераторы — они приносят доход сами, даже офлайн.',
+    ob_3_title: 'Следи за Риском',
+    ob_3_body: 'Масштабирование повышает Риск. Открой лабораторию элайнмента и финансируй её, иначе инцидент срежет доход.'
   };
 
   var DICTS = { en: EN, ru: RU };

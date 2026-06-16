@@ -16,7 +16,9 @@
     { id: 'neuroArray',  icon: '🧠', baseCost: 2.0e7,     growth: 1.100, baseOut: 7800 },
     { id: 'quantumNode', icon: '⚛️', baseCost: 3.3e8,     growth: 1.105, baseOut: 44000 },
     { id: 'orbital',     icon: '🛰️', baseCost: 5.1e9,     growth: 1.110, baseOut: 2.6e5 },
-    { id: 'agiCore',     icon: '🌟', baseCost: 7.5e10,    growth: 1.120, baseOut: 1.6e6 }
+    { id: 'agiCore',     icon: '🌟', baseCost: 7.5e10,    growth: 1.120, baseOut: 1.6e6 },
+    { id: 'dysonSwarm',  icon: '🛸', baseCost: 1.1e12,    growth: 1.125, baseOut: 9.5e6 },
+    { id: 'matrioshka',  icon: '🌀', baseCost: 1.7e13,    growth: 1.130, baseOut: 5.8e7 }
   ];
 
   // Owned-count milestones that each multiply that generator's output x2.
@@ -40,7 +42,11 @@
     { id: 'u_all3',   target: 'all', mult: 3,  cost: 1.0e11,  unlock: { gen: 'quantumNode', count: 25 } },
     { id: 'u_quant1', target: 'quantumNode', mult: 3, cost: 4.0e10, unlock: { gen: 'quantumNode', count: 10 } },
     { id: 'u_orb1',   target: 'orbital', mult: 3, cost: 6.0e11, unlock: { gen: 'orbital', count: 10 } },
-    { id: 'u_all4',   target: 'all', mult: 5,  cost: 5.0e13,  unlock: { gen: 'agiCore', count: 25 } }
+    { id: 'u_all4',   target: 'all', mult: 5,  cost: 5.0e13,  unlock: { gen: 'agiCore', count: 25 } },
+    { id: 'u_agi1',   target: 'agiCore', mult: 3, cost: 9.0e12, unlock: { gen: 'agiCore', count: 10 } },
+    { id: 'u_dyson1', target: 'dysonSwarm', mult: 3, cost: 1.4e14, unlock: { gen: 'dysonSwarm', count: 10 } },
+    { id: 'u_matr1',  target: 'matrioshka', mult: 3, cost: 2.2e15, unlock: { gen: 'matrioshka', count: 10 } },
+    { id: 'u_all5',   target: 'all', mult: 10, cost: 1.0e16, unlock: { gen: 'matrioshka', count: 25 } }
   ];
 
   // ---- Managers (automation: auto-buy a generator) ---------------------
@@ -66,7 +72,10 @@
       { id: 'p_tap',    type: 'tapMult',    value: 10,   cost: 10 },
       { id: 'p_offline',type: 'offlineCap', value: 4,    cost: 25 }, // +4h offline cap
       { id: 'p_align',  type: 'alignBoost', value: 2,    cost: 20 }, // alignment suppression x2
-      { id: 'p_start',  type: 'startCash',  value: 1e6,  cost: 40 }  // start each run with cash
+      { id: 'p_start',  type: 'startCash',  value: 1e6,  cost: 40 }, // start each run with cash
+      { id: 'p_mult4',  type: 'globalMult', value: 10,   cost: 5000 }, // late-game global x10
+      { id: 'p_offline2', type: 'offlineCap', value: 12, cost: 200 },  // +12h offline cap
+      { id: 'p_start2', type: 'startCash',  value: 1e9,  cost: 1500 }  // bigger war chest
     ]
   };
 
@@ -123,8 +132,25 @@
     { id: 'a_agi',        cond: { type: 'gen', gen: 'agiCore', n: 1 } },
     { id: 'a_align50',    cond: { type: 'align', n: 50 } },
     { id: 'a_incident',   cond: { type: 'incidents', n: 1 } },
-    { id: 'a_safe',       cond: { type: 'cleanRun', n: 1 } } // prestige with 0 incidents this run
+    { id: 'a_safe',       cond: { type: 'cleanRun', n: 1 } }, // prestige with 0 incidents this run
+    { id: 'a_event',      cond: { type: 'events', n: 1 } },
+    { id: 'a_matrioshka', cond: { type: 'gen', gen: 'matrioshka', n: 1 } },
+    { id: 'a_cash1qa',    cond: { type: 'totalCash', n: 1e15 } }
   ];
+
+  // ---- Random timed events --------------------------------------------
+  var EVENTS = {
+    MIN_GAP: 150,        // min seconds between events
+    MAX_GAP: 300,        // max seconds between events
+    FIRST_DELAY: 75,     // no event before this much playtime (seconds)
+    list: [
+      { id: 'grant',      kind: 'instant', cashSeconds: 600 },  // +10 min of production
+      { id: 'hype',       kind: 'timed',   duration: 60, outputMult: 2 },
+      { id: 'shortage',   kind: 'timed',   duration: 45, outputMult: 0.5 },
+      { id: 'leak',       kind: 'instant', riskAdd: 25 },
+      { id: 'opensource', kind: 'instant', riskAdd: -30 }
+    ]
+  };
 
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
@@ -145,6 +171,7 @@
     OFFLINE: OFFLINE,
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
+    EVENTS: EVENTS,
     SETTINGS: SETTINGS
   };
 })();

@@ -36,6 +36,11 @@
       incidentsTotal: 0,
       taps: 0,
       boostUntil: 0,         // ms
+      eventId: null,         // active timed event id (or null)
+      eventEndsAt: 0,        // ms; >0 = timed event active
+      eventOutputMult: 1,    // output multiplier from active timed event
+      eventsSeen: 0,         // lifetime count of events triggered
+      nextEventAt: 0,        // ms; when the next event may fire
       achievements: achs,
       playtime: 0,           // seconds
       sound: false,
@@ -93,11 +98,14 @@
   }
   function boostActive() { return state.boostUntil > Date.now(); }
   function incidentActive() { return state.incidentEndsAt > Date.now(); }
+  function eventActive() { return state.eventEndsAt > Date.now(); }
+  function eventOutputMult() { return eventActive() ? (state.eventOutputMult || 1) : 1; }
 
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
+    m *= eventOutputMult();
     return m;
   }
   function tapMult() {
@@ -255,6 +263,8 @@
     fresh.prestigeUpgrades = keepPU; fresh.achievements = keepAch;
     fresh.playtime = keepPlay; fresh.sound = keepSound; fresh.lang = keepLang;
     fresh.buyMode = keepBuy; fresh.incidentsTotal = keepIncTotal; fresh.createdAt = keepCreated;
+    fresh.eventsSeen = state.eventsSeen; // lifetime stat survives prestige
+    fresh.onboarded = state.onboarded;
     // carry the clean-run flag onto the fresh state so it persists across save/reload
     fresh._lastRunClean = cleanRun;
     // war chest
@@ -297,6 +307,48 @@
     return v;
   }
 
+  // ---- random timed events --------------------------------------------
+  function scheduleNextEvent() {
+    var E = C.EVENTS;
+    var gap = E.MIN_GAP + Math.random() * (E.MAX_GAP - E.MIN_GAP);
+    state.nextEventAt = Date.now() + gap * 1000;
+  }
+  function triggerEvent() {
+    var E = C.EVENTS;
+    var def = E.list[Math.floor(Math.random() * E.list.length)];
+    if (def.kind === 'timed') {
+      state.eventId = def.id;
+      state.eventEndsAt = Date.now() + def.duration * 1000;
+      state.eventOutputMult = def.outputMult;
+    } else { // instant
+      if (def.cashSeconds) {
+        var v = cps() * def.cashSeconds;
+        if (v <= 0) v = tapValue() * 100;
+        addCash(v);
+      }
+      if (def.riskAdd) {
+        state.risk = Math.max(0, Math.min(C.RISK.MAX, state.risk + def.riskAdd));
+      }
+    }
+    state.eventsSeen++;
+    scheduleNextEvent();
+    checkAchievements();
+    emit('gameevent', { id: def.id, kind: def.kind });
+    emit('change');
+  }
+  function updateEvents() {
+    if (state.playtime < C.EVENTS.FIRST_DELAY) return;
+    if (state.nextEventAt === 0) { scheduleNextEvent(); return; }
+    // clear a finished timed event
+    if (state.eventEndsAt > 0 && !eventActive()) {
+      var ended = state.eventId;
+      state.eventId = null; state.eventEndsAt = 0; state.eventOutputMult = 1;
+      emit('gameevent', { id: ended, kind: 'end' });
+    }
+    // fire a new event when due (never overlap a timed one)
+    if (Date.now() >= state.nextEventAt && !eventActive()) triggerEvent();
+  }
+
   // ---- achievements ----------------------------------------------------
   function condMet(c) {
     switch (c.type) {
@@ -309,6 +361,7 @@
       case 'align': return state.align >= c.n;
       case 'incidents': return state.incidentsTotal >= c.n;
       case 'cleanRun': return !!state._lastRunClean && state.prestiges >= 1;
+      case 'events': return state.eventsSeen >= c.n;
       default: return false;
     }
   }
@@ -352,6 +405,8 @@
       emit('incident', { active: false });
       emit('toast', { key: 'incident_resolved' });
     }
+
+    updateEvents();
 
     state.playtime += dt;
     checkAchievements();
@@ -423,6 +478,7 @@
   function setBuyMode(m) { state.buyMode = m; emit('change'); }
   function setSound(b) { state.sound = !!b; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
+  function setOnboarded(b) { state.onboarded = !!b; save(); }
 
   window.GAME = {
     // state access
@@ -437,6 +493,7 @@
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,
     alignCost: alignCost, alignSuppress: alignSuppress, riskGainRate: riskGainRate,
     boostActive: boostActive, incidentActive: incidentActive,
+    eventActive: eventActive, eventOutputMult: eventOutputMult,
     // actions
     tap: tap, buyGen: buyGen, buyUpgrade: buyUpgrade, buyManager: buyManager,
     buyAlignment: buyAlignment, containIncident: containIncident,
@@ -450,7 +507,7 @@
     // persistence
     save: save, load: load, reset: reset, init: init,
     // setters
-    setBuyMode: setBuyMode, setSound: setSound, setLang: setLang,
+    setBuyMode: setBuyMode, setSound: setSound, setLang: setLang, setOnboarded: setOnboarded,
     newState: newState
   };
 })();
