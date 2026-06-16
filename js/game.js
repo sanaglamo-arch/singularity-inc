@@ -112,6 +112,7 @@
       legacyCount: 0,        // Founder's Legacy replays completed (optional, non-forced)
       legacyMult: 1,         // permanent multiplier kept across Founder's Legacy
       unicorn: false,        // §9 shareable milestone: valuation first crossed $1B
+      decacorn: false,       // §9 shareable milestone: valuation first crossed $10B
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -1058,6 +1059,9 @@
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
   function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
+  // rank in the AGI race (you vs rivals by AGI progress) — 1 = leading
+  function agiRank() { var you = agiProgress(), rank = 1; C.RIVALS.forEach(function (r) { if ((state.rivalAgi[r.id] || 0) > you) rank++; }); return rank; }
+  function agiFieldSize() { return C.RIVALS.length + 1; }
   function leadingRival() { ensureRivals(); var id = null, v = -1; C.RIVALS.forEach(function (r) { if (state.rivalAgi[r.id] > v) { v = state.rivalAgi[r.id]; id = r.id; } }); return { id: id, val: v }; }
   function maxRivalAgi() { return leadingRival().val; }
   function slowLeadingRival() { var l = leadingRival(); if (l.id) state.rivalAgi[l.id] = Math.max(0, state.rivalAgi[l.id] - C.RACE.SLOW_OPENSOURCE); }
@@ -1282,6 +1286,7 @@
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
     if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
     if (!state.unicorn && state.modelGen >= 1 && valuation() >= 1e9) { state.unicorn = true; emit('toast', { key: 'milestone_unicorn' }); } // §9 shareable
+    else if (state.unicorn && !state.decacorn && valuation() >= 1e10) { state.decacorn = true; emit('toast', { key: 'milestone_decacorn' }); }
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
     // Before that, "risks of scale" simply do not exist (clean early game).
@@ -1495,7 +1500,7 @@
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
-    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi,
+    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, agiRank: agiRank, agiFieldSize: agiFieldSize,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
     researchEfficiencyMult: researchEfficiencyMult, researchProjCost: researchProjCost, researchActive: researchActive, canStartResearch: canStartResearch, startResearch: startResearch, researchProgress: researchProgress, researchTimeLeft: researchTimeLeft, processSpeed: processSpeed,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
