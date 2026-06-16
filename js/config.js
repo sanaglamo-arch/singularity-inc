@@ -536,7 +536,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 6,          // GDD v3: + parallel build/research timers
+    SAVE_VERSION: 7,          // GDD v3: + earned-boost economy & daily login
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };

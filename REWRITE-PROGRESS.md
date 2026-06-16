@@ -20,7 +20,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [x] P4 rivals + market-share race — state.rivalShare + growth in tick, standings panel (you vs rivals sorted, #1 highlight), agiProgress re-homed to modelGen, SAVE_VERSION 5. (Lab crowding -> address in P6/P10)
 - [x] P5 finance — valuation fixed (ARR×multiple); funding rounds Seed→A→B→C→IPO UI live (realistic valReqs; moneyRate compression pending P9)
 - [x] P6 re-home: World->RACE, Research->TEAM(hiring+R&D); market+singularity-tab retired; safety/comms still on (riskUnlocked@gen3, worldcards@gen1). next-goal nudge rewritten for new systems.
-- [~] P7 retention: offline "while you were away" summary (revenue+compute+finished training/build/research) DONE; next-goal nudge DONE. TODO: daily login/goal/streak, earned-boost economy.
+- [x] P7 retention: offline summary + next-goal nudge + earned-boost economy (tokens from daily/achievements/idle; activate to ×2 all timers) + daily login reward & forgiving streak. SAVE_VERSION 7.
 - [ ] P8 endgame + endings + legacy
 - [x] P9 balance — sim-tuned month arc (engaged ~19d to AGI, casual/offline ~month+), 0% dead time, no walls, funding gated by generation; BALANCE.md updated. (late-game $ exponential — documented)
 - [ ] P10 polish (layout/clarity/feel/perf)
@@ -36,3 +36,5 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
   harness: load index in an iframe, mutate w.GAME.state.* in JS, then read DOM.
 - location.hash tab-switch is ASYNC (hashchange) — in a harness, click the nav
   button to switch tabs synchronously, don't rely on hash+immediate update().
+
+## CRITICAL FIX (this session): bind() aborted on $('prestigeBtn') null-deref (removed in P6) -> ALL listeners after it (train/funding/boost/build/research/hire/autopilot/alignment) were DEAD. Guarded. Lesson: verify NEW buttons via real DOM click, not just direct engine calls. Audited: all new buttons fire.

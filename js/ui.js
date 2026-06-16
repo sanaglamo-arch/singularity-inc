@@ -319,6 +319,12 @@
       setClass(fb, 'hidden', false); fb.disabled = false;
       setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.valuation() * round.cashFrac) }));
     } else { setClass(fb, 'hidden', true); }
+    // earned-boost activation (speeds ALL timers ×2 for 2h)
+    var bzb = $('boostBtn');
+    if ((s.boostTokens || 0) > 0 && !G.boostActive()) {
+      setClass(bzb, 'hidden', false);
+      setText(bzb, t('boost_use', { n: s.boostTokens }));
+    } else { setClass(bzb, 'hidden', true); }
     // datacenter build (parallel timer): money + time -> permanent compute capacity
     var bb = $('buildBtn'), bp = $('buildProg');
     if (G.buildActive()) {
@@ -1522,9 +1528,9 @@
       })(bms[k]);
     }
 
-    // prestige
-    $('prestigeBtn').addEventListener('click', openPrestigeFlow);
-    $('prestigeCta').addEventListener('click', function () { window.GAME_AUDIO.buy(); openPrestigeFlow(); });
+    // prestige (legacy DOM removed in GDD v3 — guard so bind() never aborts midway)
+    if ($('prestigeBtn')) $('prestigeBtn').addEventListener('click', openPrestigeFlow);
+    if ($('prestigeCta')) $('prestigeCta').addEventListener('click', function () { window.GAME_AUDIO.buy(); openPrestigeFlow(); });
 
     // autopilot controls
     var apOn = $('apOnSeg').children;
@@ -1571,6 +1577,11 @@
     if (trainBtn) trainBtn.addEventListener('click', function () {
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // GDD v3: activate an earned boost (speeds all timers)
+    var boostBtn = $('boostBtn');
+    if (boostBtn) boostBtn.addEventListener('click', function () {
+      if (G.activateBoostToken()) { window.GAME_AUDIO.breakthrough && window.GAME_AUDIO.breakthrough(); buzz([0,20,30,20]); window.GAME_FX.flash('rgba(251,191,36,0.2)'); updateModelPanel(); }
     });
     // GDD v3: parallel timers — datacenter build + research project
     var buildBtn = $('buildBtn');
@@ -1760,6 +1771,21 @@
     } else if (!G.state.onboarded) {
       showOnboarding();
     }
+    // GDD v3 daily check-in (after any offline modal); only once a real day has rolled over
+    if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, offline && offline.earned > 0 ? 400 : 60);
+  }
+  function showDaily() {
+    if (!G.dailyAvailable()) return;
+    var r = G.claimDaily(); if (!r) return;
+    window.GAME_AUDIO.prestige && window.GAME_AUDIO.prestige(); window.GAME_FX.confetti && window.GAME_FX.confetti(30);
+    showModal(
+      '<h3>' + t('daily_title') + '</h3>' +
+      '<div class="big">' + t('daily_streak', { n: r.streak }) + '</div>' +
+      '<div class="awlist"><div class="awrow done"><span class="awk">' + t('boost_label') + '</span><span class="awv">+' + r.tokens + '</span></div>' +
+      '<div class="awrow done"><span class="awk">' + t('cash') + '</span><span class="awv">+' + fmt(r.cash) + '</span></div></div>' +
+      '<div class="row"><button class="primary" id="dailyOk">' + t('offline_collect') + '</button></div>'
+    );
+    $('dailyOk').onclick = hideModal;
   }
 
   // Android hardware BACK: close a tooltip/modal, else return to Lab, else let the OS handle it.

@@ -103,6 +103,9 @@
       researchLevel: 0,      // completed research projects (efficiency)
       research2: { active: false, startedAt: 0, endsAt: 0 },         // active research timer
       funding: {},           // funding round id -> true (Seed→A→B→C→IPO)
+      boostTokens: 0,        // earned boosts (speed all timers) — from daily/achievements/idle
+      lastDailyDay: 0,       // last day index a daily reward was claimed
+      dailyStreak: 0,        // consecutive-day login streak (forgiving)
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -817,6 +820,33 @@
     emit('toast', { key: 'ad_boost_started' });
     emit('change');
   }
+
+  // ---- GDD v3 retention: earned-boost economy + daily login ----
+  // A boost speeds ALL timers (×BOOST_MULT via processSpeed/transientMult). Boosts
+  // are EARNED (~80%): daily login, achievements, returning after idle.
+  function grantBoostToken(n) { state.boostTokens = (state.boostTokens || 0) + (n || 1); emit('change'); }
+  function activateBoostToken() {
+    if ((state.boostTokens || 0) < 1 || boostActive()) return false;
+    state.boostTokens--; applyBoost();
+    return true;
+  }
+  function dayIndex() { return Math.floor(Date.now() / 86400000); }
+  function dailyAvailable() { return dayIndex() > (state.lastDailyDay || 0); }
+  function claimDaily() {
+    if (!dailyAvailable()) return null;
+    var today = dayIndex(), gap = today - (state.lastDailyDay || 0);
+    if (state.lastDailyDay === 0) state.dailyStreak = 1;
+    else if (gap === 1) state.dailyStreak = (state.dailyStreak || 0) + 1;
+    else if (gap === 2) state.dailyStreak = (state.dailyStreak || 1);   // forgiving: 1 missed day doesn't break it
+    else state.dailyStreak = 1;
+    state.lastDailyDay = today;
+    var tokens = 1 + Math.min(3, Math.floor((state.dailyStreak - 1) / 2)); // streak gives up to +3 bonus tokens
+    grantBoostToken(tokens);
+    var cash = windfallCash(C.ADS.CASH_BURST_SECONDS, C.WINDFALL.CAP_FRAC, 50);
+    addCash(cash);
+    emit('change');
+    return { tokens: tokens, cash: cash, streak: state.dailyStreak };
+  }
   function addCashBurst() {
     var v = windfallCash(C.ADS.CASH_BURST_SECONDS, C.WINDFALL.CAP_FRAC, 50);
     addCash(v);
@@ -1189,6 +1219,7 @@
     C.ACHIEVEMENTS.forEach(function (a) {
       if (!state.achievements[a.id] && condMet(a.cond)) {
         state.achievements[a.id] = true;
+        state.boostTokens = (state.boostTokens || 0) + 1;   // GDD v3: achievements grant earned boosts
         emit('achievement', { id: a.id });
       }
     });
@@ -1336,6 +1367,10 @@
     if (!s.build || typeof s.build !== 'object') s.build = { active: false, startedAt: 0, endsAt: 0 };
     if (typeof s.researchLevel !== 'number') s.researchLevel = 0;
     if (!s.research2 || typeof s.research2 !== 'object') s.research2 = { active: false, startedAt: 0, endsAt: 0 };
+    // ---- v7: earned-boost economy + daily login ----
+    if (typeof s.boostTokens !== 'number') s.boostTokens = 0;
+    if (typeof s.lastDailyDay !== 'number') s.lastDailyDay = 0;
+    if (typeof s.dailyStreak !== 'number') s.dailyStreak = 0;
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1365,6 +1400,7 @@
       if (state.lang) window.GAME_I18N.setLang(state.lang);
       var elapsed = Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000);
       if (elapsed > 30) offline = computeOffline(elapsed, false);
+      if (elapsed > 3600) { grantBoostToken(1); if (offline) offline.idleBoost = true; } // idle reward
     }
     return offline;
   }
@@ -1437,6 +1473,8 @@
     singUnlocked: singUnlocked, coresGain: coresGain, canSingularity: canSingularity,
     doSingularity: doSingularity, buyMeta: buyMeta, singCoreMult: singCoreMult,
     applyBoost: applyBoost, addCashBurst: addCashBurst,
+    grantBoostToken: grantBoostToken, activateBoostToken: activateBoostToken,
+    dailyAvailable: dailyAvailable, claimDaily: claimDaily,
     // achievements
     checkAchievements: checkAchievements,
     // tick / offline

@@ -389,6 +389,11 @@ h2:first-child { margin-top: 4px; }
 #hireBtn:disabled { background: var(--surface-2); color: var(--fg-muted); box-shadow: none; }
 #hireHint { text-align: center; margin-top: 8px; }
 /* parallel-process boxes (datacenter build on Lab, research in Team) reuse train/fund styles */
+#boostBtn { width: 100%; min-height: 46px; margin-top: 8px; border: 1px solid rgba(251,191,36,0.55); border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px; color: #1a1305;
+  background: linear-gradient(100deg, var(--gold), var(--rose)); box-shadow: 0 8px 24px -10px var(--glow-gold);
+  transition: transform 0.09s var(--ease-spring), filter 0.2s; }
+#boostBtn:active { transform: scale(0.98); filter: brightness(1.07); }
 #buildBox { margin-top: 8px; }
 #buildBtn, #researchBtn { width: 100%; min-height: 46px; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;
   font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--fg);
