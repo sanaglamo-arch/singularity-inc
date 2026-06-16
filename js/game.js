@@ -111,6 +111,7 @@
       won: false,            // reached AGI first
       legacyCount: 0,        // Founder's Legacy replays completed (optional, non-forced)
       legacyMult: 1,         // permanent multiplier kept across Founder's Legacy
+      unicorn: false,        // §9 shareable milestone: valuation first crossed $1B
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -341,7 +342,8 @@
   // ships (garage = tap-for-cash bootstrap). See GAME-DESIGN.md §3-§4.
   function moneyRate() {
     if (state.modelGen <= 0) return 0;            // no product yet → tap bootstrap only
-    return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100);
+    var trust = worldUnlocked() ? trustMult() : 1; // reputation moves product revenue (±10%)
+    return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100) * trust;
   }
   // company valuation (derived scoreboard): annual revenue run-rate × multiple,
   // floored by tangible assets (cash + infra) so a pre-revenue garage isn't $0.
@@ -1277,6 +1279,7 @@
     if (researchActive() && Date.now() >= state.research2.endsAt) finishResearch();
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
     if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
+    if (!state.unicorn && state.modelGen >= 1 && valuation() >= 1e9) { state.unicorn = true; emit('toast', { key: 'milestone_unicorn' }); } // §9 shareable
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
     // Before that, "risks of scale" simply do not exist (clean early game).
