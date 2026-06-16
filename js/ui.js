@@ -1174,6 +1174,8 @@
       if (s.cash < C.GENERATORS[0].baseCost) return { key: 'nudge_tap', icon: 'ic_brain' };
       return { key: 'nudge_buyfirst', vars: { name: t('g_' + C.GENERATORS[0].id) }, icon: 'gen_' + C.GENERATORS[0].id };
     }
+    // post-finale: AGI reached (or beaten) — point at Founder's Legacy / keep building
+    if (G.isGameOver()) return { key: 'nudge_legacy', tone: 'go', icon: 'ic_core' };
     // the spine: ship the next model generation
     if (G.isAGI()) return { key: 'nudge_agi', tone: 'go', icon: 'ic_core' };
     var g = G.nextGen();
