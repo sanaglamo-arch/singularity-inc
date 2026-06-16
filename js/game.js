@@ -254,6 +254,35 @@
     if (state.buyMode === 'max') return Math.max(1, genMaxAffordable(id));
     return state.buyMode;
   }
+  // output a SINGLE unit produces right now (current milestone tier + all bonuses + global)
+  function genPerUnitOutput(id) {
+    var g = GENBYID[id];
+    var count = state.gens[id] || 0;
+    var classM = 1, cl = GEN_OF_CLASS[id];
+    if (cl) classM *= techMult('gen_' + cl);
+    if (cl === 'high') classM *= artifactMult('genHighMult');
+    return g.baseOut * milestoneMult(count) * perGenUpgradeMult(id) * managerMult(id) * classM * globalMult();
+  }
+  // everything the buy card needs for the SELECTED mode: count, cost, per-unit & marginal /sec
+  function genBuyPreview(id) {
+    var maxAff = genMaxAffordable(id);
+    var qty = buyQty(id);
+    var cost = genCostCumulative(id, qty);
+    // marginal cps added by buying qty (accounts for milestone crossings within the batch)
+    var before = genOutput(id);
+    var saved = state.gens[id];
+    state.gens[id] += qty;
+    var after = genOutput(id);
+    state.gens[id] = saved;
+    return {
+      qty: qty,
+      cost: cost,
+      addCps: (after - before) * globalMult(),
+      perUnit: genPerUnitOutput(id),
+      affordable: state.cash >= cost && qty >= 1,
+      maxAffordable: maxAff
+    };
+  }
   function alignCost() {
     return C.RISK.alignBaseCost * Math.pow(C.RISK.alignGrowth, state.align);
   }
@@ -1127,6 +1156,7 @@
     // computed
     cps: cps, tapValue: tapValue, genOutput: genOutput,
     genCostCumulative: genCostCumulative, genMaxAffordable: genMaxAffordable, buyQty: buyQty,
+    genPerUnitOutput: genPerUnitOutput, genBuyPreview: genBuyPreview,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,
