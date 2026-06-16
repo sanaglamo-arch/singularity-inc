@@ -813,7 +813,7 @@
     var s = G.state;
     var cps = frameCps;                 // computed once per frame in update()
     setOdometer($('cashVal'), s.cash);
-    setText($('cpsVal'), t('per_sec', { v: fmt(cps) }));
+    setText($('cpsVal'), t('per_sec', { v: fmt(frameMoney) }));   // product revenue/sec
     setText($('tapValue'), '+' + fmt(G.tapValue()));
 
     // atmosphere intensity rises with output toward AGI — quantized so we only
@@ -1106,11 +1106,12 @@
   }
 
   // ---------- main per-frame update ----------
-  var frameCps = 0, frameGM = 1, frameCompute = 0, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
+  var frameCps = 0, frameGM = 1, frameCompute = 0, frameMoney = 0, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
   function update() {
     frameCps = G.cps();           // compute the hottest values ONCE per frame
     frameGM = G.globalMult();
     frameCompute = G.computeRate();
+    frameMoney = G.moneyRate();
     updateTop();
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
@@ -1319,11 +1320,11 @@
       '<button class="reward" id="offDouble">' + t('offline_double') + '</button>' +
       '</div>'
     );
-    $('offCollect').onclick = function () { G.applyOffline(off.earned); hideModal(); };
+    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); hideModal(); };
     $('offDouble').onclick = function () {
       window.GAME_ADS.showRewarded({
-        onReward: function () { G.applyOffline(off.earned * 2); hideModal(); },
-        onUnavailable: function () { G.applyOffline(off.earned); hideModal(); toast(t('ad_unavailable'), 'bad'); }
+        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); hideModal(); },
+        onUnavailable: function () { G.applyOffline(off.earned, off.compute); hideModal(); toast(t('ad_unavailable'), 'bad'); }
       });
     };
   }

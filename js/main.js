@@ -72,7 +72,7 @@
     var elapsed = (now - lastActive) / 1000;
     if (elapsed > 60) {
       var off = window.GAME.computeOffline(elapsed, false);
-      if (off.earned > 0) window.GAME.applyOffline(off.earned);
+      if (off.earned > 0) window.GAME.applyOffline(off.earned, off.compute);
     }
     lastActive = now;
   }

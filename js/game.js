@@ -296,12 +296,12 @@
     for (var f = 0; f < C.FUNDING.length; f++) if (state.funding[C.FUNDING[f].id]) m *= C.FUNDING[f].mult;
     return m;
   }
-  // 💵 money produced per second by your deployed product (current generation × share × infra)
+  // 💵 money produced per second by your deployed product. Scales with your infra
+  // (compute rate ≈ users served) × shipped generation × market share. 0 until v1
+  // ships (garage = tap-for-cash bootstrap). See GAME-DESIGN.md §3-§4.
   function moneyRate() {
-    if (state.modelGen <= 0) return 0;            // no product shipped yet → tap/seed only
-    var cr = computeRate();
-    var infra = 1 + C.CORE.REV_COMPUTE_FACTOR * Math.log10(cr + 10);
-    return C.CORE.REV_BASE * genRevenueMult() * (1 + state.marketShare / 100) * infra;
+    if (state.modelGen <= 0) return 0;            // no product yet → tap bootstrap only
+    return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100);
   }
   // company valuation (derived scoreboard): ARR multiple + generation + share
   function valuation() {
@@ -500,7 +500,7 @@
 
   // ---- Smart Autopilot (ROI-based, reserve-protected) ------------------
   function autopilotUnlocked() {
-    return state.prestiges >= C.AUTOPILOT.UNLOCK_PRESTIGES || state.singularities > 0;
+    return state.modelGen >= 1 || state.prestiges >= C.AUTOPILOT.UNLOCK_PRESTIGES || state.singularities > 0;
   }
   // marginal output/sec gained by buying one more of `id` (incl milestone jump + global)
   function genMarginalOutput(id) {
@@ -662,6 +662,11 @@
   }
 
   function doPrestige() {
+    // GDD v3: NO MORE RESETS. Progress is forward-only via model generations.
+    // This legacy path is permanently disabled (kept as a guarded no-op so any
+    // stale UI reference can never reset a returning player).
+    return false;
+    /* eslint-disable no-unreachable */
     if (!canPrestige()) return false;
     var gain = prestigeGain();
     var cleanRun = state.incidentsThisRun === 0;
@@ -806,11 +811,11 @@
   function breakthroughUnlocked(){ return state.prestiges > 0 || state.breakthroughsUsed > 0 || state.totalEarnedAllTime >= U.BREAKTHROUGH_EARNED; }
   function managersUnlocked()    { return state.prestiges > 0 || state.totalEarnedAllTime >= U.MANAGERS_EARNED; }
   function researchUnlocked()    { return state.prestiges >= 1 || state.singularities > 0; }
-  function riskUnlocked()        { return state.prestiges >= 1 || state.singularities > 0; } // Stage 5: risks of scale
+  function riskUnlocked()        { return state.modelGen >= 3 || state.prestiges >= 1 || state.singularities > 0; } // safety enters mid-game (v3+)
   function statsUnlocked()       { return upgradesUnlocked(); }
   function awardsUnlocked()      { return achCount() > 0; }
   // first-release CTA: only nag once it's clearly worth it (juicy, in-window)
-  function firstPrestigeReady()  { return state.prestiges === 0 && prestigeGain() >= C.PRESTIGE.FIRST_RP; }
+  function firstPrestigeReady()  { return false; } // GDD v3: no prestige reset — forward-only generations
   // Loud projection for the release screen: gain + permanent % + how much faster next run is.
   function prestigeProjection() {
     var gain = prestigeGain();
@@ -828,7 +833,7 @@
 
   // ===== R7 World: Trust, cards (crises + news), market, gating =====
   // Stage 6 "Industry": opens a bit AFTER the first release (risk comes first).
-  function worldUnlocked() { return state.prestiges >= 2 || state.totalRP >= C.UNLOCKS.WORLD_RP || state.singularities > 0; }
+  function worldUnlocked() { return state.modelGen >= 4 || state.prestiges >= 2 || state.totalRP >= C.UNLOCKS.WORLD_RP || state.singularities > 0; }
   function crisisCooldown() { return Math.max(C.RISK.CRISIS_CD_MIN, C.RISK.CRISIS_CD_BASE - state.prestiges * 3 - state.singularities * 10); }
   function crisisCdLeft() { return Math.max(0, (state.lastCrisisAt + crisisCooldown() * 1000 - Date.now()) / 1000); }
   function trustMult() { return C.TRUST.OUTPUT_LO + (C.TRUST.OUTPUT_HI - C.TRUST.OUTPUT_LO) * ((state.trust || 0) / 100); }
@@ -1136,11 +1141,10 @@
     if (dt <= 0) return;
     runAutopilot();    // smart, ROI-based, reserve-protected (replaces dumb manager auto-buy)
 
-    var rate = cps();
-    addCash(rate * dt);
-
-    // GDD v3 continuous meta: generators also accrue COMPUTE; timed training advances.
+    // GDD v3 continuous meta: generators produce COMPUTE; your shipped product
+    // produces MONEY (∝ infra × generation × share). No more cash-from-generators.
     state.compute += computeRate() * dt;
+    addCash(moneyRate() * dt);
     if (trainingActive() && Date.now() >= state.training.endsAt) finishTraining();
 
     // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
@@ -1185,12 +1189,15 @@
     var capHours = C.OFFLINE.BASE_CAP_HOURS + puValue('offlineCap', 0) + metaAdd('offlineCap');
     var cap = capHours * 3600;
     var eff = Math.min(elapsedSec, cap);
-    var rate = cps();
     var offMult = techMult('offline') * artifactMult('offlineMult');
-    var earned = rate * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
-    return { earned: earned, effSec: eff, cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap };
+    // GDD v3: offline advances the whole company — product revenue (money) AND
+    // compute accrue at the offline rate; training is wall-clock so it just
+    // completes on return (handled by tick).
+    var earned = moneyRate() * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
+    var computeGained = computeRate() * eff * C.OFFLINE.RATE * offMult;
+    return { earned: earned, compute: computeGained, effSec: eff, cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap };
   }
-  function applyOffline(earned) { addCash(earned); emit('change'); }
+  function applyOffline(earned, computeGained) { addCash(earned); if (computeGained) state.compute += computeGained; emit('change'); }
 
   // ---- save / load -----------------------------------------------------
   function save() {

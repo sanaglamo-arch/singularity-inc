@@ -457,7 +457,8 @@
     TAP_COMPUTE: 2,            // compute per tap (overclock combo still multiplies)
     // product revenue: money/sec = REV_BASE * genRevenueMult * (1 + marketShare/100) * computeFactor
     REV_BASE: 0.15,           // tuned in P9
-    REV_COMPUTE_FACTOR: 0.10, // revenue also scales gently with log(compute rate) (bigger infra serves more users)
+    REV_COMPUTE_FACTOR: 0.10, // (legacy) gentle log scaling
+    REV_PER_COMPUTE: 0.5,     // money/sec per compute/sec of infra (product serves users ∝ compute)
     // valuation = funding-implied; grows with revenue run-rate, model gen, market share
     VAL_REV_MULT: 30,         // ARR multiple (≈ real frontier-lab multiples)
     VAL_GEN_MULT: 1.0,
