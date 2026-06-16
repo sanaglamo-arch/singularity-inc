@@ -115,11 +115,11 @@
     $('nav_company').textContent = t('tab_company');
     $('nav_upgrades').textContent = t('tab_upgrades');
     $('nav_research').textContent = t('tab_research');
-    $('nav_world').textContent = t('tab_world');
+    $('nav_world').textContent = t('tab_race');   // GDD v3: World tab repurposed as the Race view
     $('worldNewsTitle').innerHTML = t('world_news_title') + infoBtn('tip_news');
-    $('worldMarketTitle').innerHTML = t('world_market_title') + infoBtn('tip_market');
+    if ($('worldMarketTitle')) $('worldMarketTitle').innerHTML = t('world_market_title') + infoBtn('tip_market');
     $('newsFlavorTitle').textContent = t('news_flavor_title');
-    $('marketIntro').textContent = t('market_intro');
+    if ($('marketIntro')) $('marketIntro').textContent = t('market_intro');
     buildMarket();
     buildEndings();
     // research-tab extras
@@ -991,8 +991,9 @@
   function updateWorld() {
     var unlocked = G.worldUnlocked();
     $('worldLocked').classList.toggle('hidden', unlocked);
-    ['worldNewsTitle', 'cardList', 'worldMarketTitle', 'marketIntro', 'marketList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
+    ['standingsPanel', 'worldNewsTitle', 'cardList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
     if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
+    updateStandings();   // the race standings live here now (GDD v3)
     // active cards (skip crises here — they appear as a modal; but still list them).
     // Only REBUILD the list when the card set changes; tick the countdowns cheaply.
     var cl = $('cardList');
@@ -1010,18 +1011,6 @@
       for (var ti = 0; ti < timers.length && ti < sorted.length; ti++) {
         setText(timers[ti], t('card_expires', { t: FMT.fmtTime(Math.max(0, (sorted[ti].expiresAt - Date.now()) / 1000)) }));
       }
-    }
-    // market
-    G.ensureMarket(); var m = G.state.market;
-    var rows = $('marketList').children;
-    for (var i = 0; i < rows.length; i++) {
-      var aid = rows[i].dataset.aid;
-      setText(rows[i].querySelector('.mk-price'), fmt(m.price[aid]));
-      setHTML(rows[i].querySelector('.mk-spark'), sparkline(m.hist[aid]));  // setHTML guards on string equality -> rebuilds only when prices move
-      var hold = m.hold[aid];
-      setText(rows[i].querySelector('.mk-hold'), hold > 0.0001 ? t('market_hold', { n: hold.toFixed(2), v: fmt(hold * m.price[aid]) }) : t('market_none'));
-      rows[i].querySelector('.mk-sell').disabled = hold <= 0.0001;
-      rows[i].querySelector('.mk-buy').disabled = G.state.cash < 1;
     }
     // flavor headlines (stage-based)
     var pool = currentNews();
@@ -1157,11 +1146,7 @@
     frameCompute = G.computeRate();
     frameMoney = G.moneyRate();
     updateTop();
-    if (currentTab === 'company') {
-      updateGenerators(); updateModelPanel();
-      var sp = $('standingsPanel');
-      if (G.rivalsActive()) { setClass(sp, 'hidden', false); updateStandings(); } else setClass(sp, 'hidden', true);
-    }
+    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
     else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }

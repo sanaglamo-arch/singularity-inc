@@ -834,7 +834,7 @@
 
   // ===== R7 World: Trust, cards (crises + news), market, gating =====
   // Stage 6 "Industry": opens a bit AFTER the first release (risk comes first).
-  function worldUnlocked() { return state.modelGen >= 4 || state.prestiges >= 2 || state.totalRP >= C.UNLOCKS.WORLD_RP || state.singularities > 0; }
+  function worldUnlocked() { return state.modelGen >= 1 || state.prestiges >= 2 || state.totalRP >= C.UNLOCKS.WORLD_RP || state.singularities > 0; } // GDD v3: the Race view opens once you ship v1
   function crisisCooldown() { return Math.max(C.RISK.CRISIS_CD_MIN, C.RISK.CRISIS_CD_BASE - state.prestiges * 3 - state.singularities * 10); }
   function crisisCdLeft() { return Math.max(0, (state.lastCrisisAt + crisisCooldown() * 1000 - Date.now()) / 1000); }
   function trustMult() { return C.TRUST.OUTPUT_LO + (C.TRUST.OUTPUT_HI - C.TRUST.OUTPUT_LO) * ((state.trust || 0) / 100); }
