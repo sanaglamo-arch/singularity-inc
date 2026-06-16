@@ -14,9 +14,9 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - Endgame: AGI race finale + endings (Aligned/Reckless/Nationalized/Beaten); optional Founder's Legacy replay (non-forced).
 
 ## Phase status
-- [~] P1 generations ladder (data+engine done; tick/UI next) + no reset
-- [ ] P2 real-time timed processes (training/build/research) — parallel
-- [~] P3 resources (state+migration+engine done) (money/compute/researchers + valuation/share)
+- [x] P1 generations ladder (data+engine+Lab UI done; still need: neuter old prestige RESET, flip money->product) + no reset
+- [~] P2 timed processes (training live in tick+UI; datacenter-build + research timers still TODO)
+- [x] P3 resources (state+migration+engine+HUD done) (money/compute/researchers + valuation/share)
 - [ ] P4 market share + rivals central
 - [ ] P5 finance rounds + valuation
 - [ ] P6 systems re-homed on continuous growth
