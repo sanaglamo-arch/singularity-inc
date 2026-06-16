@@ -30,8 +30,9 @@
       prestiges: 0,
       prestigeUpgrades: pups,
       align: 0,
-      risk: 0,
-      incidentEndsAt: 0,     // ms; >0 means active
+      vec: { cap: 0, data: 0, reg: 0, sec: 0 }, // multi-vector risk
+      auditReadyAt: 0,       // reactive-audit cooldown (ms)
+      incidentEndsAt: 0,     // ms; >0 means a crisis output-penalty is active
       incidentsThisRun: 0,
       incidentsTotal: 0,
       taps: 0,
@@ -374,28 +375,54 @@
     return bought > 0;
   }
 
-  // alignment suppression per second
+  // alignment suppression per second (proactive investment — lowers ALL vectors)
   function alignSuppress() {
     return state.align * C.RISK.SUPPRESS * puValue('alignBoost', 1);
   }
-  function riskGainRate() {
-    var rate = cps();
-    var capFactor = Math.log10(rate + 10) / C.RISK.CAP_DIV;
-    var reduce = techMult('risk') * artifactMult('riskMult') * metaMul('riskMult'); // <=1 reduces
-    return C.RISK.GAIN * capFactor * reduce;
-  }
+  function riskReduce() { return techMult('risk') * artifactMult('riskMult') * metaMul('riskMult'); } // <=1
 
-  function containIncident() {
-    if (!incidentActive()) return false;
-    var cost = state.cash * C.RISK.CONTAIN_COST_FRAC;
-    if (state.cash < cost || cost <= 0) return false;
+  // gross growth/sec per vector (before alignment suppression), each driven differently
+  function vectorGross(id) {
+    var r = riskReduce();
+    if (id === 'cap') { var f = Math.log10(cps() + 10) / C.RISK.CAP_DIV; return C.RISK.CAP_GAIN * f * r; }
+    if (id === 'data') { var n = 0; C.RISK.DATA_GENS.forEach(function (g) { n += state.gens[g] || 0; }); return C.RISK.DATA_GAIN * n * r; }
+    if (id === 'reg') { return C.RISK.REG_BASE * r; }
+    if (id === 'sec') { return C.RISK.SEC_GAIN * r; }
+    return 0;
+  }
+  // net growth/sec per vector (gross minus alignment suppression share); cap gets full suppression
+  function vectorNet(id) {
+    var supp = alignSuppress() * (id === 'cap' ? 1 : C.RISK.SUPPRESS_SHARE);
+    var net = vectorGross(id) - supp;
+    if (id === 'reg' && net < 0) net -= C.RISK.REG_DECAY; // regulatory cools faster when funded
+    return net;
+  }
+  function highestVector() {
+    var hi = 'cap', hv = -1;
+    C.RISK.VECTORS.forEach(function (v) { if (state.vec[v] > hv) { hv = state.vec[v]; hi = v; } });
+    return { id: hi, val: hv };
+  }
+  function riskLevel() { return highestVector().val; } // aggregate for HUD/nudge
+
+  // Reactive AUDIT — preemptive, costs cash, on cooldown. Does NOT clear an active
+  // crisis penalty (no instant-zero exploit); it only lowers the highest vector.
+  function auditReady() { return Date.now() >= state.auditReadyAt; }
+  function auditCooldownLeft() { return Math.max(0, (state.auditReadyAt - Date.now()) / 1000); }
+  function auditCost() { return Math.floor(state.cash * C.RISK.AUDIT_FRAC); }
+  function doAudit() {
+    if (!auditReady()) return false;
+    var hv = highestVector();
+    if (hv.val < 1) return false;
+    var cost = auditCost();
+    if (cost <= 0 || state.cash < cost) return false;
     state.cash -= cost;
-    state.incidentEndsAt = 0;
-    state.risk = C.RISK.INCIDENT_RESET_RISK;
-    emit('toast', { key: 'incident_resolved' });
+    state.vec[hv.id] = Math.max(0, state.vec[hv.id] - C.RISK.AUDIT_CUT);
+    state.auditReadyAt = Date.now() + C.RISK.AUDIT_CD * 1000;
+    emit('toast', { key: 'audit_done', vars: { v: t_vec(hv.id) } });
     emit('change');
     return true;
   }
+  function t_vec(id) { return window.GAME_I18N.t('vec_' + id); }
 
   // ---- prestige --------------------------------------------------------
   function prestigeGain() {
@@ -409,7 +436,7 @@
   function resetRun(clearTechAndRp) {
     C.GENERATORS.forEach(function (g) { state.gens[g.id] = 0; });
     state.upgrades = {}; state.managers = {};
-    state.align = 0; state.risk = 0; state.incidentEndsAt = 0; state.incidentsThisRun = 0;
+    state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0; state.incidentsThisRun = 0;
     state.totalEarnedThisRun = 0;
     // transient buffs / events
     state.comboHeat = 0; state.maxHeatHit = state.maxHeatHit;
@@ -443,6 +470,7 @@
     state.prestiges++;
     state._lastRunClean = cleanRun;
     resetRun(false);
+    state.vec.reg = Math.min(C.RISK.MAX, state.vec.reg + C.RISK.REG_PRESTIGE_SPIKE); // hype raises regulatory
     var artifact = grantArtifact();
     rollGamble();
     if (cleanRun) state.achievements['a_safe'] = true;
@@ -559,6 +587,7 @@
     var gap = E.MIN_GAP + Math.random() * (E.MAX_GAP - E.MIN_GAP);
     state.nextEventAt = Date.now() + gap * 1000;
   }
+  function triggerCrisis(vector) { /* Slice 2: spawns a decision card; penalty already applied in tick */ }
   function triggerEvent() {
     var E = C.EVENTS;
     var def = E.list[Math.floor(Math.random() * E.list.length)];
@@ -573,7 +602,10 @@
         addCash(v);
       }
       if (def.riskAdd) {
-        state.risk = Math.max(0, Math.min(C.RISK.MAX, state.risk + def.riskAdd));
+        // map world-event risk onto vectors: leaks hit data+reg, good PR cools reg+sec
+        var clamp = function (x) { return Math.max(0, Math.min(C.RISK.MAX, x)); };
+        if (def.riskAdd > 0) { state.vec.data = clamp(state.vec.data + def.riskAdd); state.vec.reg = clamp(state.vec.reg + def.riskAdd * 0.6); }
+        else { state.vec.reg = clamp(state.vec.reg + def.riskAdd); state.vec.sec = clamp(state.vec.sec + def.riskAdd * 0.5); }
       }
     }
     state.eventsSeen++;
@@ -701,20 +733,27 @@
     var rate = cps();
     addCash(rate * dt);
 
-    // risk dynamics
+    // multi-vector risk dynamics
     var prevIncident = incidentActive();
-    var dRisk = (riskGainRate() - alignSuppress()) * dt;
-    state.risk = Math.max(0, Math.min(C.RISK.MAX, state.risk + dRisk));
-    if (!prevIncident && state.risk >= C.RISK.INCIDENT_THRESHOLD) {
-      // trigger incident
-      state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000;
-      state.incidentsThisRun++;
-      state.incidentsTotal++;
-      checkAchievements();
-      emit('incident', { active: true });
+    for (var vi = 0; vi < C.RISK.VECTORS.length; vi++) {
+      var vid = C.RISK.VECTORS[vi];
+      state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + vectorNet(vid) * dt));
+    }
+    // crisis: a maxed vector triggers an output-penalty crisis (and a decision if enabled)
+    if (!prevIncident) {
+      for (var ci = 0; ci < C.RISK.VECTORS.length; ci++) {
+        var cv = C.RISK.VECTORS[ci];
+        if (state.vec[cv] >= C.RISK.INCIDENT_THRESHOLD) {
+          state.vec[cv] = C.RISK.INCIDENT_RESET_RISK;
+          state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000;
+          state.incidentsThisRun++; state.incidentsTotal++;
+          checkAchievements();
+          emit('incident', { active: true, vector: cv });
+          triggerCrisis(cv); // Slice 2: decision card (no-op until crises defined)
+          break;
+        }
+      }
     } else if (prevIncident && !incidentActive()) {
-      // resolved by time
-      state.risk = C.RISK.INCIDENT_RESET_RISK;
       emit('incident', { active: false });
       emit('toast', { key: 'incident_resolved' });
     }
@@ -765,6 +804,11 @@
     if (s.autopilot.mode !== 'roi' && s.autopilot.mode !== 'milestone') s.autopilot.mode = 'roi';
     if (!s.autopilot.gens || typeof s.autopilot.gens !== 'object') s.autopilot.gens = {};
     if (s.version < 2) s.autopilot.on = false; // legacy saves: start safe (the old manager-autobuy is gone)
+    // multi-vector risk migration: fold old single risk into capability
+    if (!s.vec || typeof s.vec !== 'object') s.vec = { cap: (typeof s.risk === 'number' ? s.risk : 0), data: 0, reg: 0, sec: 0 };
+    C.RISK.VECTORS.forEach(function (v) { if (typeof s.vec[v] !== 'number') s.vec[v] = 0; });
+    if (typeof s.auditReadyAt !== 'number') s.auditReadyAt = 0;
+    delete s.risk;
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -831,7 +875,9 @@
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,
-    alignCost: alignCost, alignSuppress: alignSuppress, riskGainRate: riskGainRate,
+    alignCost: alignCost, alignSuppress: alignSuppress,
+    vectorGross: vectorGross, vectorNet: vectorNet, highestVector: highestVector, riskLevel: riskLevel,
+    auditReady: auditReady, auditCooldownLeft: auditCooldownLeft, auditCost: auditCost, doAudit: doAudit,
     boostActive: boostActive, incidentActive: incidentActive,
     eventActive: eventActive, eventOutputMult: eventOutputMult,
     frenzyActive: frenzyActive, clickFrenzyActive: clickFrenzyActive,
@@ -841,7 +887,7 @@
     activateBreakthrough: activateBreakthrough,
     // actions
     tap: tap, buyGen: buyGen, buyUpgrade: buyUpgrade, buyManager: buyManager,
-    buyAlignment: buyAlignment, containIncident: containIncident,
+    buyAlignment: buyAlignment,
     prestigeGain: prestigeGain, canPrestige: canPrestige, doPrestige: doPrestige,
     buyPrestigeUpgrade: buyPrestigeUpgrade,
     // endgame

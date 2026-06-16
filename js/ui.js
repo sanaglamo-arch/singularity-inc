@@ -112,7 +112,6 @@
     // alignment
     $('alignTitle').textContent = t('alignment_title');
     $('alignIntro').textContent = t('alignment_intro');
-    $('riskLabel').textContent = t('risk_label');
     $('alignLabel').textContent = t('alignment_label');
     $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
     $('researchTip').innerHTML = '<span class="ticon">' + ic('ic_bolt') + '</span><span>' + t('tip_overclock') + '</span>';
@@ -644,51 +643,55 @@
     $('currentBonus').textContent = t('current_bonus', { p: Math.round(s.rp * C.PRESTIGE.BONUS * 100) });
   }
 
-  // ---------- alignment ----------
+  // ---------- alignment (multi-vector) ----------
+  function vecColor(v) { return v > C.RISK.WARN_AT ? 'linear-gradient(90deg, var(--warn), var(--bad))' : 'linear-gradient(90deg, var(--good), var(--warn))'; }
   function updateAlignment() {
     var s = G.state;
-    var pct = (s.risk / C.RISK.MAX) * 100;
-    $('riskPct').textContent = Math.floor(s.risk) + '%';
-    $('riskFill').style.width = pct + '%';
-    var col = pct > C.RISK.WARN_AT ? 'linear-gradient(90deg, var(--warn), var(--bad))' :
-              'linear-gradient(90deg, var(--good), var(--warn))';
-    $('riskFill').style.background = col;
-    $('riskGainTxt').textContent = t('risk_gain', { v: G.riskGainRate().toFixed(2) }) +
-      (s.align > 0 ? ('  ·  ' + t('align_suppress', { v: G.alignSuppress().toFixed(2) })) : '');
+    // vector bars
+    var html = '';
+    C.RISK.VECTORS.forEach(function (vid) {
+      var val = s.vec[vid], net = G.vectorNet(vid);
+      var arrow = net > 0.001 ? '▲' : (net < -0.001 ? '▼' : '–');
+      html += '<div class="vrow">' +
+        '<div class="vhead"><span class="vname">' + t('vec_' + vid) + '</span><span class="vpct">' + Math.floor(val) + '%</span></div>' +
+        '<div class="bar"><div class="vfill" style="width:' + val + '%;background:' + vecColor(val) + '"></div></div>' +
+        '<div class="vmeta muted small">' + t('vec_' + vid + '_d') + ' · <span class="' + (net > 0 ? 'vup' : 'vdn') + '">' + arrow + ' ' + Math.abs(net).toFixed(2) + '/s</span></div>' +
+        '</div>';
+    });
+    $('vectorBars').innerHTML = html;
     $('alignOwned').textContent = s.align;
     $('alignSuppressTxt').textContent = t('align_suppress', { v: G.alignSuppress().toFixed(2) });
     var ac = G.alignCost();
     var btn = $('buyAlignBtn');
     btn.textContent = t('buy_alignment') + ' (' + fmt(ac) + ')';
     btn.disabled = s.cash < ac;
-    // incident box
+    // reactive audit (cooldown, not an instant crisis-clear)
+    var ab = $('auditBtn');
+    if (G.auditReady()) { ab.disabled = G.auditCost() <= 0 || s.cash < G.auditCost() || G.riskLevel() < 1; ab.textContent = t('audit_btn', { v: fmt(G.auditCost()) }); ab.classList.remove('cooldown'); }
+    else { ab.disabled = true; ab.textContent = t('audit_cd', { t: FMT.fmtTime(G.auditCooldownLeft()) }); ab.classList.add('cooldown'); }
+    // crisis penalty box (no instant contain — invest in alignment to prevent)
     var ib = $('incidentBox');
     if (G.incidentActive()) {
       ib.classList.remove('hidden');
       var remain = Math.max(0, (s.incidentEndsAt - Date.now()) / 1000);
-      var containCost = s.cash * C.RISK.CONTAIN_COST_FRAC;
       ib.innerHTML =
         '<div class="ititle">' + t('incident_active', { p: C.RISK.INCIDENT_PENALTY }) + '</div>' +
-        '<div class="idesc">' + t('incident_desc', { t: FMT.fmtTime(remain) }) + '</div>' +
-        '<button id="containBtn">' + t('contain_button', { v: fmt(containCost) }) + '</button>';
-      $('containBtn').onclick = function () {
-        if (!G.containIncident()) toast(t('contain_cant'), 'bad');
-      };
-    } else {
-      ib.classList.add('hidden');
-    }
-    // secondary mini-stats panel (fills desktop space, adds at-a-glance info)
+        '<div class="idesc">' + t('crisis_penalty_desc', { t: FMT.fmtTime(remain) }) + '</div>';
+    } else { ib.classList.add('hidden'); }
+    // mini-stats
     function mini(label, val) { return '<div class="minicard"><div class="mlabel">' + label + '</div><div class="mval">' + val + '</div></div>'; }
+    var hv = G.highestVector();
     $('alignMini').innerHTML =
       mini(t('mini_cps'), fmt(G.cps())) +
       mini(t('mini_output'), '×' + fmt(G.globalMult())) +
-      mini(t('mini_risk'), G.riskGainRate().toFixed(2)) +
+      mini(t('mini_toprisk'), t('vec_' + hv.id) + ' ' + Math.floor(hv.val) + '%') +
       mini(t('mini_suppress'), G.alignSuppress().toFixed(2));
-    // mini bar on company tab
+    // mini bar on company tab = highest vector
+    var pct = hv.val;
     var mfill = $('riskMiniFill');
-    if (mfill) { mfill.style.width = pct + '%'; mfill.style.background = col; }
+    if (mfill) { mfill.style.width = pct + '%'; mfill.style.background = vecColor(pct); }
     var mpct = $('riskMiniPct');
-    if (mpct) mpct.textContent = Math.floor(s.risk) + '%';
+    if (mpct) mpct.textContent = Math.floor(pct) + '%';
   }
 
   // ---------- top bar / boost ----------
@@ -764,7 +767,7 @@
   function computeNudge() {
     var s = G.state;
     if (G.incidentActive()) return { key: 'nudge_incident', tone: 'urgent', icon: 'ic_risk' };
-    if (s.risk >= C.RISK.WARN_AT) return { key: 'nudge_risk', tone: 'urgent', icon: 'ic_risk' };
+    if (G.riskLevel() >= C.RISK.WARN_AT) return { key: 'nudge_risk', tone: 'urgent', icon: 'ic_risk' };
     if (G.canSingularity && G.canSingularity()) return { key: 'nudge_singularity', vars: { n: G.coresGain() }, tone: 'go', icon: 'ic_core' };
     var pg = G.prestigeGain();
     if (pg >= Math.max(5, Math.floor(s.rp * 0.25))) return { key: 'nudge_prestige', vars: { n: pg }, tone: 'go', icon: 'ic_rp' };
@@ -1035,8 +1038,9 @@
     });
     // (singularity flavor shown in the ritual cinematic subtitle)
 
-    // alignment buy
+    // alignment buy + reactive audit
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
+    $('auditBtn').addEventListener('click', function () { if (G.doAudit()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(52,211,153,0.25)'); } });
 
     // breakthrough ability
     $('breakthroughBtn').addEventListener('click', function () {

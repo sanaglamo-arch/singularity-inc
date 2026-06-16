@@ -93,9 +93,22 @@
     INCIDENT_THRESHOLD: 100,
     INCIDENT_PENALTY: 0.20,   // output multiplied by this during incident
     INCIDENT_DURATION: 90,    // seconds (auto-resolves)
-    INCIDENT_RESET_RISK: 35,  // risk after an incident resolves
-    CONTAIN_COST_FRAC: 0.35,  // pay this fraction of current cash to contain instantly
-    WARN_AT: 75               // UI warns above this
+    INCIDENT_RESET_RISK: 35,  // a vector is reset to this after its crisis fires
+    WARN_AT: 75,              // UI warns above this
+    // ---- Multi-vector risk (replaces the single spam-defeatable bar) ----
+    VECTORS: ['cap', 'data', 'reg', 'sec'],
+    DATA_GENS: ['dataCenter', 'neuroArray', 'quantumNode', 'orbital', 'dysonSwarm', 'matrioshka'],
+    CAP_GAIN: 0.5,            // capability: from output growth (log cps)
+    DATA_GAIN: 0.0011,       // privacy/data: per data-heavy generator owned, /sec
+    REG_BASE: 0.015,         // regulatory: small base drift /sec
+    REG_DECAY: 0.05,         // regulatory decays toward 0 when below spikes
+    REG_PRESTIGE_SPIKE: 11,  // hype: each model release bumps regulatory
+    SEC_GAIN: 0.09,          // security: accrues over time /sec
+    SUPPRESS_SHARE: 0.5,     // alignment suppression applied to data/reg/sec (cap gets full)
+    // Reactive Audit: preemptive, costs cash, on cooldown — NOT an instant crisis-clear
+    AUDIT_CUT: 35,           // reduces the highest vector by this
+    AUDIT_FRAC: 0.18,        // cost = this fraction of current cash
+    AUDIT_CD: 120            // cooldown (seconds)
   };
 
   // ---- Tap -------------------------------------------------------------

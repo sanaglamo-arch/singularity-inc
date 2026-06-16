@@ -425,6 +425,19 @@ button { font-family: var(--font-ui); color: var(--fg); }
 #incidentBox button:disabled { background: rgba(255,255,255,0.2); color: #ffd9e0; }
 @keyframes pulseBad { 0%,100% { box-shadow: 0 0 30px -10px var(--glow-rose), var(--inset-hi); } 50% { box-shadow: 0 0 42px 0 var(--glow-rose), var(--inset-hi); } }
 
+/* ---------- multi-vector risk ---------- */
+.vrow { margin-bottom: 13px; }
+.vhead { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.vpct { font-family: var(--font-display); }
+.vfill { height: 100%; border-radius: var(--radius-pill); transition: width 0.3s var(--ease), background 0.3s; box-shadow: 0 0 8px rgba(255,255,255,0.15); }
+.vmeta { margin-top: 4px; }
+.vmeta .vup { color: var(--rose); font-weight: 700; }
+.vmeta .vdn { color: var(--green); font-weight: 700; }
+#auditBtn { width: 100%; margin-top: 10px; border: 1px solid var(--glass-border); background: var(--surface-2); color: var(--fg); border-radius: var(--radius-sm); padding: 12px; font-weight: 600; cursor: pointer; min-height: 44px; transition: transform 0.08s var(--ease-spring), background 0.2s; }
+#auditBtn:active:not(:disabled) { transform: scale(0.98); background: var(--surface); }
+#auditBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+#auditBtn.cooldown { color: var(--fg-muted); }
+
 /* ---------- stats / achievements ---------- */
 .statItem { display: flex; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--glass-border); font-size: 13px; }
 .statItem:last-child { border-bottom: none; }
