@@ -1140,34 +1140,38 @@
   // ---------- next-goal nudge ----------
   function computeNudge() {
     var s = G.state;
+    // urgent: safety crises (re-homed onto the new ladder)
     if (G.incidentActive()) return { key: 'nudge_incident', tone: 'urgent', icon: 'ic_risk' };
-    if (G.riskLevel() >= C.RISK.WARN_AT) return { key: 'nudge_risk', tone: 'urgent', icon: 'ic_risk' };
-    if (G.canSingularity && G.canSingularity()) return { key: 'nudge_singularity', vars: { n: G.coresGain() }, tone: 'go', icon: 'ic_core' };
-    var pg = G.prestigeGain();
-    if (pg >= Math.max(5, Math.floor(s.rp * 0.25))) return { key: 'nudge_prestige', vars: { n: pg }, tone: 'go', icon: 'ic_rp' };
+    if (G.riskUnlocked() && G.riskLevel() >= C.RISK.WARN_AT) return { key: 'nudge_risk', tone: 'urgent', icon: 'ic_risk' };
+    // garage bootstrap
     var totalOwned = 0; C.GENERATORS.forEach(function (g) { totalOwned += s.gens[g.id]; });
     if (totalOwned === 0) {
       if (s.cash < C.GENERATORS[0].baseCost) return { key: 'nudge_tap', icon: 'ic_brain' };
       return { key: 'nudge_buyfirst', vars: { name: t('g_' + C.GENERATORS[0].id) }, icon: 'gen_' + C.GENERATORS[0].id };
     }
+    // the spine: ship the next model generation
+    if (G.isAGI()) return { key: 'nudge_agi', tone: 'go', icon: 'ic_core' };
+    var g = G.nextGen();
+    if (!G.trainingActive()) {
+      if (G.canStartTraining()) return { key: 'nudge_train', vars: { name: t(g.id) }, tone: 'go', icon: 'ic_brain' };
+      return { key: 'nudge_train_need', vars: { name: t(g.id), v: fmt(g.computeReq) }, icon: 'ic_brain' };
+    }
+    // training is running → suggest the best PARALLEL action (no dead time)
+    if (G.canTakeFunding()) { var r = G.nextFundingRound(); return { key: 'nudge_fund', vars: { name: t('fund_' + r.id) }, tone: 'go', icon: 'ic_market' }; }
+    if (!G.buildActive() && G.canStartBuild()) return { key: 'nudge_build', icon: 'ic_world' };
+    if (!G.researchActive() && G.canStartResearch()) return { key: 'nudge_research', icon: 'ic_tech' };
+    if (G.talentUnlocked() && s.cash >= G.researcherCost()) return { key: 'nudge_hire', icon: 'ic_manager' };
     for (var i = 0; i < C.UPGRADES.length; i++) {
       var u = C.UPGRADES[i];
       if (!s.upgrades[u.id] && (!u.unlock || s.gens[u.unlock.gen] >= u.unlock.count) && s.cash >= u.cost)
         return { key: 'nudge_upgrade', vars: { name: t(u.id) }, icon: 'ic_upgrade' };
     }
-    for (var g2 = 0; g2 < C.GENERATORS.length; g2++) {
-      var gid = C.GENERATORS[g2].id, owned = s.gens[gid];
-      if (owned > 0) { var nm = G.nextMilestone(owned); if (nm && nm - owned <= 5) return { key: 'nudge_milestone', vars: { n: nm - owned, name: t('g_' + gid) }, icon: 'gen_' + gid }; }
-    }
+    // buy hardware to grow compute (toward the next generation's requirement)
     for (var h = C.GENERATORS.length - 1; h >= 0; h--) {
       var hg = C.GENERATORS[h];
       if (s.gens[hg.id] === 0 && s.cash >= G.genCostCumulative(hg.id, 1)) return { key: 'nudge_buygen', vars: { name: t('g_' + hg.id) }, icon: 'gen_' + hg.id };
     }
-    for (var n2 = 0; n2 < C.GENERATORS.length; n2++) {
-      var ng = C.GENERATORS[n2];
-      if (s.gens[ng.id] === 0) return { key: 'nudge_savegen', vars: { name: t('g_' + ng.id), v: fmt(G.genCostCumulative(ng.id, 1)) }, icon: 'gen_' + ng.id };
-    }
-    return null;
+    return { key: 'nudge_wait', icon: 'ic_brain' };
   }
   var _nudgeIcon = null;
   function updateNudge() {
@@ -1301,7 +1305,7 @@
   // ---------- "More" overflow sheet (only unlocked destinations) ----------
   function openMoreSheet() {
     var items = [];
-    if (G.singUnlocked() || G.rivalsRevealed()) items.push({ tab: 'singularity', icon: 'nav_singularity' });
+    // (legacy 'singularity'/2nd-prestige destination retired in GDD v3 — forward-only)
     if (G.riskUnlocked()) items.push({ tab: 'alignment', icon: 'nav_alignment' });
     if (G.statsUnlocked()) items.push({ tab: 'stats', icon: 'nav_stats' });
     if (G.awardsUnlocked()) items.push({ tab: 'achievements', icon: 'nav_achievements' });
@@ -1386,10 +1390,17 @@
   function hideModal() { $('modalRoot').classList.add('hidden'); $('modalRoot').innerHTML = ''; }
 
   function showOffline(off) {
+    // GDD v3 "while you were away" summary: revenue + compute + finished processes
+    var lines = '';
+    lines += '<div class="awrow"><span class="awk">' + t('res_compute') + '</span><span class="awv">+' + fmt(off.compute) + '</span></div>';
+    if (off.trainedGenId) lines += '<div class="awrow done"><span class="awk">' + t('aw_trained') + '</span><span class="awv">' + t(off.trainedGenId) + '</span></div>';
+    if (off.builtDC) lines += '<div class="awrow done"><span class="awk">' + t('aw_built') + '</span><span class="awv">✓</span></div>';
+    if (off.didResearch) lines += '<div class="awrow done"><span class="awk">' + t('aw_research') + '</span><span class="awv">✓</span></div>';
     showModal(
       '<h3>' + t('offline_title') + '</h3>' +
       '<p>' + t('offline_away', { t: FMT.fmtTime(off.cappedSec) }) + '</p>' +
       '<div class="big">' + t('offline_earned', { v: fmt(off.earned) }) + '</div>' +
+      '<div class="awlist">' + lines + '</div>' +
       '<div class="row">' +
       '<button class="primary" id="offCollect">' + t('offline_collect') + '</button>' +
       '<button class="reward" id="offDouble">' + t('offline_double') + '</button>' +

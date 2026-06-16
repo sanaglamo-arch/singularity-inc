@@ -1255,7 +1255,16 @@
     // completes on return (handled by tick).
     var earned = moneyRate() * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
     var computeGained = computeRate() * eff * C.OFFLINE.RATE * offMult;
-    return { earned: earned, compute: computeGained, effSec: eff, cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap };
+    // GDD v3 "while you were away": which parallel timers finished during the gap
+    var now = Date.now();
+    var trainedGen = (trainingActive() && state.training.endsAt <= now) ? C.MODELGEN[state.training.gen] : null;
+    return {
+      earned: earned, compute: computeGained, effSec: eff,
+      cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap,
+      trainedGenId: trainedGen ? trainedGen.id : null,
+      builtDC: (buildActive() && state.build.endsAt <= now),
+      didResearch: (researchActive() && state.research2.endsAt <= now)
+    };
   }
   function applyOffline(earned, computeGained) { addCash(earned); if (computeGained) state.compute += computeGained; emit('change'); }
 
