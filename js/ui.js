@@ -114,7 +114,7 @@
     // nav (primary tabs)
     $('nav_company').textContent = t('tab_company');
     $('nav_upgrades').textContent = t('tab_upgrades');
-    $('nav_research').textContent = t('tab_research');
+    $('nav_research').textContent = t('tab_team');   // GDD v3: Research tab repurposed as Team
     $('nav_world').textContent = t('tab_race');   // GDD v3: World tab repurposed as the Race view
     $('worldNewsTitle').innerHTML = t('world_news_title') + infoBtn('tip_news');
     if ($('worldMarketTitle')) $('worldMarketTitle').innerHTML = t('world_market_title') + infoBtn('tip_market');
@@ -122,13 +122,12 @@
     if ($('marketIntro')) $('marketIntro').textContent = t('market_intro');
     buildMarket();
     buildEndings();
-    // research-tab extras
-    $('artifactsTitle').innerHTML = t('artifacts_title') + infoBtn('tip_artifacts');
-    $('techTitle').innerHTML = t('tech_title') + infoBtn('tip_tech');
-    // singularity tab
-    $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
-    $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
-    $('metaTitle').textContent = t('meta_title');
+    // legacy prestige/singularity DOM removed in GDD v3 — guard every reference
+    if ($('artifactsTitle')) $('artifactsTitle').innerHTML = t('artifacts_title') + infoBtn('tip_artifacts');
+    if ($('techTitle')) $('techTitle').innerHTML = t('tech_title') + infoBtn('tip_tech');
+    if ($('singTitle')) $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
+    if ($('singDesc')) $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
+    if ($('metaTitle')) $('metaTitle').textContent = t('meta_title');
     buildArtifacts(); buildTech(); buildMeta();
     // (Alignment / Singularity / Stats / Awards / Settings labels live in the More sheet, built on open)
     // upgrades + autopilot
@@ -141,16 +140,17 @@
     var apo = $('apOnSeg').children; apo[0].textContent = t('on'); apo[1].textContent = t('off');
     var apm = $('apModeSeg').children; apm[0].textContent = t('ap_mode_roi'); apm[1].textContent = t('ap_mode_milestone');
     buildAutopilot();
-    // research
-    $('researchTitle').textContent = t('research_title');
-    $('researchDesc').textContent = t('research_desc', { p: (C.PRESTIGE.BONUS * 100) });
-    $('prestigeUpTitle').textContent = t('prestige_upgrades_title');
+    // GDD v3: Team (hiring) view — repurposed from the old Research tab
+    if ($('teamTitle')) {
+      $('teamTitle').innerHTML = t('team_title') + infoBtn('tip_team');
+      $('teamDesc').textContent = t('team_desc');
+    }
     // alignment
     $('alignTitle').innerHTML = t('alignment_title') + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
     $('alignIntro').textContent = t('alignment_intro');
     $('alignLabel').textContent = t('alignment_label');
-    $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
-    $('researchTip').innerHTML = '<span class="ticon">' + ic('ic_bolt') + '</span><span>' + t('tip_overclock') + '</span>';
+    if ($('alignTip')) $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
+    if ($('researchTip')) $('researchTip').innerHTML = '<span class="ticon">' + ic('ic_bolt') + '</span><span>' + t('tip_overclock') + '</span>';
     // stats
     $('statsTitle').textContent = t('stats_title');
     $('achTitle').textContent = t('achievements_title');
@@ -339,6 +339,19 @@
     }
   }
 
+  // ---------- GDD v3: Team (hiring researchers) ----------
+  function updateTeam() {
+    var s = G.state;
+    var spd = Math.round((G.researcherSpeed() - 1) * 100);
+    setHTML($('teamStats'),
+      '<div class="tstat"><span class="tk">' + t('res_researchers') + '</span><span class="tv">' + s.researchers + '</span></div>' +
+      '<div class="tstat"><span class="tk">' + t('team_speed') + '</span><span class="tv">+' + spd + '%</span></div>');
+    var btn = $('hireBtn'), cost = G.researcherCost();
+    setText(btn, t('hire_btn', { v: fmt(cost) }));
+    btn.disabled = s.cash < cost;
+    setText($('hireHint'), t('team_hint'));
+  }
+
   // ---------- GDD v3: rival market-share standings ----------
   var standRefs = null;
   function entityName(id) { return id === 'you' ? t('you_label') : t('rival_' + id); }
@@ -457,7 +470,7 @@
 
   // ---------- prestige upgrades ----------
   function buildPrestigeUpgrades() {
-    var list = $('prestigeUpList');
+    var list = $('prestigeUpList'); if (!list) return;
     list.innerHTML = '';
     C.PRESTIGE.upgrades.forEach(function (p) {
       var card = el('div', 'pcard');
@@ -543,7 +556,7 @@
   // ---------- tech tree ----------
   function techDesc(tk) { return t('tech_cat_' + tk.cat) + ' ×' + tk.mult; }
   function buildTech() {
-    var list = $('techList'); list.innerHTML = '';
+    var list = $('techList'); if (!list) return; list.innerHTML = '';
     C.TECH.forEach(function (tk) {
       var card = el('div', 'card locked'); card.dataset.tid = tk.id;
       card.innerHTML =
@@ -555,6 +568,7 @@
     });
   }
   function updateTech() {
+    if (!$('techList')) return;
     var s = G.state, nodes = $('techList').children;
     for (var i = 0; i < nodes.length; i++) {
       var tk = C.TECH[i], card = nodes[i], btn = card.querySelector('button'), req = card.querySelector('.req');
@@ -576,7 +590,7 @@
   // ---------- artifacts ----------
   function artDesc(a) { return a.effect.type === 'gamble' ? t('art_gamble') : (t('art_' + a.effect.type) + ' ×' + a.effect.value); }
   function buildArtifacts() {
-    var list = $('artifactList'); list.innerHTML = '';
+    var list = $('artifactList'); if (!list) return; list.innerHTML = '';
     C.ARTIFACTS.forEach(function (a) {
       var card = el('div', 'card'); card.dataset.arid = a.id;
       var tags = a.tags.map(function (tg) { return '<span class="tagchip">' + t('tag_' + tg) + '</span>'; }).join('');
@@ -593,6 +607,7 @@
     });
   }
   function updateArtifacts() {
+    if (!$('artifactList')) return;
     var s = G.state, nodes = $('artifactList').children, anyOwned = false;
     for (var i = 0; i < nodes.length; i++) {
       var a = C.ARTIFACTS[i], card = nodes[i], btn = card.querySelector('button');
@@ -781,6 +796,7 @@
 
   // ---------- research / prestige ----------
   function updateResearch() {
+    if (!$('prestigeBox')) return;   // GDD v3: legacy prestige UI removed
     var s = G.state;
     var pr = G.prestigeProjection();
     var btn = $('prestigeBtn');
@@ -1148,7 +1164,7 @@
     updateTop();
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
-    else if (currentTab === 'research') { updateResearch(); updateArtifacts(); updateTech(); }
+    else if (currentTab === 'research') { updateTeam(); }
     else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
@@ -1517,6 +1533,12 @@
     var trainBtn = $('trainBtn');
     if (trainBtn) trainBtn.addEventListener('click', function () {
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
+      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // GDD v3: hire a researcher (speeds up training/research/builds)
+    var hireBtn = $('hireBtn');
+    if (hireBtn) hireBtn.addEventListener('click', function () {
+      if (G.hireResearcher()) { window.GAME_AUDIO.buy(); buzz(10); updateTeam(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
     // GDD v3: raise a funding round

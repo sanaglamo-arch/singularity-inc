@@ -19,7 +19,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [x] P3 resources (state+migration+engine+HUD done) (money/compute/researchers + valuation/share)
 - [x] P4 rivals + market-share race — state.rivalShare + growth in tick, standings panel (you vs rivals sorted, #1 highlight), agiProgress re-homed to modelGen, SAVE_VERSION 5. (Lab crowding -> address in P6/P10)
 - [x] P5 finance — valuation fixed (ARR×multiple); funding rounds Seed→A→B→C→IPO UI live (realistic valReqs; moneyRate compression pending P9)
-- [~] P6 re-home systems — World tab repurposed as RACE view (standings moved off Lab; market retired; worldUnlocked@modelGen>=1). TODO: hiring UI, safety/comms re-home, repurpose Research tab.
+- [~] P6 re-home: World->RACE view; Research->TEAM (hiring researchers, @modelGen>=2); market retired; legacy prestige/artifact/tech/sing UI guarded out. TODO: safety/comms re-home into views; retire sing tab fully.
 - [ ] P7 retention engine
 - [ ] P8 endgame + endings + legacy
 - [ ] P9 balance the month curve (sim + BALANCE.md)

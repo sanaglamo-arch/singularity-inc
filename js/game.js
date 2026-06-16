@@ -811,7 +811,7 @@
   function insightUnlocked()     { return state.prestiges > 0 || state.insightsClaimed > 0 || state.totalEarnedAllTime >= U.INSIGHT_EARNED; }
   function breakthroughUnlocked(){ return state.prestiges > 0 || state.breakthroughsUsed > 0 || state.totalEarnedAllTime >= U.BREAKTHROUGH_EARNED; }
   function managersUnlocked()    { return state.prestiges > 0 || state.totalEarnedAllTime >= U.MANAGERS_EARNED; }
-  function researchUnlocked()    { return state.prestiges >= 1 || state.singularities > 0; }
+  function researchUnlocked()    { return state.modelGen >= C.TALENT.UNLOCK_GEN || state.prestiges >= 1 || state.singularities > 0; } // GDD v3: Team(hiring) opens @v2
   function riskUnlocked()        { return state.modelGen >= 3 || state.prestiges >= 1 || state.singularities > 0; } // safety enters mid-game (v3+)
   function statsUnlocked()       { return upgradesUnlocked(); }
   function awardsUnlocked()      { return achCount() > 0; }
