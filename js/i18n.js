@@ -328,11 +328,11 @@
     a_cash1t: 'Trillion-Param Club', a_cash1t_d: 'Earn 1T total.',
     a_prestige1: 'Ship It', a_prestige1_d: 'Release your first model.',
     a_prestige5: 'Frontier Lab', a_prestige5_d: 'Release 5 models.',
-    a_rp100: 'Cited by Everyone', a_rp100_d: 'Reach 100 lifetime RP.',
-    a_agi: 'Situational Awareness', a_agi_d: 'Build an AGI Core.',
+    a_rp100: 'Market Mover', a_rp100_d: 'Reach 25% market share.',
+    a_agi: 'Situational Awareness', a_agi_d: 'Reach AGI — the finish line.',
     a_align50: 'Safety First', a_align50_d: 'Fund 50 alignment teams.',
     a_incident: 'It Happens', a_incident_d: 'Survive a misalignment incident.',
-    a_safe: 'Provably Safe', a_safe_d: 'Release a model with zero incidents that run.',
+    a_safe: 'Full House', a_safe_d: 'Hire 10 researchers.',
 
     // prestige flavor toasts (shown on release)
     flavor_0: 'The model achieved situational awareness.',
@@ -476,14 +476,14 @@
       ['The model politely requests we call it "colleague".', 'Reality folds inward; the roadmap still slips.', 'It achieved situational awareness. HR is concerned.']
     ],
 
-    a_tech: 'First Principles', a_tech_d: 'Unlock a tech.',
-    a_artifact: 'Relic Hunter', a_artifact_d: 'Equip an artifact.',
-    a_singularity: 'Transcendence', a_singularity_d: 'Trigger the Singularity.',
-    a_cores10: 'Core Collector', a_cores10_d: 'Earn 10 Singularity Cores.',
-    a_synergy: 'Combinatorics', a_synergy_d: 'Activate an artifact synergy.',
-    a_techadept: 'Tech Adept', a_techadept_d: 'Unlock 6 techs.',
-    a_sing3: 'Ascended Thrice', a_sing3_d: 'Trigger 3 Singularities.',
-    a_cores50: 'Core Hoard', a_cores50_d: 'Earn 50 Singularity Cores.',
+    a_tech: 'First Principles', a_tech_d: 'Complete a research project.',
+    a_artifact: 'Breaking Ground', a_artifact_d: 'Build your first datacenter.',
+    a_singularity: 'IPO', a_singularity_d: 'Raise every funding round through IPO.',
+    a_cores10: 'Frontier Pusher', a_cores10_d: 'Ship a generation-8 model.',
+    a_synergy: 'Number One', a_synergy_d: 'Become the #1 lab by market share.',
+    a_techadept: 'Research Powerhouse', a_techadept_d: 'Reach research level 6.',
+    a_sing3: 'Proto-AGI', a_sing3_d: 'Ship a generation-10 model.',
+    a_cores50: 'Founders Legacy', a_cores50_d: 'Begin a Founders Legacy after AGI.',
     perk_label: 'Perk', perk_global: '+{p}% output', perk_tap: '×{n} tap'
   };
 
@@ -795,11 +795,11 @@
     a_cash1t: 'Клуб триллиона параметров', a_cash1t_d: 'Заработай 1T всего.',
     a_prestige1: 'Зарелизил', a_prestige1_d: 'Выпусти первую модель.',
     a_prestige5: 'Передовая лаба', a_prestige5_d: 'Выпусти 5 моделей.',
-    a_rp100: 'Все тебя цитируют', a_rp100_d: 'Достигни 100 RP за всё время.',
-    a_agi: 'Ситуационная осознанность', a_agi_d: 'Построй Ядро AGI.',
+    a_rp100: 'Двигатель рынка', a_rp100_d: 'Достигни 25% доли рынка.',
+    a_agi: 'Ситуационная осознанность', a_agi_d: 'Достигни AGI — финишная черта.',
     a_align50: 'Безопасность прежде всего', a_align50_d: 'Профинансируй 50 команд элайнмента.',
     a_incident: 'Бывает', a_incident_d: 'Переживи инцидент рассогласования.',
-    a_safe: 'Доказуемо безопасно', a_safe_d: 'Выпусти модель с нулём инцидентов за забег.',
+    a_safe: 'Полный состав', a_safe_d: 'Найми 10 исследователей.',
 
     flavor_0: 'Модель обрела ситуационную осознанность.',
     flavor_1: 'Инвесторы назвали это «сменой парадигмы».',
@@ -931,14 +931,14 @@
       ['Модель вежливо просит звать её «коллегой».', 'Реальность сворачивается внутрь; дедлайны всё равно плывут.', 'Она обрела ситуационную осознанность. HR обеспокоен.']
     ],
 
-    a_tech: 'С нуля', a_tech_d: 'Открой технологию.',
-    a_artifact: 'Охотник за реликвиями', a_artifact_d: 'Надень артефакт.',
-    a_singularity: 'Трансцендентность', a_singularity_d: 'Запусти Сингулярность.',
-    a_cores10: 'Коллекционер ядер', a_cores10_d: 'Заработай 10 Ядер Сингулярности.',
-    a_synergy: 'Комбинаторика', a_synergy_d: 'Активируй синергию артефактов.',
-    a_techadept: 'Технократ', a_techadept_d: 'Открой 6 технологий.',
-    a_sing3: 'Трижды вознёсшийся', a_sing3_d: 'Запусти Сингулярность 3 раза.',
-    a_cores50: 'Запас ядер', a_cores50_d: 'Заработай 50 Ядер Сингулярности.',
+    a_tech: 'С нуля', a_tech_d: 'Заверши исследовательский проект.',
+    a_artifact: 'Первый камень', a_artifact_d: 'Построй первый дата-центр.',
+    a_singularity: 'IPO', a_singularity_d: 'Подними все раунды вплоть до IPO.',
+    a_cores10: 'Фронтир', a_cores10_d: 'Выпусти модель 8-го поколения.',
+    a_synergy: 'Номер один', a_synergy_d: 'Стань лабой №1 по доле рынка.',
+    a_techadept: 'Исследовательский центр', a_techadept_d: 'Достигни 6 уровня исследований.',
+    a_sing3: 'Прото-AGI', a_sing3_d: 'Выпусти модель 10-го поколения.',
+    a_cores50: 'Наследие основателя', a_cores50_d: 'Начни Наследие основателя после AGI.',
     perk_label: 'Перк', perk_global: '+{p}% к выработке', perk_tap: '×{n} к тапу'
   };
 

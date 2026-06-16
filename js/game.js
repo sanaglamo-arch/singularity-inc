@@ -1279,6 +1279,16 @@
       case 'singularities': return state.singularities >= c.n;
       case 'cores': return state.coresTotal >= c.n;
       case 'synergy': return artifactSynergyMult() >= 1 + C.ARTIFACT_SYNERGY * c.n - 0.0001;
+      // --- GDD v3 continuous-meta conditions ---
+      case 'modelGen': return state.modelGen >= c.n;
+      case 'agi': return state.modelGen >= C.MODELGEN.length;
+      case 'marketShare': return state.marketShare >= c.n;
+      case 'marketLeader': return playerRank() === 1;
+      case 'researchers': return state.researchers >= c.n;
+      case 'datacenters': return (state.datacenters || 0) >= c.n;
+      case 'researchLevel': return (state.researchLevel || 0) >= c.n;
+      case 'funding': { var fc = 0; for (var fk in state.funding) if (state.funding[fk]) fc++; return fc >= c.n; }
+      case 'legacy': return (state.legacyCount || 0) >= c.n;
       default: return false;
     }
   }
@@ -1335,7 +1345,7 @@
       }
     }
 
-    if (state.prestiges >= 1) updateEvents();  // world/industry events: post-first-release
+    if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
     updateCards();
