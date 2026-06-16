@@ -1,12 +1,15 @@
 # Singularity Inc.
 
-A satirical idle/incremental ("clicker") game about bootstrapping an AI startup
-into a frontier lab. Tap to **TRAIN**, buy hardware that auto-earns, research
-permanent multipliers by **releasing frontier models** (prestige), and manage the
-signature **Risk ↔ Alignment** tension before a misalignment incident slashes your
-output. Vanilla JS + HTML + CSS, no build step, fully self-contained, RU + EN.
+A realistic idle/tycoon game about building an AI lab from a garage to AGI —
+**with no resets** (your infrastructure persists forever; you only grow). Tap to
+generate **compute**, buy hardware that produces more, **train a forward-only ladder
+of model generations** (v1 → … → AGI) as real-time processes, earn revenue from your
+shipped product, raise **funding rounds**, and race **rival labs** for market share
+and AGI. Grounded in how real labs (OpenAI/Anthropic) actually grew, paced for a
+**month+** of real play. Vanilla JS + HTML + CSS, no build step, self-contained, RU + EN.
 
-Built for the **Yandex Games** platform.
+> Design source of truth: **GAME-DESIGN.md** (GDD v3). This README describes the
+> current GDD-v3 build (the earlier prestige/reset meta has been replaced).
 
 ---
 
@@ -128,53 +131,44 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
 
 ---
 
-## 5. How to play
+## 5. How to play (GDD v3 — no resets, continuous growth)
 
-- **TRAIN** (tap the big button) for early cash bursts.
-- Buy **hardware** (10 tiers, Laptop → AGI Core); each auto-generates revenue.
-  Every 10/25/50/100… owned **doubles** that tier's output.
-- Spend cash on **Upgrades** (global & per-tier multipliers) and **Managers**
-  (a permanent **+50% output** buff per generator — they never spend your cash).
-- **Autopilot** (unlocks after your first model release): a smart auto-buyer that
-  spends only **above a reserve you set** and always buys the **best-value** generator
-  (lowest cost per +output/sec) — never blindly the cheapest. Per-generator toggles
-  and a "fill to next milestone then pause" mode. Your bank is never silently drained.
-- **Alignment Lab:** scaling raises **Risk**. Fund **Alignment** to suppress it.
-  At 100% Risk a **misalignment incident** cuts output ×0.2 until it resolves or
-  you pay to **contain** it.
-- **Research tab → Release Model** (prestige): reset hardware & cash for
-  **Research Points (RP)**; each RP grants **+5% permanent global output**, and RP
-  buys permanent research upgrades.
-- Earnings continue **offline** (cap 8h, +4h via research, doublable by ad).
+**Core loop — Lab tab:**
+- **TRAIN** (tap the big button) generates **🖥 compute** (and a little seed cash to
+  bootstrap the garage).
+- Buy **hardware** (Laptop → Matrioshka); generators produce **compute/sec** (the
+  bottleneck). Every 10/25/50/100… owned **doubles** that tier's compute.
+- **Train model generations** (v1 → … → AGI): a **timed process** gated by compute.
+  Each generation is a **permanent leap** — more product revenue + a market-share
+  jump + new content — and you **keep all infrastructure** (no reset, ever).
+- Your shipped product earns **💵 money** (scales with infra × generation × market
+  share × trust). Money buys generators and funds expansion.
+- **Datacenter builds** (Lab) and **research projects** (Team) are extra **parallel
+  timers** — there's always something progressing while a model trains.
 
-**Active-play hooks (Round 3):**
-- **Overclock** — tap fast to build heat for up to ×5 tap value.
-- **Insight Flash** — a glowing collectible drifts by every ~45–95s; tap it for
-  Frenzy (×7 output), Click Frenzy (×100 tap), or an instant cash windfall.
-- **Breakthrough** — an ability (×10 output 20s, 180s cooldown); re-fire within
-  8s of it ending to chain into ×15 for 25s.
+**Resources:** 💵 Money · 🖥 Compute · 👥 Researchers. Derived scoreboards:
+**Valuation** and **Market share**.
 
-**Endgame / meta-progression (Round 4):**
-- **Tech Tree** (Research tab) — spend RP on a gated tree of category multipliers.
-- **Artifacts** — earn one per model-release; equip up to 3 and match tags for
-  **synergy** bonuses (build-crafting).
-- **The Singularity** (2nd prestige) — collapse everything into permanent
-  **Singularity Cores** (+10% global each) and a Core meta-tree. Unlocks at 500
-  lifetime RP or your first AGI Core.
-- **Climactic moments** — a prestige ritual cinematic, milestone celebrations, an
-  evolving backdrop that escalates toward AGI, and optional ambient music.
+**Other systems (unlock as you grow):**
+- **Team:** hire **researchers** (speed up every timed process) and run **research
+  projects** (permanent efficiency). The war for talent.
+- **Finance:** raise **funding rounds** (Seed → A → B → C → IPO) as your valuation
+  grows — big one-time cash + a permanent revenue boost. (Replaces day-trading.)
+- **Race:** 3 rival labs grow market share & race to AGI on their own timelines.
+  Become **#1**, then reach **AGI first**. Newsroom decisions move **Trust** (which
+  moves revenue). Safety/risk vectors rise with capability — fund **Alignment** or a
+  **crisis** cuts your compute ×0.2 (the speed-vs-safety tradeoff).
 
-**Polish & cohesion (Round 5):**
-- **Next-goal nudge** — the Lab screen always tells you what to do next (buy /
-  milestone / upgrade / fund Alignment / release a model / Ascend), so you're never lost.
-- **Spectacle** — layered flashes, shockwaves, particles and sound stings on every
-  dopamine peak (insight, breakthrough, milestones, prestige, Singularity).
-- **Identity** — branded splash/loading screen, polished empty states.
-- **Cosmetics** — earned TRAIN-orb skins + backdrop themes (Settings gallery), no pay-to-win.
-- **Narrative** — a stage-based satirical news ticker (garage → lab → AGI → Singularity).
-- **Perks** — several achievements grant small permanent global/tap bonuses.
+**Retention:** offline "while you were away" summary; **daily check-in** + forgiving
+streak; **earned boosts** (⚡ ×2 all timers, from daily/achievements/idle); an
+always-a-next-goal nudge. Shareable moments: 🦄 Unicorn ($1B), 🚀 Decacorn ($10B).
 
-See `BALANCE.md` for the full economy, endgame audit, and the Round-5 playtest.
+**Endgame:** reach **AGI** for a finale + an ending by play style (**Aligned /
+Reckless / Nationalized**), or get **Beaten** if a rival reaches AGI first. Then,
+optionally, start a **Founder's Legacy** — a new company keeping a permanent bonus
+(never a forced reset).
+
+See `BALANCE.md` for the full month-long arc, levers, and sim findings.
 
 ---
 
