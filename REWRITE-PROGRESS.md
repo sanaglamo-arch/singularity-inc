@@ -23,7 +23,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [x] P7 retention: offline summary + next-goal nudge + earned-boost economy (tokens from daily/achievements/idle; activate to ×2 all timers) + daily login reward & forgiving streak. SAVE_VERSION 7.
 - [x] P8 endgame: AGI finale (win) + endings by play style (Aligned/Reckless=foom/Nationalized) + Beaten (rival hits AGI first) → cinematic+badge+Race finale banner; optional NON-forced Founder's Legacy (+25%/replay, keeps endings). SAVE_VERSION 8.
 - [x] P9 balance — sim-tuned month arc (engaged ~19d to AGI, casual/offline ~month+), 0% dead time, no walls, funding gated by generation; BALANCE.md updated. (late-game $ exponential — documented)
-- [ ] P10 polish (layout/clarity/feel/perf)
+- [~] P10 polish: overflow audit CLEAN (no h-scroll/real overflow at 360/390, fresh/mid/late on Lab/Team/Race); fixed valuation clip + standings copy; Stage-1 garage cleanliness (share/val/build gated to post-v1). TODO: Upgrades/More/Alignment/finale renders, tooltip coverage sweep, touch-target check, then diff-vs-doc gaps (§9 viral, trust/safety meaningfulness).
 
 ## Save migration: SAVE_VERSION 3 -> 4 (this rewrite). Derive new fields from old; never crash/rob.
 
