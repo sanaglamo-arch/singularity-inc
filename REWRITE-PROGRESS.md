@@ -26,3 +26,13 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [ ] P10 polish (layout/clarity/feel/perf)
 
 ## Save migration: SAVE_VERSION 3 -> 4 (this rewrite). Derive new fields from old; never crash/rob.
+
+## Render-harness notes (this env)
+- Background `python3 -m http.server` dies between separate Bash calls. Start it
+  with the Bash tool's run_in_background:true and a fresh port; verify with curl
+  before shooting. (A server on 8077 was started this session.)
+- Headless-Chrome localStorage seeding across separate processes is FLAKY (seed
+  page often doesn't persist to the index load). Prefer a DIRECT-STATE inspection
+  harness: load index in an iframe, mutate w.GAME.state.* in JS, then read DOM.
+- location.hash tab-switch is ASYNC (hashchange) — in a harness, click the nav
+  button to switch tabs synchronously, don't rely on hash+immediate update().
