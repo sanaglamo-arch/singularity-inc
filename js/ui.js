@@ -36,7 +36,8 @@
     ic_lock: '<svg viewBox="0 0 24 24"' + SW + '><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
     ic_world: '<svg viewBox="0 0 24 24"' + SW + '><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 2.6 15.5 0 18M12 3c-2.6 2.5-2.6 15.5 0 18"/></svg>',
     ic_market: '<svg viewBox="0 0 24 24"' + SW + '><path d="M4 19V5M4 19h16"/><path d="M7 15l3-4 3 2 4-6"/></svg>',
-    ic_trust: '<svg viewBox="0 0 24 24"' + SW + '><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
+    ic_trust: '<svg viewBox="0 0 24 24"' + SW + '><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+    nav_more: '<svg viewBox="0 0 24 24"' + SW + '><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>'
   };
   function ic(key) { return EXTRA[key] || ICON[key] || ''; }
 
@@ -96,11 +97,14 @@
       var tiEl = navBtns[ni].querySelector('.ti');
       if (tiEl && navIcons[tabKey]) tiEl.innerHTML = ic(navIcons[tabKey]);
     }
-    // nav
+    // "More" overflow button (icon + label)
+    var moreTi = $('navMoreBtn').querySelector('.ti');
+    if (moreTi) moreTi.innerHTML = ic('nav_more');
+    $('nav_more').textContent = t('tab_more');
+    // nav (primary tabs)
     $('nav_company').textContent = t('tab_company');
     $('nav_upgrades').textContent = t('tab_upgrades');
     $('nav_research').textContent = t('tab_research');
-    $('nav_singularity').textContent = t('tab_singularity');
     $('nav_world').textContent = t('tab_world');
     $('worldNewsTitle').innerHTML = t('world_news_title') + infoBtn('tip_news');
     $('worldMarketTitle').innerHTML = t('world_market_title') + infoBtn('tip_market');
@@ -116,10 +120,7 @@
     $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
     $('metaTitle').textContent = t('meta_title');
     buildArtifacts(); buildTech(); buildMeta();
-    $('nav_alignment').textContent = t('tab_alignment');
-    $('nav_stats').textContent = t('tab_stats');
-    $('nav_achievements').textContent = t('tab_achievements');
-    $('nav_settings').textContent = t('tab_settings');
+    // (Alignment / Singularity / Stats / Awards / Settings labels live in the More sheet, built on open)
     // upgrades + autopilot
     $('upgradesTitle').textContent = t('upgrades_title');
     $('managersTitle').textContent = t('managers_title');
@@ -1007,9 +1008,7 @@
     else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
     if (currentTab === 'company') { updateAlignment(); updateNudge(); }
-    // reveal Singularity nav once unlocked
-    var nsb = $('navSingBtn');
-    if (nsb) nsb.classList.toggle('hidden', !(G.singUnlocked() || G.rivalsRevealed()));
+    // (Singularity lives in the More sheet, shown there once unlocked)
     // World: nav reveal + Trust HUD + one-time unlock hint
     var wb = $('navWorldBtn'), wu = G.worldUnlocked();
     if (wb) wb.classList.toggle('hidden', !wu);
@@ -1043,15 +1042,45 @@
   }
 
   // ---------- tabs ----------
+  // destinations that live behind the "More" overflow button (not in the bottom nav)
+  var MORE_GROUP = { singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
   function switchTab(tab) {
     currentTab = tab;
     var tabs = document.querySelectorAll('.tab');
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', tabs[i].dataset.tab === tab);
     var navs = $('tabbar').children;
-    for (var j = 0; j < navs.length; j++) navs[j].classList.toggle('active', navs[j].dataset.tab === tab);
+    for (var j = 0; j < navs.length; j++) {
+      var nb = navs[j];
+      var on = nb.dataset.more ? !!MORE_GROUP[tab] : (nb.dataset.tab === tab);
+      nb.classList.toggle('active', on);
+    }
     var showBuyMode = (tab === 'company');
     $('buyModeBar').classList.toggle('hidden', !showBuyMode);
     update();
+  }
+
+  // ---------- "More" overflow sheet ----------
+  function openMoreSheet() {
+    var items = [];
+    if (G.singUnlocked() || G.rivalsRevealed()) items.push({ tab: 'singularity', icon: 'nav_singularity' });
+    items.push({ tab: 'alignment', icon: 'nav_alignment' });
+    items.push({ tab: 'stats', icon: 'nav_stats' });
+    items.push({ tab: 'achievements', icon: 'nav_achievements' });
+    items.push({ tab: 'settings', icon: 'nav_settings' });
+    var tabLabel = { singularity: 'tab_singularity', alignment: 'tab_alignment', stats: 'tab_stats', achievements: 'tab_achievements', settings: 'tab_settings' };
+    var html = '<div class="sheet"><h3>' + t('more_title') + '</h3><div class="sheet-grid">';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      html += '<button class="sheet-item' + (currentTab === it.tab ? ' cur' : '') + '" data-goto="' + it.tab + '">' +
+        ic(it.icon) + '<span>' + t(tabLabel[it.tab]) + '</span></button>';
+    }
+    html += '</div><button class="secondary" id="sheetClose">' + t('more_close') + '</button></div>';
+    showModal(html);
+    var btns = document.querySelectorAll('.sheet-item');
+    for (var k = 0; k < btns.length; k++) {
+      (function (b) { b.addEventListener('click', function () { window.GAME_AUDIO.buy(); buzz(8); hideModal(); switchTab(b.dataset.goto); }); })(btns[k]);
+    }
+    $('sheetClose').addEventListener('click', hideModal);
   }
 
   function updateBuyModeBar() {
@@ -1173,10 +1202,15 @@
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
 
-    // tab nav
+    // tab nav (primary tabs switch; the More button opens the overflow sheet)
     var navs = $('tabbar').children;
     for (var i = 0; i < navs.length; i++) {
-      (function (btn) { btn.addEventListener('click', function () { switchTab(btn.dataset.tab); }); })(navs[i]);
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.dataset.more) { window.GAME_AUDIO.buy(); buzz(8); openMoreSheet(); }
+          else switchTab(btn.dataset.tab);
+        });
+      })(navs[i]);
     }
 
     // buy mode

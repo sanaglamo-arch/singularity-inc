@@ -13,6 +13,9 @@
     tab_alignment: 'Alignment',
     tab_stats: 'Stats',
     tab_settings: 'Settings',
+    tab_more: 'More',
+    more_title: 'More',
+    more_close: 'Close',
 
     cash: 'Cash',
     per_sec: '{v}/sec',
@@ -423,6 +426,9 @@
     tab_alignment: 'Элайнмент',
     tab_stats: 'Статы',
     tab_settings: 'Настройки',
+    tab_more: 'Ещё',
+    more_title: 'Ещё',
+    more_close: 'Закрыть',
 
     cash: 'Деньги',
     per_sec: '{v}/сек',
