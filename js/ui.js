@@ -1022,7 +1022,7 @@
   }
   function showEndingCinematic(d) {
     window.GAME_FX.ritual({ kind: (d.id === 'aligned' || d.id === 'quiet') ? 'singularity' : 'prestige', title: t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
-    window.GAME_AUDIO.prestige(); buzz([0,60,80,60,80,120]);
+    window.GAME_AUDIO.singularity(); buzz([0,60,80,60,80,120]);
     toast(t('ending_unlocked_toast', { name: t('ending_' + d.id + '_t') }), 'gold');
   }
 
@@ -1444,7 +1444,7 @@
     // breakthrough ability
     $('breakthroughBtn').addEventListener('click', function () {
       if (G.activateBreakthrough()) {
-        window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
+        window.GAME_AUDIO.breakthrough(); buzz([0,30,40,30]);
         var bx = window.innerWidth / 2, by = window.innerHeight * 0.42;
         window.GAME_FX.flash('rgba(34,211,238,0.4)');
         window.GAME_FX.shockwave(bx, by, 'rgba(34,211,238,0.9)', 720);
