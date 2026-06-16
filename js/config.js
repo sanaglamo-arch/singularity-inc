@@ -135,8 +135,36 @@
     { id: 'a_safe',       cond: { type: 'cleanRun', n: 1 } }, // prestige with 0 incidents this run
     { id: 'a_event',      cond: { type: 'events', n: 1 } },
     { id: 'a_matrioshka', cond: { type: 'gen', gen: 'matrioshka', n: 1 } },
-    { id: 'a_cash1qa',    cond: { type: 'totalCash', n: 1e15 } }
+    { id: 'a_cash1qa',    cond: { type: 'totalCash', n: 1e15 } },
+    { id: 'a_insight',    cond: { type: 'insights', n: 1 } },
+    { id: 'a_breakthrough', cond: { type: 'breakthroughs', n: 1 } },
+    { id: 'a_overclock',  cond: { type: 'maxheat', n: 1 } }
   ];
+
+  // ---- Tap combo / Overclock heat -------------------------------------
+  // Rapid tapping builds heat (0..1) that decays; tap value scales up to
+  // x(1+maxBonus) at full heat. Rewards active bursts; makes TRAIN feel alive.
+  var COMBO = { gainPerTap: 0.085, decayPerSec: 0.40, maxBonus: 4 };
+
+  // ---- Insight Flash (Cookie-Clicker "golden cookie") ------------------
+  // A glowing collectible drifts across the screen; tap in time for a buff.
+  var INSIGHT = {
+    MIN_GAP: 45, MAX_GAP: 95,   // seconds between spawns
+    FIRST_DELAY: 40,            // earliest after run start
+    LIFETIME: 13,              // seconds on screen before it escapes
+    rewards: [
+      { id: 'frenzy',      mult: 7,      duration: 30 }, // x7 global output 30s
+      { id: 'clickFrenzy', tapMult: 100, duration: 15 }, // x100 tap value 15s
+      { id: 'lucky',       cashSeconds: 900 }            // instant 15 min of income
+    ]
+  };
+
+  // ---- Breakthrough ability (active, chainable) -----------------------
+  var BREAKTHROUGH = {
+    mult: 10, duration: 20, cooldown: 180,
+    chainWindow: 8,            // re-fire within Ns of the last one ending => bonus
+    chainMult: 15, chainDuration: 25
+  };
 
   // ---- Random timed events --------------------------------------------
   var EVENTS = {
@@ -172,6 +200,9 @@
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
     EVENTS: EVENTS,
+    COMBO: COMBO,
+    INSIGHT: INSIGHT,
+    BREAKTHROUGH: BREAKTHROUGH,
     SETTINGS: SETTINGS
   };
 })();

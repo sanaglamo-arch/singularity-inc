@@ -208,7 +208,28 @@
     ob_2_title: 'Buy hardware',
     ob_2_body: 'Spend cash on generators — they earn automatically, even offline.',
     ob_3_title: 'Mind the Risk',
-    ob_3_body: 'Scaling raises Risk. Open the Alignment lab and fund it, or an incident will cut your output.'
+    ob_3_body: 'Scaling raises Risk. Open the Alignment lab and fund it, or an incident will cut your output.',
+
+    // --- combo / breakthrough / insight ---
+    combo_label: 'OVERCLOCK',
+    breakthrough_btn: 'BREAKTHROUGH',
+    breakthrough_ready: 'READY',
+    breakthrough_active: 'ACTIVE {t}',
+    breakthrough_fire: 'Breakthrough! ×{m} output',
+    breakthrough_chain: 'CHAINED! ×{m} output',
+    insight_appear: 'Insight! Tap it!',
+    insight_frenzy: 'Frenzy! ×{m} output for {t}s',
+    insight_clickFrenzy: 'Click Frenzy! ×{m} tap for {t}s',
+    insight_lucky: 'Eureka! +{v} cash',
+    insight_gone: 'The insight slipped away…',
+    buff_frenzy: 'FRENZY ×{m}: {t}',
+    buff_click: 'CLICK ×{m}: {t}',
+    buff_breakthrough: 'BREAKTHROUGH ×{m}: {t}',
+    tip_insight: 'Watch for the glowing Insight — tap it fast for a huge buff.',
+    tip_overclock: 'Tap fast to build Overclock heat and multiply tap value.',
+    a_insight: 'Eureka', a_insight_d: 'Catch a glowing Insight.',
+    a_breakthrough: 'Paradigm Shift', a_breakthrough_d: 'Fire a Breakthrough.',
+    a_overclock: 'Redlined', a_overclock_d: 'Max out the Overclock heat.'
   };
 
   var RU = {
@@ -403,7 +424,27 @@
     ob_2_title: 'Покупай железо',
     ob_2_body: 'Трать деньги на генераторы — они приносят доход сами, даже офлайн.',
     ob_3_title: 'Следи за Риском',
-    ob_3_body: 'Масштабирование повышает Риск. Открой лабораторию элайнмента и финансируй её, иначе инцидент срежет доход.'
+    ob_3_body: 'Масштабирование повышает Риск. Открой лабораторию элайнмента и финансируй её, иначе инцидент срежет доход.',
+
+    combo_label: 'РАЗГОН',
+    breakthrough_btn: 'ПРОРЫВ',
+    breakthrough_ready: 'ГОТОВ',
+    breakthrough_active: 'АКТИВНО {t}',
+    breakthrough_fire: 'Прорыв! ×{m} к выработке',
+    breakthrough_chain: 'СВЯЗКА! ×{m} к выработке',
+    insight_appear: 'Озарение! Лови!',
+    insight_frenzy: 'Раж! ×{m} к выработке на {t}с',
+    insight_clickFrenzy: 'Раж кликов! ×{m} к тапу на {t}с',
+    insight_lucky: 'Эврика! +{v} денег',
+    insight_gone: 'Озарение ускользнуло…',
+    buff_frenzy: 'РАЖ ×{m}: {t}',
+    buff_click: 'КЛИК ×{m}: {t}',
+    buff_breakthrough: 'ПРОРЫВ ×{m}: {t}',
+    tip_insight: 'Лови светящееся Озарение — быстрый тап даёт мощный буст.',
+    tip_overclock: 'Тапай быстро, чтобы раскалить Разгон и умножить ценность тапа.',
+    a_insight: 'Эврика', a_insight_d: 'Поймай светящееся Озарение.',
+    a_breakthrough: 'Смена парадигмы', a_breakthrough_d: 'Запусти Прорыв.',
+    a_overclock: 'На пределе', a_overclock_d: 'Раскали Разгон до максимума.'
   };
 
   var DICTS = { en: EN, ru: RU };

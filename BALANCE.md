@@ -85,6 +85,24 @@ one of five events fires, each with RU+EN copy and a toast + top badge:
 Events add light variance and interact with the Risk system (a Data Leak during
 a high-risk push can tip you into an incident).
 
+## Active-play / viral mechanics (Round 3)
+
+- **Overclock heat (tap combo):** each tap adds +0.085 heat (cap 1.0), decaying
+  0.40/sec. Tap value is multiplied by `1 + heat·4` → up to **×5** while hot.
+  Rewards active tapping bursts; drives the TRAIN button's heat glow.
+- **Insight Flash** (golden-cookie hook): a glowing collectible spawns every
+  **45–95s** (first after 40s) and stays **13s**. Tapping it grants one of:
+  *Frenzy* (×7 output, 30s), *Click Frenzy* (×100 tap value, 15s), or *Eureka*
+  (instant 15 min of income). Signature active-play hook.
+- **Breakthrough** (active, chainable): ×10 output for 20s, **180s** cooldown.
+  Re-firing within **8s** of the previous one ending chains it to **×15 for 25s**.
+- **Milestone ×2** (AdVenture-Capitalist style): every 25/50/100/150/200/300/
+  400/500 owned doubles that generator permanently (already in the curve), now
+  with an icon color-shift (cyan→gold→white glow at 25/100/200) + celebratory pop.
+
+All multipliers stack multiplicatively with prestige/upgrades but are time-boxed,
+so they spike engagement without breaking the long-term curve. RU+EN copy for all.
+
 ## Offline
 
 - Earns **50%** of current cps for elapsed time, capped at **8h** (+4h per

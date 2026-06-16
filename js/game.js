@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -41,6 +41,19 @@
       eventOutputMult: 1,    // output multiplier from active timed event
       eventsSeen: 0,         // lifetime count of events triggered
       nextEventAt: 0,        // ms; when the next event may fire
+      // tap combo / overclock heat
+      comboHeat: 0,          // 0..1
+      maxHeatHit: false,
+      // insight flash buffs
+      frenzyEndsAt: 0, frenzyMult: 1,
+      clickFrenzyEndsAt: 0, clickFrenzyMult: 1,
+      insightExpiresAt: 0,   // >0 = collectible currently on screen
+      nextInsightAt: 0,
+      insightsClaimed: 0,
+      // breakthrough ability
+      breakthroughEndsAt: 0, breakthroughMult: 1,
+      breakthroughReadyAt: 0, lastBreakthroughEndAt: 0,
+      breakthroughsUsed: 0,
       achievements: achs,
       playtime: 0,           // seconds
       sound: false,
@@ -100,12 +113,18 @@
   function incidentActive() { return state.incidentEndsAt > Date.now(); }
   function eventActive() { return state.eventEndsAt > Date.now(); }
   function eventOutputMult() { return eventActive() ? (state.eventOutputMult || 1) : 1; }
+  function frenzyActive() { return state.frenzyEndsAt > Date.now(); }
+  function clickFrenzyActive() { return state.clickFrenzyEndsAt > Date.now(); }
+  function breakthroughActive() { return state.breakthroughEndsAt > Date.now(); }
+  function comboBonus() { return state.comboHeat * C.COMBO.maxBonus; } // 0..maxBonus
 
   function globalMult() {
     var m = rpMult() * puValue('globalMult', 1) * allUpgradeMult();
     if (boostActive()) m *= C.ADS.BOOST_MULT;
     if (incidentActive()) m *= C.RISK.INCIDENT_PENALTY;
     m *= eventOutputMult();
+    if (frenzyActive()) m *= state.frenzyMult;
+    if (breakthroughActive()) m *= state.breakthroughMult;
     return m;
   }
   function tapMult() {
@@ -126,7 +145,12 @@
     for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
     return sum * globalMult();
   }
-  function tapValue() { return C.TAP.base * tapMult() * globalMult(); }
+  function tapValue() {
+    var v = C.TAP.base * tapMult() * globalMult();
+    v *= (1 + comboBonus());                       // overclock heat
+    if (clickFrenzyActive()) v *= state.clickFrenzyMult;
+    return v;
+  }
 
   // ---- costs -----------------------------------------------------------
   function genCostCumulative(id, qty) {
@@ -152,6 +176,9 @@
   function addCash(v) { state.cash += v; state.totalEarnedThisRun += v; state.totalEarnedAllTime += v; }
 
   function tap() {
+    // build overclock heat first so this tap reflects the new heat
+    state.comboHeat = Math.min(1, state.comboHeat + C.COMBO.gainPerTap);
+    if (state.comboHeat >= 0.999) state.maxHeatHit = true;
     var v = tapValue();
     addCash(v);
     state.taps++;
@@ -358,6 +385,71 @@
     if (Date.now() >= state.nextEventAt && !eventActive()) triggerEvent();
   }
 
+  // ---- Insight Flash (golden-cookie collectible) ----------------------
+  function scheduleNextInsight() {
+    var I = C.INSIGHT;
+    state.nextInsightAt = Date.now() + (I.MIN_GAP + Math.random() * (I.MAX_GAP - I.MIN_GAP)) * 1000;
+  }
+  function insightOnScreen() { return state.insightExpiresAt > Date.now(); }
+  function updateInsight() {
+    var I = C.INSIGHT;
+    if (state.playtime < I.FIRST_DELAY) return;
+    if (state.nextInsightAt === 0) { scheduleNextInsight(); return; }
+    if (state.insightExpiresAt > 0 && !insightOnScreen()) { // escaped
+      state.insightExpiresAt = 0; emit('insight', { kind: 'despawn' }); scheduleNextInsight();
+    }
+    if (Date.now() >= state.nextInsightAt && state.insightExpiresAt === 0) {
+      state.insightExpiresAt = Date.now() + I.LIFETIME * 1000;
+      emit('insight', { kind: 'spawn', lifetime: I.LIFETIME });
+    }
+  }
+  function claimInsight() {
+    if (!insightOnScreen()) return null;
+    state.insightExpiresAt = 0;
+    var I = C.INSIGHT;
+    var r = I.rewards[Math.floor(Math.random() * I.rewards.length)];
+    var vars = {};
+    if (r.id === 'frenzy') { state.frenzyEndsAt = Date.now() + r.duration * 1000; state.frenzyMult = r.mult; vars = { m: r.mult, t: r.duration }; }
+    else if (r.id === 'clickFrenzy') { state.clickFrenzyEndsAt = Date.now() + r.duration * 1000; state.clickFrenzyMult = r.tapMult; vars = { m: r.tapMult, t: r.duration }; }
+    else if (r.id === 'lucky') { var v = cps() * r.cashSeconds; if (v <= 0) v = tapValue() * 200; addCash(v); vars = { v: window.GAME_FMT.fmt(v) }; }
+    state.insightsClaimed++;
+    scheduleNextInsight();
+    checkAchievements();
+    emit('insight', { kind: 'claim', reward: r.id, vars: vars });
+    emit('change');
+    return { reward: r.id, vars: vars };
+  }
+
+  // ---- Breakthrough ability (active, chainable) -----------------------
+  function breakthroughReady() { return Date.now() >= state.breakthroughReadyAt && !breakthroughActive(); }
+  function breakthroughCooldownLeft() { return Math.max(0, (state.breakthroughReadyAt - Date.now()) / 1000); }
+  function activateBreakthrough() {
+    if (!breakthroughReady()) return false;
+    var B = C.BREAKTHROUGH;
+    var chained = state.lastBreakthroughEndAt > 0 && (Date.now() - state.lastBreakthroughEndAt) <= B.chainWindow * 1000;
+    var mult = chained ? B.chainMult : B.mult;
+    var dur = chained ? B.chainDuration : B.duration;
+    state.breakthroughMult = mult;
+    state.breakthroughEndsAt = Date.now() + dur * 1000;
+    state.breakthroughReadyAt = Date.now() + B.cooldown * 1000;
+    state.breakthroughsUsed++;
+    checkAchievements();
+    emit('breakthrough', { chained: chained, mult: mult, duration: dur });
+    emit('change');
+    return true;
+  }
+
+  // expire timed buffs; called from tick
+  function updateBuffs(dt) {
+    if (state.comboHeat > 0) state.comboHeat = Math.max(0, state.comboHeat - C.COMBO.decayPerSec * dt);
+    var now = Date.now();
+    if (state.frenzyEndsAt && now >= state.frenzyEndsAt) { state.frenzyEndsAt = 0; state.frenzyMult = 1; }
+    if (state.clickFrenzyEndsAt && now >= state.clickFrenzyEndsAt) { state.clickFrenzyEndsAt = 0; state.clickFrenzyMult = 1; }
+    if (state.breakthroughEndsAt && now >= state.breakthroughEndsAt) {
+      state.breakthroughEndsAt = 0; state.breakthroughMult = 1; state.lastBreakthroughEndAt = now;
+    }
+  }
+
   // ---- achievements ----------------------------------------------------
   function condMet(c) {
     switch (c.type) {
@@ -371,6 +463,9 @@
       case 'incidents': return state.incidentsTotal >= c.n;
       case 'cleanRun': return !!state._lastRunClean && state.prestiges >= 1;
       case 'events': return state.eventsSeen >= c.n;
+      case 'insights': return state.insightsClaimed >= c.n;
+      case 'breakthroughs': return state.breakthroughsUsed >= c.n;
+      case 'maxheat': return !!state.maxHeatHit;
       default: return false;
     }
   }
@@ -416,6 +511,8 @@
     }
 
     updateEvents();
+    updateInsight();
+    updateBuffs(dt);
 
     state.playtime += dt;
     checkAchievements();
@@ -503,6 +600,11 @@
     alignCost: alignCost, alignSuppress: alignSuppress, riskGainRate: riskGainRate,
     boostActive: boostActive, incidentActive: incidentActive,
     eventActive: eventActive, eventOutputMult: eventOutputMult,
+    frenzyActive: frenzyActive, clickFrenzyActive: clickFrenzyActive,
+    breakthroughActive: breakthroughActive, breakthroughReady: breakthroughReady,
+    breakthroughCooldownLeft: breakthroughCooldownLeft, comboBonus: comboBonus,
+    insightOnScreen: insightOnScreen, claimInsight: claimInsight,
+    activateBreakthrough: activateBreakthrough,
     // actions
     tap: tap, buyGen: buyGen, buyUpgrade: buyUpgrade, buyManager: buyManager,
     buyAlignment: buyAlignment, containIncident: containIncident,

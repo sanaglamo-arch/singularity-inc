@@ -28,12 +28,30 @@
     root.appendChild(e);
     setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 3000);
   }
-  function floatText(x, y, txt) {
-    var e = el('div', 'float', txt);
+  function floatText(x, y, txt, cls) {
+    var e = el('div', 'float' + (cls ? ' ' + cls : ''), txt);
     e.style.left = (x - 12) + 'px';
     e.style.top = (y - 20) + 'px';
     $('fxRoot').appendChild(e);
-    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 900);
+    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1100);
+  }
+
+  // ---------- odometer: eased rolling counter with pop on magnitude change ----
+  var odoState = {};
+  function setOdometer(el, target) {
+    if (!el) return;
+    var id = el.id || 'odo';
+    var st = odoState[id] || (odoState[id] = { disp: target, lastLen: -1 });
+    var d = st.disp + (target - st.disp) * 0.22;
+    if (!isFinite(d)) d = target;
+    if (Math.abs(target - d) < target * 0.0015 + 0.5) d = target;
+    st.disp = d;
+    var str = fmt(d);
+    el.textContent = str;
+    if (str.length !== st.lastLen) {
+      st.lastLen = str.length;
+      el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+    }
   }
 
   // ---------- static labels (i18n) ----------
@@ -394,11 +412,54 @@
   // ---------- top bar / boost ----------
   function updateTop() {
     var s = G.state;
-    $('cashVal').textContent = fmt(s.cash);
+    setOdometer($('cashVal'), s.cash);
     $('cpsVal').textContent = t('per_sec', { v: fmt(G.cps()) });
     $('tapValue').textContent = '+' + fmt(G.tapValue());
+
+    // atmosphere intensity rises with output toward AGI
+    var inten = Math.max(0, Math.min(1, (Math.log10(G.cps() + 10) - 1) / 9));
+    document.documentElement.style.setProperty('--intensity', inten.toFixed(3));
+
+    // overclock heat -> combo bar + button glow
+    var heat = s.comboHeat || 0;
+    $('tapBtn').style.setProperty('--heat', heat.toFixed(3));
+    var cw = $('comboWrap');
+    if (heat > 0.02) {
+      cw.classList.add('on');
+      $('comboName').textContent = t('combo_label');
+      $('comboMult').textContent = '×' + (1 + G.comboBonus()).toFixed(1);
+      $('comboFill').style.width = (heat * 100) + '%';
+    } else { cw.classList.remove('on'); }
+
+    // breakthrough button
+    var btn = $('breakthroughBtn');
+    btn.classList.remove('hidden');
+    if (G.breakthroughActive()) {
+      btn.disabled = true;
+      btn.textContent = t('breakthrough_active', { t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) });
+      btn.classList.add('bt-active');
+    } else if (G.breakthroughReady()) {
+      btn.disabled = false;
+      btn.textContent = t('breakthrough_btn') + ' · ' + t('breakthrough_ready');
+      btn.classList.remove('bt-active');
+    } else {
+      btn.disabled = true;
+      btn.textContent = t('breakthrough_btn') + ' · ' + FMT.fmtTime(G.breakthroughCooldownLeft());
+      btn.classList.remove('bt-active');
+    }
+
+    // buff badge (priority: breakthrough > frenzy > clickFrenzy > ad boost)
     var bb = $('boostBadge');
-    if (G.boostActive()) {
+    if (G.breakthroughActive()) {
+      bb.classList.remove('hidden');
+      bb.textContent = t('buff_breakthrough', { m: s.breakthroughMult, t: FMT.fmtTime((s.breakthroughEndsAt - Date.now()) / 1000) });
+    } else if (G.frenzyActive()) {
+      bb.classList.remove('hidden');
+      bb.textContent = t('buff_frenzy', { m: s.frenzyMult, t: FMT.fmtTime((s.frenzyEndsAt - Date.now()) / 1000) });
+    } else if (G.clickFrenzyActive()) {
+      bb.classList.remove('hidden');
+      bb.textContent = t('buff_click', { m: s.clickFrenzyMult, t: FMT.fmtTime((s.clickFrenzyEndsAt - Date.now()) / 1000) });
+    } else if (G.boostActive()) {
       bb.classList.remove('hidden');
       bb.textContent = t('boost_active', { t: FMT.fmtTime((s.boostUntil - Date.now()) / 1000) });
     } else bb.classList.add('hidden');
@@ -483,6 +544,38 @@
     };
   }
 
+  // ---------- insight flash collectible ----------
+  function removeInsight() { var e = $('insightFlash'); if (e && e.parentNode) e.parentNode.removeChild(e); }
+  function spawnInsight(lifetime) {
+    removeInsight();
+    var e = el('div'); e.id = 'insightFlash'; e.innerHTML = ic('ic_insight');
+    e.setAttribute('role', 'button'); e.setAttribute('aria-label', t('insight_appear'));
+    document.body.appendChild(e);
+    var w = window.innerWidth, h = window.innerHeight;
+    var x0 = 24 + Math.random() * Math.max(40, w - 130);
+    var y0 = 100 + Math.random() * Math.max(40, h - 280);
+    e.style.left = x0 + 'px'; e.style.top = y0 + 'px';
+    e.style.transition = 'left ' + lifetime + 's linear, top ' + lifetime + 's linear, transform 0.12s';
+    requestAnimationFrame(function () {
+      var x1 = Math.max(24, Math.min(w - 90, x0 + (Math.random() * 220 - 110)));
+      var y1 = Math.max(90, Math.min(h - 170, y0 + (Math.random() * 180 - 90)));
+      e.style.left = x1 + 'px'; e.style.top = y1 + 'px';
+    });
+    function claim(ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var rect = e.getBoundingClientRect();
+      var res = G.claimInsight();
+      removeInsight();
+      if (res) {
+        window.GAME_AUDIO.achievement();
+        window.GAME_FX.insightBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        toast(t('insight_' + res.reward, res.vars), 'gold');
+      }
+    }
+    e.addEventListener('click', claim);
+    e.addEventListener('touchstart', claim, { passive: false });
+  }
+
   // ---------- onboarding tour ----------
   function showOnboarding() {
     var steps = [
@@ -521,8 +614,11 @@
     function doTap(clientX, clientY) {
       var v = G.tap();
       window.GAME_AUDIO.tap();
-      floatText(clientX, clientY, '+' + fmt(v));
+      var cls = G.clickFrenzyActive() ? 'crit' : (G.state.comboHeat > 0.6 ? 'big' : '');
+      floatText(clientX, clientY, '+' + fmt(v), cls);
       window.GAME_FX.tapBurst(clientX, clientY);
+      window.GAME_FX.ripple(clientX, clientY, 130);
+      tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
 
@@ -571,6 +667,24 @@
 
     // alignment buy
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
+
+    // breakthrough ability
+    $('breakthroughBtn').addEventListener('click', function () {
+      if (G.activateBreakthrough()) {
+        window.GAME_AUDIO.prestige();
+        var cx = window.innerWidth / 2, cy = window.innerHeight * 0.42;
+        window.GAME_FX.milestoneBurst(cx, cy);
+      }
+    });
+    G.on('breakthrough', function (d) {
+      toast(t(d.chained ? 'breakthrough_chain' : 'breakthrough_fire', { m: d.mult }), 'gold');
+    });
+
+    // insight flash (drifting collectible)
+    G.on('insight', function (d) {
+      if (d.kind === 'spawn') { spawnInsight(d.lifetime); window.GAME_AUDIO.achievement(); toast(t('insight_appear'), 'gold'); }
+      else if (d.kind === 'despawn') { removeInsight(); toast(t('insight_gone')); }
+    });
 
     // language
     var lsg = $('langSeg').children;

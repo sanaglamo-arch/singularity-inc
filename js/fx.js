@@ -55,6 +55,18 @@
     setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1100);
   }
 
+  function ripple(x, y, size) {
+    if (reduce) return;
+    var r = root(); if (!r) return;
+    var e = document.createElement('div');
+    e.className = 'ripple';
+    size = size || 150;
+    e.style.left = x + 'px'; e.style.top = y + 'px';
+    e.style.width = size + 'px'; e.style.height = size + 'px';
+    r.appendChild(e);
+    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 600);
+  }
+
   function cardFlash(el) {
     if (!el || reduce) return;
     el.classList.remove('flash');
@@ -78,8 +90,11 @@
     setTimeout(function () { v.classList.remove('on'); }, 1200);
   }
 
+  function insightBurst(x, y) { spawn(x, y, 'radial-gradient(circle,#fff3c4,#fbbf24)', 24, 150, 1.1); }
+
   window.GAME_FX = {
     tapBurst: tapBurst, buyBurst: buyBurst, milestoneBurst: milestoneBurst,
+    insightBurst: insightBurst, ripple: ripple,
     popText: popText, cardFlash: cardFlash, incident: incident
   };
 })();
