@@ -45,6 +45,7 @@
     $('nav_research').textContent = t('tab_research');
     $('nav_alignment').textContent = t('tab_alignment');
     $('nav_stats').textContent = t('tab_stats');
+    $('nav_achievements').textContent = t('tab_achievements');
     $('nav_settings').textContent = t('tab_settings');
     // upgrades
     $('upgradesTitle').textContent = t('upgrades_title');
@@ -393,7 +394,8 @@
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') updateResearch();
     else if (currentTab === 'alignment') updateAlignment();
-    else if (currentTab === 'stats') { updateStats(); updateAchievements(); }
+    else if (currentTab === 'stats') updateStats();
+    else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
     if (currentTab === 'company') updateAlignment();
     updateSettingsState();
@@ -577,7 +579,7 @@
     window.GAME_AUDIO.setEnabled(G.state.sound);
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
-    var validTabs = { company: 1, upgrades: 1, research: 1, alignment: 1, stats: 1, settings: 1 };
+    var validTabs = { company: 1, upgrades: 1, research: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
     var hash = (location.hash || '').replace('#', '');
     switchTab(validTabs[hash] ? hash : 'company');
     window.addEventListener('hashchange', function () {
