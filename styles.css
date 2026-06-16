@@ -258,7 +258,16 @@ h2:first-child { margin-top: 4px; }
 .card .info { flex: 1 1 auto; min-width: 0; }
 .card .name { font-weight: 600; font-size: 15px; letter-spacing: 0.2px; }
 .card .desc { font-size: 11px; color: var(--fg-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card .sub { font-size: 11.5px; color: var(--cyan); margin-top: 4px; font-weight: 500; }
+.card .sub { font-size: 12.5px; color: var(--cyan); margin-top: 5px; font-weight: 700; text-shadow: 0 0 10px rgba(34,211,238,0.3); letter-spacing: 0.2px; }
+
+/* per-tier generator identity (overridden by milestone tiers below) */
+.card[data-cls="low"] { border-left: 3px solid rgba(34,211,238,0.5); }
+.card[data-cls="mid"] { border-left: 3px solid rgba(139,92,246,0.55); }
+.card[data-cls="high"] { border-left: 3px solid rgba(251,191,36,0.55); }
+/* lower specificity than .card.ms2 .iconwrap so milestone glow still wins */
+[data-cls="low"] .iconwrap { color: var(--cyan); background: radial-gradient(circle at 50% 30%, rgba(34,211,238,0.22), rgba(34,211,238,0.04)); }
+[data-cls="mid"] .iconwrap { color: var(--violet-2); background: radial-gradient(circle at 50% 30%, rgba(139,92,246,0.24), rgba(139,92,246,0.05)); }
+[data-cls="high"] .iconwrap { color: var(--gold); background: radial-gradient(circle at 50% 30%, rgba(251,191,36,0.22), rgba(251,191,36,0.04)); }
 .card .right { flex: 0 0 auto; text-align: right; min-width: 80px; }
 .card .cost { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: 14px; }
 .card .cost.cant { color: var(--fg-muted); }
@@ -506,6 +515,15 @@ html[data-stage="5"] #app { background: linear-gradient(180deg, #0a1226 0%, #0a0
 /* ---------- focus accessibility ---------- */
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
 button:focus:not(:focus-visible) { outline: none; }
+
+/* ---------- micro-interactions: press feedback everywhere ---------- */
+.seg button, .wide, .adbtn, .card .minibtn, .pcard button, #buyModeBar button,
+.modal .row button, #incidentBox button, #tabbar button { transition: transform 0.08s var(--ease-spring), background 0.2s, color 0.2s, filter 0.2s, box-shadow 0.2s; }
+.seg button:active, .wide:active, .adbtn:active, .card .minibtn:active:not(:disabled),
+.pcard button:active:not(:disabled), #buyModeBar button:active, .modal .row button:active,
+#incidentBox button:active:not(:disabled) { transform: scale(0.95); filter: brightness(1.08); }
+#tabbar button:active .ti { transform: scale(0.86); }
+#tabbar button .ti { transition: transform 0.1s var(--ease-spring); }
 
 /* ---------- desktop layout ---------- */
 @media (min-width: 720px) {

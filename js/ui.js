@@ -142,8 +142,10 @@
     var list = $('genList');
     list.innerHTML = '';
     genRefs = {};
+    var classOf = function (id) { for (var k in C.GEN_CLASS) if (C.GEN_CLASS[k].indexOf(id) >= 0) return k; return 'low'; };
     C.GENERATORS.forEach(function (g, gi) {
       var card = el('div', 'card locked');
+      card.dataset.cls = classOf(g.id);
       card.style.animationDelay = (Math.min(gi, 12) * 32) + 'ms';
       card.innerHTML =
         '<div class="iconwrap">' + ic('gen_' + g.id) + '</div>' +
@@ -735,9 +737,9 @@
   // ---------- onboarding tour ----------
   function showOnboarding() {
     var steps = [
-      { icon: '🧠', title: 'ob_1_title', body: 'ob_1_body' },
-      { icon: '💻', title: 'ob_2_title', body: 'ob_2_body' },
-      { icon: '🛡️', title: 'ob_3_title', body: 'ob_3_body' }
+      { icon: ic('ic_brain'), title: 'ob_1_title', body: 'ob_1_body' },
+      { icon: ic('gen_laptop'), title: 'ob_2_title', body: 'ob_2_body' },
+      { icon: ic('nav_alignment'), title: 'ob_3_title', body: 'ob_3_body' }
     ];
     var i = 0;
     function finish() { G.setOnboarded(true); hideModal(); }
@@ -906,7 +908,7 @@
     // save / reset
     $('saveBtn').addEventListener('click', function () { G.save(); toast(t('saved_toast')); });
     $('resetBtn').addEventListener('click', function () {
-      showModal('<h3>⚠️</h3><p>' + t('reset_confirm') + '</p>' +
+      showModal('<div class="ob-icon" style="color:var(--rose)">' + ic('ic_risk') + '</div><p>' + t('reset_confirm') + '</p>' +
         '<div class="row"><button class="secondary" id="rCancel">✕</button>' +
         '<button class="primary danger" id="rOk">' + t('reset_progress') + '</button></div>');
       $('rCancel').onclick = hideModal;
