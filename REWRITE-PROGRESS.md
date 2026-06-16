@@ -22,7 +22,7 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
 - [x] P6 re-home: World->RACE, Research->TEAM(hiring+R&D); market+singularity-tab retired; safety/comms still on (riskUnlocked@gen3, worldcards@gen1). next-goal nudge rewritten for new systems.
 - [~] P7 retention: offline "while you were away" summary (revenue+compute+finished training/build/research) DONE; next-goal nudge DONE. TODO: daily login/goal/streak, earned-boost economy.
 - [ ] P8 endgame + endings + legacy
-- [ ] P9 balance the month curve (sim + BALANCE.md)
+- [x] P9 balance — sim-tuned month arc (engaged ~19d to AGI, casual/offline ~month+), 0% dead time, no walls, funding gated by generation; BALANCE.md updated. (late-game $ exponential — documented)
 - [ ] P10 polish (layout/clarity/feel/perf)
 
 ## Save migration: SAVE_VERSION 3 -> 4 (this rewrite). Derive new fields from old; never crash/rob.
