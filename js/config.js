@@ -59,24 +59,43 @@
   // ---- Prestige --------------------------------------------------------
   // RP gained on prestige = floor( PRESTIGE_K * sqrt(totalEarnedThisRun / PRESTIGE_SCALE) )
   // Each RP grants +PRESTIGE_BONUS global multiplier (additive on a base of 1).
+  // RP gained on release = floor( K * sqrt(totalEarnedThisRun / SCALE) ).
+  // Each RP grants +BONUS to the PERMANENT global multiplier, FOREVER (baseline passive,
+  // shown loudly at the release screen). The shop below is structural choice ON TOP.
   var PRESTIGE = {
-    K: 1,
+    K: 1.4,               // RP gain rate (tuned so the first release lands ~35-45 min)
     SCALE: 1e6,
-    BONUS: 0.05,          // +5% per RP to global mult
-    MIN_TO_PRESTIGE: 1,   // need at least 1 RP to be allowed
-    // prestige (RP-bought) permanent upgrades
+    BONUS: 0.05,          // +5% per RP to global mult, permanent
+    MIN_TO_PRESTIGE: 1,   // engine floor: need >=1 RP to be allowed at all
+    FIRST_RP: 5,          // the guided first-release CTA waits until the gain is this juicy
+    // prestige (RP-bought) permanent upgrades. NO flat starting-cash items — starting
+    // boosts are SCALING (% of your best run) or STRUCTURAL (keep generator levels).
     upgrades: [
-      { id: 'p_mult1',  type: 'globalMult', value: 2,    cost: 5 },
-      { id: 'p_mult2',  type: 'globalMult', value: 3,    cost: 50 },
-      { id: 'p_mult3',  type: 'globalMult', value: 5,    cost: 500 },
-      { id: 'p_tap',    type: 'tapMult',    value: 10,   cost: 10 },
-      { id: 'p_offline',type: 'offlineCap', value: 4,    cost: 25 }, // +4h offline cap
-      { id: 'p_align',  type: 'alignBoost', value: 2,    cost: 20 }, // alignment suppression x2
-      { id: 'p_start',  type: 'startCash',  value: 1e6,  cost: 40 }, // start each run with cash
-      { id: 'p_mult4',  type: 'globalMult', value: 10,   cost: 5000 }, // late-game global x10
-      { id: 'p_offline2', type: 'offlineCap', value: 12, cost: 200 },  // +12h offline cap
-      { id: 'p_start2', type: 'startCash',  value: 1e9,  cost: 1500 }  // bigger war chest
+      { id: 'p_mult1',   type: 'globalMult',  value: 2,    cost: 5 },
+      { id: 'p_tap',     type: 'tapMult',     value: 10,   cost: 10 },
+      { id: 'p_align',   type: 'alignBoost',  value: 2,    cost: 20 }, // alignment suppression x2
+      { id: 'p_offline', type: 'offlineCap',  value: 4,    cost: 25 }, // +4h offline cap
+      { id: 'p_seed',    type: 'startCashPct', value: 0.05, cost: 40 }, // start each run with 5% of best run
+      { id: 'p_mult2',   type: 'globalMult',  value: 3,    cost: 50 },
+      { id: 'p_keepgen', type: 'keepGens',    value: 0.10, cost: 120 }, // keep 10% of every generator level
+      { id: 'p_offline2',type: 'offlineCap',  value: 12,   cost: 200 }, // +12h offline cap
+      { id: 'p_mult3',   type: 'globalMult',  value: 5,    cost: 500 },
+      { id: 'p_seed2',   type: 'startCashPct', value: 0.25, cost: 1500 }, // start with 25% of best run
+      { id: 'p_mult4',   type: 'globalMult',  value: 10,   cost: 5000 }  // late-game global x10
     ]
+  };
+
+  // ---- Progressive-unlock schedule (player journey) --------------------
+  // Sticky, monotonic gates on lifetime metrics. Stage 1 (Garage) shows ONLY the
+  // tap->buy loop; depth reveals as the player grows. See BALANCE.md.
+  var UNLOCKS = {
+    BUYMODES_EARNED: 250,    // reveal x10/x100/Max bulk buying
+    UPGRADES_EARNED: 500,    // reveal the Upgrades tab (first upgrade costs 500)
+    INSIGHT_EARNED: 1500,    // the first delightful Insight-Flash surprise can appear
+    BREAKTHROUGH_EARNED: 2.5e4, // reveal the Breakthrough ability
+    MANAGERS_EARNED: 6e4,    // reveal Managers (manual buying is getting tedious)
+    WORLD_RP: 70             // Stage 6 "Industry" (News/Trust/Market/Rivals) opens a bit
+                             // after the first release; also opens at prestiges>=2
   };
 
   // ---- Risk / Alignment (signature mechanic) ---------------------------
@@ -235,7 +254,7 @@
 
   // ---- Second prestige: The Singularity (meta-currency: Singularity Cores) --
   var SINGULARITY = {
-    UNLOCK_RP: 500,            // unlocks at this lifetime RP ...
+    UNLOCK_RP: 700,            // unlocks at this lifetime RP ...
     UNLOCK_GEN: 'agiCore',     // ... or once an AGI Core exists
     SCALE: 100,                // cores = floor( sqrt(rp / SCALE) * coreGainMult )
     CORE_BONUS: 0.10,          // each Core = +10% global (passive)
@@ -282,7 +301,7 @@
   ];
   var RACE = {
     REVEAL_ACT: 3,
-    PLAYER_TARGET_RP: 500,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
+    PLAYER_TARGET_RP: 700,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
     HEAT: 0.6,              // as the leader nears AGI, everyone speeds up (climax tension)
     SLOW_OPENSOURCE: 14,    // open-sourcing knocks the leading rival back this much AGI%
     RECKLESS_RIVAL_BONUS: 0.4 // racing recklessly (low alignment) lets rivals gain faster too
@@ -411,7 +430,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 2,
+    SAVE_VERSION: 3,
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -422,6 +441,7 @@
     UPGRADES: UPGRADES,
     MANAGERS: MANAGERS,
     PRESTIGE: PRESTIGE,
+    UNLOCKS: UNLOCKS,
     RISK: RISK,
     TAP: TAP,
     OFFLINE: OFFLINE,

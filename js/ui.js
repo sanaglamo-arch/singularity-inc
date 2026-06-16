@@ -229,10 +229,11 @@
       var owned = s.gens[g.id];
       var qty = G.buyQty(g.id);
       var cost = G.genCostCumulative(g.id, qty);
-      var unlockedByPrev = true;
-      // soft lock: show generator only if previous owned or it's the first or already owned
+      // soft lock: a later generator stays hidden until it's within reach (≈half its
+      // cost) OR the previous tier has hit its first milestone. Stage 1 = laptop only.
       var idx = C.GENERATORS.indexOf(g);
-      if (idx > 0 && owned === 0 && s.gens[C.GENERATORS[idx - 1].id] === 0 && s.cash < g.baseCost * 0.5) {
+      var prevCount = idx > 0 ? s.gens[C.GENERATORS[idx - 1].id] : 99;
+      if (idx > 0 && owned === 0 && s.cash < g.baseCost * 0.5 && prevCount < 10) {
         r.el.classList.add('hidden');
         return;
       }
@@ -313,6 +314,11 @@
   }
   function updateManagers() {
     var s = G.state;
+    // Stage 3 reveal: the whole Managers section stays hidden until automation matters
+    var mgrOn = G.managersUnlocked();
+    $('managersTitle').classList.toggle('hidden', !mgrOn);
+    $('managerList').classList.toggle('hidden', !mgrOn);
+    if (!mgrOn) { var me0 = $('managerEmpty'); if (me0) me0.classList.add('hidden'); return; }
     var nodes = $('managerList').children;
     var anyVis = false;
     for (var i = 0; i < nodes.length; i++) {
@@ -342,7 +348,8 @@
     C.PRESTIGE.upgrades.forEach(function (p) {
       var card = el('div', 'pcard');
       card.dataset.pid = p.id;
-      var desc = (p.type === 'startCash') ? t(p.id + '_d', { v: fmt(p.value) }) : t(p.id + '_d');
+      var pctVars = (p.type === 'startCashPct' || p.type === 'keepGens') ? { v: Math.round(p.value * 100) } : undefined;
+      var desc = t(p.id + '_d', pctVars);
       card.innerHTML =
         '<div class="picon">' + ic('ic_rp') + '</div>' +
         '<div class="info"><div class="name">' + t(p.id) + '</div><div class="desc">' + desc + '</div></div>' +
@@ -661,12 +668,18 @@
   // ---------- research / prestige ----------
   function updateResearch() {
     var s = G.state;
-    var gain = G.prestigeGain();
-    $('prestigeGain').textContent = t('prestige_gain', { n: gain });
+    var pr = G.prestigeProjection();
     var btn = $('prestigeBtn');
     btn.textContent = t('prestige_button');
     btn.disabled = !G.canPrestige();
-    if (!G.canPrestige()) $('prestigeGain').textContent = t('prestige_locked');
+    if (!G.canPrestige()) {
+      $('prestigeGain').textContent = t('prestige_locked');
+      $('prestigeProj').textContent = '';
+    } else {
+      $('prestigeGain').textContent = t('prestige_gain', { n: pr.gain });
+      // LOUD projection: permanent % gained + how much faster the next run is
+      $('prestigeProj').textContent = t('prestige_proj', { p: pr.pctGain, tot: pr.pctAfter }) + ' · ' + t('prestige_speedup', { s: pr.speedup.toFixed(1) });
+    }
     $('rpHave').textContent = t('rp_have', { n: s.rp });
     $('currentBonus').textContent = t('current_bonus', { p: Math.round(s.rp * C.PRESTIGE.BONUS * 100) });
   }
@@ -751,8 +764,10 @@
       $('comboFill').style.width = (heat * 100) + '%';
     } else { cw.classList.remove('on'); }
 
-    // breakthrough button
+    // breakthrough button (Stage 2 reveal)
     var btn = $('breakthroughBtn');
+    if (!G.breakthroughUnlocked()) { btn.classList.add('hidden'); }
+    else {
     btn.classList.remove('hidden');
     if (G.breakthroughActive()) {
       btn.disabled = true;
@@ -766,6 +781,7 @@
       btn.disabled = true;
       btn.textContent = t('breakthrough_btn') + ' · ' + FMT.fmtTime(G.breakthroughCooldownLeft());
       btn.classList.remove('bt-active');
+    }
     }
 
     // buff badge (priority: breakthrough > frenzy > clickFrenzy > ad boost)
@@ -1008,16 +1024,22 @@
     else if (currentTab === 'achievements') updateAchievements();
     // risk mini always (company tab) + settings seg states
     if (currentTab === 'company') { updateAlignment(); updateNudge(); }
-    // (Singularity lives in the More sheet, shown there once unlocked)
-    // World: nav reveal + Trust HUD + one-time unlock hint
-    var wb = $('navWorldBtn'), wu = G.worldUnlocked();
-    if (wb) wb.classList.toggle('hidden', !wu);
+    // progressive nav: show ONLY unlocked tabs (early game = Lab + More)
+    var wu = G.worldUnlocked();
+    toggleNav('navUpgradesBtn', G.upgradesUnlocked());
+    toggleNav('navResearchBtn', G.researchUnlocked());
+    toggleNav('navWorldBtn', wu);
+    // Trust HUD rides with the World stage
     var th = $('trustHud');
     if (th) {
       th.classList.toggle('hidden', !wu);
       if (wu) { var tr = G.state.trust; $('trustVal').textContent = Math.round(tr); th.classList.toggle('low', tr < 35); th.classList.toggle('high', tr >= 75); }
     }
-    if (wu && !G.state.seen.world) { G.state.seen.world = true; toast(t('hint_world'), 'gold'); G.save(); }
+    // risk mini bar only exists once risks of scale are unlocked (Stage 5)
+    var rm = $('riskMini'); if (rm) rm.classList.toggle('hidden', !G.riskUnlocked());
+    // guided first model-release CTA (Stage 4)
+    updatePrestigeCta();
+    checkUnlocks();
     updateActBar();
     applyCosmetics();
     if (currentTab === 'settings') updateCosmetics();
@@ -1041,10 +1063,51 @@
     hpg[1].classList.toggle('on', !s.haptics);
   }
 
+  // ---------- progressive unlock plumbing ----------
+  function toggleNav(id, on) { var b = $(id); if (b) b.classList.toggle('hidden', !on); }
+  // is a destination reachable right now?
+  function tabUnlocked(tab) {
+    switch (tab) {
+      case 'company': case 'settings': return true;
+      case 'upgrades': return G.upgradesUnlocked();
+      case 'research': return G.researchUnlocked();
+      case 'world': return G.worldUnlocked();
+      case 'alignment': return G.riskUnlocked();
+      case 'singularity': return G.singUnlocked() || G.rivalsRevealed();
+      case 'stats': return G.statsUnlocked();
+      case 'achievements': return G.awardsUnlocked();
+      default: return true;
+    }
+  }
+  // one-time, skippable reveal hints — fire once, in order, as features unlock
+  var UNLOCK_HINTS = [
+    { key: 'u_buymodes',     on: function () { return G.buyModesUnlocked(); },     hint: 'hint_buymodes' },
+    { key: 'u_upgrades',     on: function () { return G.upgradesUnlocked(); },     hint: 'hint_upgrades' },
+    { key: 'u_breakthrough', on: function () { return G.breakthroughUnlocked(); }, hint: 'hint_breakthrough' },
+    { key: 'u_managers',     on: function () { return G.managersUnlocked(); },     hint: 'hint_managers' },
+    { key: 'u_research',     on: function () { return G.researchUnlocked(); },     hint: 'hint_research' },
+    { key: 'u_risk',         on: function () { return G.riskUnlocked(); },         hint: 'hint_risk' },
+    { key: 'world',          on: function () { return G.worldUnlocked(); },        hint: 'hint_world' },
+    { key: 'u_sing',         on: function () { return G.singUnlocked(); },         hint: 'hint_singularity' }
+  ];
+  function checkUnlocks() {
+    for (var i = 0; i < UNLOCK_HINTS.length; i++) {
+      var h = UNLOCK_HINTS[i];
+      if (!G.state.seen[h.key] && h.on()) { G.state.seen[h.key] = true; toast(t(h.hint), 'gold'); buzz(18); G.save(); }
+    }
+  }
+  // returning players: mark already-satisfied reveals as seen (no retroactive spam)
+  function syncUnlockSeenSilently() {
+    for (var i = 0; i < UNLOCK_HINTS.length; i++) { var h = UNLOCK_HINTS[i]; if (h.on()) G.state.seen[h.key] = true; }
+    var hitMs = false; C.GENERATORS.forEach(function (g) { if (G.state.gens[g.id] >= C.MILESTONES[0]) hitMs = true; });
+    if (hitMs) G.state.seen.u_milestone = true;
+  }
+
   // ---------- tabs ----------
   // destinations that live behind the "More" overflow button (not in the bottom nav)
   var MORE_GROUP = { singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
   function switchTab(tab) {
+    if (!tabUnlocked(tab)) tab = 'company';  // never land on a locked tab
     currentTab = tab;
     var tabs = document.querySelectorAll('.tab');
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', tabs[i].dataset.tab === tab);
@@ -1054,18 +1117,18 @@
       var on = nb.dataset.more ? !!MORE_GROUP[tab] : (nb.dataset.tab === tab);
       nb.classList.toggle('active', on);
     }
-    var showBuyMode = (tab === 'company');
+    var showBuyMode = (tab === 'company') && G.buyModesUnlocked();
     $('buyModeBar').classList.toggle('hidden', !showBuyMode);
     update();
   }
 
-  // ---------- "More" overflow sheet ----------
+  // ---------- "More" overflow sheet (only unlocked destinations) ----------
   function openMoreSheet() {
     var items = [];
     if (G.singUnlocked() || G.rivalsRevealed()) items.push({ tab: 'singularity', icon: 'nav_singularity' });
-    items.push({ tab: 'alignment', icon: 'nav_alignment' });
-    items.push({ tab: 'stats', icon: 'nav_stats' });
-    items.push({ tab: 'achievements', icon: 'nav_achievements' });
+    if (G.riskUnlocked()) items.push({ tab: 'alignment', icon: 'nav_alignment' });
+    if (G.statsUnlocked()) items.push({ tab: 'stats', icon: 'nav_stats' });
+    if (G.awardsUnlocked()) items.push({ tab: 'achievements', icon: 'nav_achievements' });
     items.push({ tab: 'settings', icon: 'nav_settings' });
     var tabLabel = { singularity: 'tab_singularity', alignment: 'tab_alignment', stats: 'tab_stats', achievements: 'tab_achievements', settings: 'tab_settings' };
     var html = '<div class="sheet"><h3>' + t('more_title') + '</h3><div class="sheet-grid">';
@@ -1081,6 +1144,51 @@
       (function (b) { b.addEventListener('click', function () { window.GAME_AUDIO.buy(); buzz(8); hideModal(); switchTab(b.dataset.goto); }); })(btns[k]);
     }
     $('sheetClose').addEventListener('click', hideModal);
+  }
+
+  // ---------- guided first model-release CTA + shared release flow ----------
+  function updatePrestigeCta() {
+    var cta = $('prestigeCta'); if (!cta) return;
+    var show = G.firstPrestigeReady() && !G.researchUnlocked();
+    cta.classList.toggle('hidden', !show);
+    if (show) {
+      var pr = G.prestigeProjection();
+      cta.querySelector('.cta-title').textContent = t('cta_release');
+      cta.querySelector('.cta-sub').textContent = t('cta_release_sub', { n: pr.gain, p: pr.pctAfter });
+    }
+  }
+  // The single place a model release is confirmed — loud projection + first-time teaching.
+  function openPrestigeFlow() {
+    if (!G.canPrestige()) return;
+    var first = G.state.prestiges === 0;
+    var pr = G.prestigeProjection();
+    var teach = first ? '<p class="teach">' + t('prestige_teach') + '</p>' : '';
+    var proj =
+      '<div class="proj">' +
+        '<div class="proj-big">+' + pr.gain + ' RP</div>' +
+        '<div class="proj-line">' + t('prestige_proj', { p: pr.pctGain, tot: pr.pctAfter }) + '</div>' +
+        '<div class="proj-line accent">' + t('prestige_speedup', { s: pr.speedup.toFixed(1) }) + '</div>' +
+      '</div>';
+    showModal(
+      '<h3>' + t(first ? 'cta_release' : 'research_title') + '</h3>' +
+      teach + proj +
+      '<div class="row"><button class="secondary" id="pCancel">✕</button>' +
+      '<button class="primary" id="pOk">' + t('prestige_button') + '</button></div>'
+    );
+    $('pCancel').onclick = hideModal;
+    $('pOk').onclick = function () {
+      var wasFirst = G.state.prestiges === 0;
+      hideModal();
+      if (G.doPrestige()) {
+        window.GAME_AUDIO.prestige(); buzz([0, 30, 40, 30]);
+        var f = t('flavor_' + Math.floor((G.state.prestiges) % 5));
+        window.GAME_FX.ritual({ kind: 'prestige', title: t('ritual_model'), subtitle: f });
+        window.GAME_ADS.showInterstitial({});
+        var pctNow = Math.round(G.state.rp * C.PRESTIGE.BONUS * 100);
+        setTimeout(function () { toast(t('prestige_celebrate', { p: pctNow }), 'gold'); }, 700);
+        if (wasFirst) switchTab('research'); // reveal the freshly-unlocked Research home
+      }
+    };
   }
 
   function updateBuyModeBar() {
@@ -1226,26 +1334,8 @@
     }
 
     // prestige
-    $('prestigeBtn').addEventListener('click', function () {
-      var gain = G.prestigeGain();
-      showModal(
-        '<h3>' + t('research_title') + '</h3>' +
-        '<p>' + t('prestige_confirm', { n: gain }) + '</p>' +
-        '<div class="row"><button class="secondary" id="pCancel">✕</button>' +
-        '<button class="primary" id="pOk">' + t('prestige_button') + '</button></div>'
-      );
-      $('pCancel').onclick = hideModal;
-      $('pOk').onclick = function () {
-        hideModal();
-        if (G.doPrestige()) {
-          window.GAME_AUDIO.prestige();
-          var f = t('flavor_' + Math.floor((G.state.prestiges) % 5));
-          window.GAME_FX.ritual({ kind: 'prestige', title: t('ritual_model'), subtitle: f });
-          // interstitial on prestige (graceful)
-          window.GAME_ADS.showInterstitial({});
-        }
-      };
-    });
+    $('prestigeBtn').addEventListener('click', openPrestigeFlow);
+    $('prestigeCta').addEventListener('click', function () { window.GAME_AUDIO.buy(); openPrestigeFlow(); });
 
     // autopilot controls
     var apOn = $('apOnSeg').children;
@@ -1378,6 +1468,7 @@
       toast(t('ev_' + d.id) + ' — ' + t('ev_' + d.id + '_d'), bad ? 'bad' : 'gold');
     });
     G.on('milestone', function (d) {
+      if (!G.state.seen.u_milestone) { G.state.seen.u_milestone = true; toast(t('hint_milestone'), 'gold'); G.save(); }
       var major = d.milestone >= 25;
       if (major && window.GAME_AUDIO.milestone) window.GAME_AUDIO.milestone(); else window.GAME_AUDIO.achievement(); buzz(major?[0,20,40,25]:18);
       var r = genRefs[d.id];
@@ -1402,6 +1493,10 @@
     built = true;
     renderStatic();
     bind();
+    // Returning players: don't replay reveal hints for features they already have.
+    // A brand-new save (no progress) keeps them so the journey unfolds live.
+    var st = G.state;
+    if (st.prestiges > 0 || st.taps > 0 || st.totalEarnedAllTime > 0 || st.onboarded) syncUnlockSeenSilently();
     window.GAME_AUDIO.setEnabled(G.state.sound);
     if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(G.state.music); if (G.state.music) window.GAME_MUSIC.start(); }
     applyCosmetics();

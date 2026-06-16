@@ -16,7 +16,8 @@ the reasoning. The curve was validated with a greedy progression simulation
   boost · incidentPenalty`, where `rpMult = 1 + RP · 0.05`.
 - **Tap value:** `TAP.base(2) · tapUpgrades · globalMult`.
 - **Prestige RP gain:** `floor( K · sqrt(totalEarnedThisRun / SCALE) )`
-  with `K = 1`, `SCALE = 1e6`.
+  with `K = 1.4`, `SCALE = 1e6` (R11: K raised 1.0→1.4 so the first release lands
+  in-window with a juicy reward; Singularity threshold raised to compensate).
 
 ## Generators (10 tiers)
 
@@ -169,6 +170,67 @@ Singularity, risk/incidents, insight, breakthrough, events). Findings + fixes:
   and crisis *cards* all unlock at the **first prestige**, each with a one-line hint.
 - Sim with everything active: hook strong (~3.7K @60s), both prestige layers reachable,
   **no runaway** (deep-run cps finite), no new exploit.
+
+## Progressive unlock & prestige rework (Round 11)
+
+Two core-design fixes: (1) stop dumping every system on the player at once, and
+(2) make prestige *obviously* worth it.
+
+### Player journey — one deliberate, sticky unlock schedule
+
+All gates are monotonic on lifetime metrics, so a revealed feature never re-hides
+(even across a release). The **bottom nav shows only unlocked tabs** (Stage 1 = Lab
++ More→Settings). Each unlock fires one skippable `state.seen` hint, in order.
+Returning saves silently mark already-satisfied reveals (no retroactive spam).
+
+| Stage | Name | Trigger | Reveals |
+|------|------|---------|---------|
+| 1 | Garage | fresh save | TRAIN, cash, **one** generator (laptop), buy ×1. Nothing else — no tabs beyond Lab+Settings, no risk bar, no buy-modes. |
+| 2 | Scaling | next gens within reach (cash ≥ ½ cost or prev tier ≥10); earned ≥250 / ≥500 / ≥1.5K / ≥25K | next generators, **buy ×10/×100/Max**, milestone ×2 (first-milestone hint), **Upgrades** tab, **Insight Flash**, **Breakthrough** |
+| 3 | Automation | earned ≥60K | **Managers**; **Autopilot** stays at the existing first-release gate |
+| 4 | First Release | `prestigeGain ≥ FIRST_RP(5)` (~35–40 min) | guided celebratory **"Release a Frontier Model"** CTA on the Lab that *teaches* the loop; afterward the **Research** tab + RP |
+| 5 | Risks of Scale | first release (`prestiges ≥ 1`) | multi-vector **Risk**, **Alignment** tab, **Crises** (decision cards). Risk does not accrue and crises cannot fire before this. |
+| 6 | The Industry | `prestiges ≥ 2` or `totalRP ≥ 70` | **World** tab — Newsroom, **Trust** HUD, **Market**, rival labs |
+| 7 | Endgame | `totalRP ≥ 700` or first AGI Core | **Singularity**, **Artifacts**, **Endings/Race** |
+
+Audit: a brand-new save shows ONLY Stage-1 UI (verified headless at 360/390/414 —
+nav `[Lab, More]`, one generator, no risk bar, no buy-modes, no other tabs).
+
+### RP made obviously worth it
+
+- **Baseline passive (the headline):** each RP = **+5% global output, FOREVER**
+  (`rpMult = 1 + RP·0.05`). The release screen shows it LOUD: *"+X% output now (→
+  +Y% total, permanent) · Next model ~S× faster to here"*, and on release a gold
+  toast confirms *"Output permanently +Z%"*. No more "got RP and nothing."
+- **First release is taught + rewarding:** the CTA only appears once the gain is
+  juicy (≥5 RP, ~35–40 min) — enough to buy the first ×2 upgrade *and* feel the
+  passive. A one-time teaching panel explains "reset, but come back permanently
+  stronger & faster — the heart of the game."
+- **Flat starting-cash items REMOVED** (`p_start` 1e6, `p_start2` 1e9 — meaningless
+  once you earn them in seconds). Replaced with **scaling/structural** boosts:
+  - **Seed Capital** (`p_seed`, 40 RP): start each release with **5%** of your best
+    run's earnings — scales forever.
+  - **War Chest** (`p_seed2`, 1500 RP): **25%** of best run.
+  - **Legacy Hardware** (`p_keepgen`, 120 RP): keep **10%** of every generator's
+    level on release — structural compounding, never a flat pittance.
+  - Multipliers/tap/offline/align upgrades retained.
+- **Two layers stay distinct:** Research/RP = the *frequent* reset (permanent
+  multipliers, done often); Singularity/Cores = the *rare, deep* reset (also resets
+  RP, for the stronger meta-currency). Each screen states its own one-line purpose.
+
+### Safe save migration (SAVE_VERSION 3)
+
+- `p_start`→`p_seed`, `p_start2`→`p_seed2` (grandfathered to the equal-or-better
+  scaling items — never robbed). `bestRunEarned` seeded from the current run so %
+  start-cash has a baseline. RP and all other purchases preserved. Verified by
+  `tmp/r11_test.js` (load a v2 save with the old items → mapped, RP intact, not broken).
+
+### Tuned numbers (validated)
+
+- `econ_sim`: first release **≥5 RP at ~35 min**, ~9 RP at ~45 min (in the 30–45
+  window); ~8 releases to Singularity (threshold 700) ≈ a healthy long-term arc.
+- `bestRunEarned`-based start-cash can never exceed a fraction of what you already
+  earned, so it's a head-start, not a printer (no runaway; deep-run cps finite).
 
 ## Offline
 

@@ -28,6 +28,7 @@
       rp: 0,
       totalRP: 0,
       prestiges: 0,
+      bestRunEarned: 0,      // best single-run total earned (drives % start-cash boosts)
       prestigeUpgrades: pups,
       align: 0,
       vec: { cap: 0, data: 0, reg: 0, sec: 0 }, // multi-vector risk
@@ -111,7 +112,8 @@
         else if (type === 'tapMult') v *= p.value;
         else if (type === 'offlineCap') v += p.value;
         else if (type === 'alignBoost') v *= p.value;
-        else if (type === 'startCash') v = Math.max(v, p.value);
+        else if (type === 'startCashPct') v = Math.max(v, p.value);
+        else if (type === 'keepGens') v = Math.max(v, p.value);
       }
     });
     return v;
@@ -450,8 +452,14 @@
 
   // in-place reset of everything that is scoped to one model-release run.
   // Tech/artifacts/meta/cores/rp persist; pass clearTechAndRp=true for Singularity.
+  // start-cash boost = a % of your best run's total earnings (scales forever).
+  function startCashBoost() { return Math.floor(state.bestRunEarned * puValue('startCashPct', 0)); }
+  function keepGenFrac() { return puValue('keepGens', 0); }
+
   function resetRun(clearTechAndRp) {
-    C.GENERATORS.forEach(function (g) { state.gens[g.id] = 0; });
+    // Structural carry-over (model release only): keep a fraction of each generator level.
+    var keep = clearTechAndRp ? 0 : keepGenFrac();
+    C.GENERATORS.forEach(function (g) { state.gens[g.id] = keep > 0 ? Math.floor(state.gens[g.id] * keep) : 0; });
     state.upgrades = {}; state.managers = {};
     state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0; state.incidentsThisRun = 0;
     state.totalEarnedThisRun = 0;
@@ -462,7 +470,8 @@
     state.eventEndsAt = 0; state.eventId = null; state.eventOutputMult = 1; state.nextEventAt = 0;
     state.insightExpiresAt = 0; state.nextInsightAt = 0;
     if (clearTechAndRp) { state.tech = {}; state.rp = 0; }
-    state.cash = puValue('startCash', 0);
+    // scaling start-cash boost (model release only; the deep Singularity reset starts dry)
+    state.cash = clearTechAndRp ? 0 : startCashBoost();
   }
 
   function grantArtifact() {
@@ -486,6 +495,7 @@
     state.totalRP += gain;
     state.prestiges++;
     state._lastRunClean = cleanRun;
+    state.bestRunEarned = Math.max(state.bestRunEarned || 0, state.totalEarnedThisRun); // for % start-cash
     resetRun(false);
     state.vec.reg = Math.min(C.RISK.MAX, state.vec.reg + C.RISK.REG_PRESTIGE_SPIKE); // hype raises regulatory
     var artifact = grantArtifact();
@@ -612,12 +622,44 @@
     var gap = E.MIN_GAP + Math.random() * (E.MAX_GAP - E.MIN_GAP);
     state.nextEventAt = Date.now() + gap * 1000;
   }
+  // ===== Progressive unlock schedule (one deliberate system) ============
+  // All gates are monotonic on lifetime metrics, so once revealed a feature never
+  // re-hides (even across a model release). See config UNLOCKS + BALANCE.md.
+  function anyUpgradeOwned() { for (var k in state.upgrades) if (state.upgrades[k]) return true; return false; }
+  var U = C.UNLOCKS;
+  function buyModesUnlocked()    { return state.prestiges > 0 || state.totalEarnedAllTime >= U.BUYMODES_EARNED; }
+  function upgradesUnlocked()    { return state.prestiges > 0 || anyUpgradeOwned() || state.totalEarnedAllTime >= U.UPGRADES_EARNED; }
+  function insightUnlocked()     { return state.prestiges > 0 || state.insightsClaimed > 0 || state.totalEarnedAllTime >= U.INSIGHT_EARNED; }
+  function breakthroughUnlocked(){ return state.prestiges > 0 || state.breakthroughsUsed > 0 || state.totalEarnedAllTime >= U.BREAKTHROUGH_EARNED; }
+  function managersUnlocked()    { return state.prestiges > 0 || state.totalEarnedAllTime >= U.MANAGERS_EARNED; }
+  function researchUnlocked()    { return state.prestiges >= 1 || state.singularities > 0; }
+  function riskUnlocked()        { return state.prestiges >= 1 || state.singularities > 0; } // Stage 5: risks of scale
+  function statsUnlocked()       { return upgradesUnlocked(); }
+  function awardsUnlocked()      { return achCount() > 0; }
+  // first-release CTA: only nag once it's clearly worth it (juicy, in-window)
+  function firstPrestigeReady()  { return state.prestiges === 0 && prestigeGain() >= C.PRESTIGE.FIRST_RP; }
+  // Loud projection for the release screen: gain + permanent % + how much faster next run is.
+  function prestigeProjection() {
+    var gain = prestigeGain();
+    var rpAfter = state.rp + gain;
+    var multNow = 1 + state.rp * C.PRESTIGE.BONUS;
+    var multAfter = 1 + rpAfter * C.PRESTIGE.BONUS;
+    return {
+      gain: gain, rpAfter: rpAfter,
+      pctNow: Math.round((multNow - 1) * 100),
+      pctAfter: Math.round((multAfter - 1) * 100),
+      pctGain: Math.round((multAfter - multNow) * 100),
+      speedup: multAfter / multNow            // passive-only speedup of the next run
+    };
+  }
+
   // ===== R7 World: Trust, cards (crises + news), market, gating =====
-  function worldUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
+  // Stage 6 "Industry": opens a bit AFTER the first release (risk comes first).
+  function worldUnlocked() { return state.prestiges >= 2 || state.totalRP >= C.UNLOCKS.WORLD_RP || state.singularities > 0; }
   function crisisCooldown() { return Math.max(C.RISK.CRISIS_CD_MIN, C.RISK.CRISIS_CD_BASE - state.prestiges * 3 - state.singularities * 10); }
   function crisisCdLeft() { return Math.max(0, (state.lastCrisisAt + crisisCooldown() * 1000 - Date.now()) / 1000); }
   function trustMult() { return C.TRUST.OUTPUT_LO + (C.TRUST.OUTPUT_HI - C.TRUST.OUTPUT_LO) * ((state.trust || 0) / 100); }
-  function marketUnlocked() { return state.prestiges >= 1 || state.singularities > 0; }
+  function marketUnlocked() { return worldUnlocked(); }
   function clampTrust(v) { return Math.max(C.TRUST.MIN, Math.min(C.TRUST.MAX, v)); }
   function hasCrisisCard() { for (var i = 0; i < state.cards.length; i++) if (state.cards[i].kind === 'crisis') return true; return false; }
   var _uid = 1;
@@ -665,7 +707,9 @@
     emit('card', { kind: n.kind, id: n.id });
   }
   function triggerCrisis(vector) {
-    if (worldUnlocked()) { if (!hasCrisisCard()) spawnCrisisCard(vector); }
+    // Stage 5: crises are decision cards as soon as risk exists. (The simple-incident
+    // fallback remains only as a safety net if ever called before risk is unlocked.)
+    if (riskUnlocked()) { if (!hasCrisisCard()) spawnCrisisCard(vector); }
     else { state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000; state.incidentsThisRun++; state.incidentsTotal++; emit('incident', { active: true }); }
   }
   function updateCards() {
@@ -926,31 +970,34 @@
     var rate = cps();
     addCash(rate * dt);
 
-    // multi-vector risk dynamics
-    var prevIncident = incidentActive();
-    for (var vi = 0; vi < C.RISK.VECTORS.length; vi++) {
-      var vid = C.RISK.VECTORS[vi];
-      state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + vectorNet(vid) * dt));
-    }
-    // crisis: a maxed vector fires a crisis, but only once per (stage-scaled) cooldown
-    // so they're tense, not spammy. On cooldown a maxed vector is pinned (visible danger).
-    if (!prevIncident && !hasCrisisCard()) {
-      var cdMs = crisisCooldown() * 1000, nowt = Date.now();
-      for (var ci = 0; ci < C.RISK.VECTORS.length; ci++) {
-        var cv = C.RISK.VECTORS[ci];
-        if (state.vec[cv] >= C.RISK.INCIDENT_THRESHOLD) {
-          if (nowt - state.lastCrisisAt < cdMs) { state.vec[cv] = Math.min(state.vec[cv], 96); }
-          else { state.vec[cv] = C.RISK.INCIDENT_RESET_RISK; state.lastCrisisAt = nowt; checkAchievements(); triggerCrisis(cv); }
-          break;
-        }
+    // multi-vector risk dynamics — ONLY after the first model release (Stage 5).
+    // Before that, "risks of scale" simply do not exist (clean early game).
+    if (riskUnlocked()) {
+      var prevIncident = incidentActive();
+      for (var vi = 0; vi < C.RISK.VECTORS.length; vi++) {
+        var vid = C.RISK.VECTORS[vi];
+        state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + vectorNet(vid) * dt));
       }
-    } else if (prevIncident && !incidentActive()) {
-      emit('incident', { active: false });
-      emit('toast', { key: 'incident_resolved' });
+      // crisis: a maxed vector fires a crisis, but only once per (stage-scaled) cooldown
+      // so they're tense, not spammy. On cooldown a maxed vector is pinned (visible danger).
+      if (!prevIncident && !hasCrisisCard()) {
+        var cdMs = crisisCooldown() * 1000, nowt = Date.now();
+        for (var ci = 0; ci < C.RISK.VECTORS.length; ci++) {
+          var cv = C.RISK.VECTORS[ci];
+          if (state.vec[cv] >= C.RISK.INCIDENT_THRESHOLD) {
+            if (nowt - state.lastCrisisAt < cdMs) { state.vec[cv] = Math.min(state.vec[cv], 96); }
+            else { state.vec[cv] = C.RISK.INCIDENT_RESET_RISK; state.lastCrisisAt = nowt; checkAchievements(); triggerCrisis(cv); }
+            break;
+          }
+        }
+      } else if (prevIncident && !incidentActive()) {
+        emit('incident', { active: false });
+        emit('toast', { key: 'incident_resolved' });
+      }
     }
 
-    updateEvents();
-    updateInsight();
+    if (state.prestiges >= 1) updateEvents();  // world/industry events: post-first-release
+    if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
     updateCards();
     updateMarket();
@@ -1003,6 +1050,19 @@
     C.RISK.VECTORS.forEach(function (v) { if (typeof s.vec[v] !== 'number') s.vec[v] = 0; });
     if (typeof s.auditReadyAt !== 'number') s.auditReadyAt = 0;
     delete s.risk;
+    // ---- v3: progression + prestige rework (SAFE: never break / never rob) ----
+    // % start-cash needs a best-run baseline; seed it from the current run so returning
+    // players aren't worse off than before.
+    // (the generic copy above may have set this to base 0; take the max so we always
+    // seed a sensible baseline without ever lowering an established one)
+    s.bestRunEarned = Math.max(s.bestRunEarned || 0, s.totalEarnedThisRun || 0);
+    if (!s.seen || typeof s.seen !== 'object') s.seen = {};
+    // Grandfather the removed flat starting-cash items into the new SCALING ones, so
+    // anyone who bought them keeps an (equal-or-better) starting boost instead of losing it.
+    if (s.prestigeUpgrades && typeof s.prestigeUpgrades === 'object') {
+      if (s.prestigeUpgrades.p_start)  { s.prestigeUpgrades.p_seed  = true; delete s.prestigeUpgrades.p_start; }
+      if (s.prestigeUpgrades.p_start2) { s.prestigeUpgrades.p_seed2 = true; delete s.prestigeUpgrades.p_start2; }
+    }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1102,6 +1162,12 @@
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
+    // progressive unlock schedule + release projection
+    buyModesUnlocked: buyModesUnlocked, upgradesUnlocked: upgradesUnlocked, insightUnlocked: insightUnlocked,
+    breakthroughUnlocked: breakthroughUnlocked, managersUnlocked: managersUnlocked, researchUnlocked: researchUnlocked,
+    riskUnlocked: riskUnlocked, statsUnlocked: statsUnlocked, awardsUnlocked: awardsUnlocked,
+    firstPrestigeReady: firstPrestigeReady, prestigeProjection: prestigeProjection,
+    startCashBoost: startCashBoost, keepGenFrac: keepGenFrac,
     crisisCdLeft: crisisCdLeft, trustMult: trustMult,
     currentAct: currentAct, rivalsRevealed: rivalsRevealed, agiProgress: agiProgress,
     leadingRival: leadingRival, maxRivalAgi: maxRivalAgi, slowLeadingRival: slowLeadingRival,
