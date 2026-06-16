@@ -8,6 +8,8 @@ var lang = p.get('lang') || 'en';
 save.lang = lang;
 if (p.get('incident')) { save.incidentEndsAt = Date.now() + 90000; save.risk = 100; }
 else { save.incidentEndsAt = 0; }
+if (p.get('insight')) { save.playtime = 200; save.nextInsightAt = Date.now() - 4000; save.insightExpiresAt = 0; }
+if (p.get('combo')) { save.comboHeat = 0.82; }
 try {
   localStorage.setItem('singularity_inc_save_v1', JSON.stringify(save));
   localStorage.setItem('singularity_inc_lang', lang);

@@ -15,7 +15,9 @@ Built for the **Yandex Games** platform.
 ```
 singularity-inc/
 ├── index.html              ← game entry (ZIP ROOT)
-├── styles.css
+├── styles.css              cinematic-dark + glass + neon design system
+├── fonts.css               @font-face for the two bundled fonts (local)
+├── assets/fonts/           Orbitron + JetBrains Mono woff2 (bundled, no fetch)
 ├── js/
 │   ├── config.js           all tunable economy numbers
 │   ├── format.js           number formatting (K/M/B/T/Qa…/scientific)
@@ -24,7 +26,8 @@ singularity-inc/
 │   ├── ads.js              rewarded / interstitial / sticky (graceful no-op)
 │   ├── game.js             economy engine, tick, save/load, prestige, risk
 │   ├── audio.js            procedural WebAudio SFX (off by default)
-│   ├── fx.js               particle bursts, screen shake, vignette (juice)
+│   ├── fx.js               particle bursts, ripples, shake, vignette (juice)
+│   ├── icons.js            29 inline-SVG icons (no emoji anywhere)
 │   ├── ui.js               DOM rendering + interaction
 │   └── main.js             bootstrap, RAF loop, anti-hijack guards
 ├── icon-512.png            512×512 RGB (no alpha) store icon
@@ -104,15 +107,18 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
   `user-select:none`, `touch-action:manipulation`.
 - ✅ **Viewport:** `width=device-width, initial-scale=1, maximum-scale=1,
   user-scalable=no, viewport-fit=cover`; safe-area insets respected.
-- ✅ **Localization:** complete **RU + EN** (246/246 keys each, verified parity),
+- ✅ **Localization:** complete **RU + EN** (272/272 keys each, verified parity),
   runtime toggle, no untranslated strings.
 - ✅ **Icon:** 512×512, **RGB, no alpha**, square, an illustration.
 - ✅ **Cover:** 800×470 illustration (not a screenshot).
 - ✅ **Screenshots:** real gameplay, seeded with a realistic mid-game save.
 - ✅ **Zero external requests at runtime** when not on Yandex (no CDNs, fonts,
-  analytics, trackers). The Yandex SDK is the *only* external script and is
-  loaded **exclusively** when the game detects it is running inside Yandex
-  (framed / yandex hostname). Everything else is bundled.
+  analytics, trackers). Both fonts (Orbitron, JetBrains Mono) are **bundled
+  locally** as woff2 in `assets/fonts/`. The Yandex SDK is the *only* external
+  script and is loaded **exclusively** when the game detects it is running inside
+  Yandex (framed / yandex hostname). Everything else is bundled.
+- ✅ **No emoji as icons** — all 29 icons are hand-authored inline SVG
+  (`js/icons.js`), one consistent stroke family.
 - ✅ **No real trademarks** — all names are generic (e.g. "H-class GPU",
   "Model v3"); the game is clearly satire and states it is unaffiliated.
 - ✅ **SDK integration:** `YaGames.init()`, `LoadingAPI.ready()`,
@@ -135,6 +141,13 @@ over HTTP. With no Yandex SDK present the game runs fully — ads simply show an
   **Research Points (RP)**; each RP grants **+5% permanent global output**, and RP
   buys permanent research upgrades.
 - Earnings continue **offline** (cap 8h, +4h via research, doublable by ad).
+
+**Active-play hooks (Round 3):**
+- **Overclock** — tap fast to build heat for up to ×5 tap value.
+- **Insight Flash** — a glowing collectible drifts by every ~45–95s; tap it for
+  Frenzy (×7 output), Click Frenzy (×100 tap), or an instant cash windfall.
+- **Breakthrough** — an ability (×10 output 20s, 180s cooldown); re-fire within
+  8s of it ending to chain into ×15 for 25s.
 
 See `BALANCE.md` for the full economy.
 
