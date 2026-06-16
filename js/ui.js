@@ -419,6 +419,12 @@
     }
     var rank = G.playerRank(), total = rows.length;
     setText($('standingsStatus'), rank === 1 ? t('standings_leader') : t('standings_behind', { n: rank, total: total }));
+    // §5 acquisition: buy out the strongest rival (post mid-game)
+    var ab = $('acquireBtn'), tgt = G.acquireTarget();
+    if (tgt && G.acquireUnlocked() && G.canAcquire()) {
+      setClass(ab, 'hidden', false);
+      setText(ab, t('acquire_btn', { name: t('rival_' + tgt.id), v: '$' + fmt(G.acquireCost(tgt.id)) }));
+    } else setClass(ab, 'hidden', true);
     setText($('agiRace'), t('agi_rank', { n: G.agiRank(), total: G.agiFieldSize() }) + ' · ' + t('agi_race_you', { p: Math.round(G.agiProgress()) }) + ' · ' + t('agi_race_lead', { p: Math.round(G.leadingRivalAgi()) }));
   }
 
@@ -1599,6 +1605,13 @@
       if (G.startTraining()) { window.GAME_AUDIO.buy(); buzz(12); window.GAME_FX.flash('rgba(34,211,238,0.18)'); updateModelPanel(); }
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
+    // §5: acquire a rival lab (Race tab)
+    var acquireBtn = $('acquireBtn');
+    if (acquireBtn) acquireBtn.addEventListener('click', function () {
+      var tgt = G.acquireTarget(); if (!tgt) return;
+      if (G.acquireRival()) { window.GAME_AUDIO.prestige(); buzz([0,25,40,25]); window.GAME_FX.flash('rgba(139,92,246,0.2)'); updateStandings(); }
+    });
+    G.on('acquire', function (d) { toast(t('acquire_done', { name: t('rival_' + d.id) }), 'gold'); });
     // GDD v3: Founder's Legacy (optional, non-forced replay after the finale)
     var legacyBtn = $('legacyBtn');
     if (legacyBtn) legacyBtn.addEventListener('click', function () {

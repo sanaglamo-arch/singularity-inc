@@ -312,6 +312,9 @@
     { id: 'omninet', speed: 0.0085, share0: 9,  shareRate: 0.00032, agiRate: 0.00028 }   // cautious
   ];
   var RIVAL_SHARE_CAP = 45;   // a rival's market share tapers toward this ceiling
+  // §5 light/optional acquisitions: buy out a rival to take its market share + remove it
+  // from the race. cost = valuation × COST_FRAC × (1 + their AGI%/100); one-time per rival.
+  var ACQUIRE = { UNLOCK_GEN: 5, COST_FRAC: 0.25, SHARE_TRANSFER: 0.6 };
   var RACE = {
     REVEAL_ACT: 3,
     PLAYER_TARGET_RP: 700,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
@@ -536,7 +539,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 8,          // GDD v3: + AGI finale, endings, Founder's Legacy
+    SAVE_VERSION: 9,          // GDD v3: + rival acquisitions
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -565,6 +568,7 @@
     ACTS: ACTS,
     RIVALS: RIVALS,
     RIVAL_SHARE_CAP: RIVAL_SHARE_CAP,
+    ACQUIRE: ACQUIRE,
     RACE: RACE,
     ENDINGS: ENDINGS,
     TRUST: TRUST,

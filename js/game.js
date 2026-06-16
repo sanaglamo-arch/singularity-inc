@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [] };
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -90,6 +90,7 @@
       act: 0,                // current narrative act (monotonic)
       rivalAgi: {},          // rival id -> AGI progress 0..100
       rivalShare: {},        // rival id -> market share % (GDD v3 race scoreboard)
+      acquired: {},          // rival id -> true (acquired/removed from the race, §5)
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
       // ===== GDD v3 — continuous no-reset meta =====
@@ -1040,6 +1041,7 @@
     if (!rivalsActive()) return;
     ensureRivalShare(); ensureRivals();
     C.RIVALS.forEach(function (r) {
+      if (rivalAcquired(r.id)) return;   // acquired rivals are out of the race
       // share creeps up, tapering toward the cap (so you can always overtake by shipping)
       var cur = state.rivalShare[r.id];
       var room = Math.max(0, (C.RIVAL_SHARE_CAP - cur) / C.RIVAL_SHARE_CAP);
@@ -1052,13 +1054,32 @@
   function standings() {
     ensureRivalShare();
     var rows = [{ id: 'you', share: state.marketShare, agi: agiProgress(), you: true }];
-    C.RIVALS.forEach(function (r) { rows.push({ id: r.id, share: state.rivalShare[r.id], agi: state.rivalAgi[r.id] || 0 }); });
+    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) rows.push({ id: r.id, share: state.rivalShare[r.id], agi: state.rivalAgi[r.id] || 0 }); });
     rows.sort(function (a, b) { return b.share - a.share; });
     return rows;
   }
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
-  function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
+  function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
+  function rivalAcquired(id) { return !!(state.acquired && state.acquired[id]); }
+  // §5 acquisitions: buy out the strongest remaining rival (one-time each, post mid-game)
+  function acquireTarget() {
+    var best = null, bv = -1;
+    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id) && (state.rivalShare[r.id] || 0) > bv) { bv = state.rivalShare[r.id] || 0; best = r; } });
+    return best;
+  }
+  function acquireCost(id) { var agi = state.rivalAgi[id] || 0; return Math.floor(valuation() * C.ACQUIRE.COST_FRAC * (1 + agi / 100)); }
+  function acquireUnlocked() { return state.modelGen >= C.ACQUIRE.UNLOCK_GEN; }
+  function canAcquire() { var r = acquireTarget(); return !!r && acquireUnlocked() && state.cash >= acquireCost(r.id); }
+  function acquireRival() {
+    var r = acquireTarget(); if (!r || !acquireUnlocked()) return false;
+    var cost = acquireCost(r.id); if (state.cash < cost) return false;
+    state.cash -= cost; state.acquired[r.id] = true;
+    state.marketShare = Math.min(100, state.marketShare + (state.rivalShare[r.id] || 0) * C.ACQUIRE.SHARE_TRANSFER);
+    state.rivalShare[r.id] = 0; state.rivalAgi[r.id] = 0;
+    checkAchievements(); emit('acquire', { id: r.id }); emit('change');
+    return true;
+  }
   // rank in the AGI race (you vs rivals by AGI progress) — 1 = leading
   function agiRank() { var you = agiProgress(), rank = 1; C.RIVALS.forEach(function (r) { if ((state.rivalAgi[r.id] || 0) > you) rank++; }); return rank; }
   function agiFieldSize() { return C.RIVALS.length + 1; }
@@ -1426,6 +1447,9 @@
     if (typeof s.won !== 'boolean') s.won = false;
     if (typeof s.legacyCount !== 'number') s.legacyCount = 0;
     if (typeof s.legacyMult !== 'number') s.legacyMult = 1;
+    if (typeof s.unicorn !== 'boolean') s.unicorn = false;
+    if (typeof s.decacorn !== 'boolean') s.decacorn = false;
+    if (!s.acquired || typeof s.acquired !== 'object') s.acquired = {}; // v9
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -1501,6 +1525,7 @@
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
     rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, agiRank: agiRank, agiFieldSize: agiFieldSize,
+    acquireTarget: acquireTarget, acquireCost: acquireCost, acquireUnlocked: acquireUnlocked, canAcquire: canAcquire, acquireRival: acquireRival,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
     researchEfficiencyMult: researchEfficiencyMult, researchProjCost: researchProjCost, researchActive: researchActive, canStartResearch: canStartResearch, startResearch: startResearch, researchProgress: researchProgress, researchTimeLeft: researchTimeLeft, processSpeed: processSpeed,
     milestoneMult: milestoneMult, nextMilestone: nextMilestone,
