@@ -41,6 +41,8 @@
       sound: false,
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
+      _lastRunClean: false,  // was the most recently prestiged run incident-free
+      onboarded: false,      // first-run tour shown
       lastSeen: Date.now(),
       createdAt: Date.now()
     };
@@ -242,7 +244,6 @@
     state.rp += gain;
     state.totalRP += gain;
     state.prestiges++;
-    if (cleanRun) state._lastRunClean = true; else state._lastRunClean = false;
 
     // reset run-scoped progress
     var keepRP = state.rp, keepTotalRP = state.totalRP, keepPrest = state.prestiges;
@@ -254,12 +255,14 @@
     fresh.prestigeUpgrades = keepPU; fresh.achievements = keepAch;
     fresh.playtime = keepPlay; fresh.sound = keepSound; fresh.lang = keepLang;
     fresh.buyMode = keepBuy; fresh.incidentsTotal = keepIncTotal; fresh.createdAt = keepCreated;
+    // carry the clean-run flag onto the fresh state so it persists across save/reload
+    fresh._lastRunClean = cleanRun;
     // war chest
     fresh.cash = puValue('startCash', 0);
     state = fresh;
 
+    if (cleanRun) state.achievements['a_safe'] = true;
     checkAchievements();
-    if (cleanRun) { state.achievements['a_safe'] = state.achievements['a_safe']; checkAchievements(); }
     emit('prestige', { gain: gain, clean: cleanRun });
     emit('change');
     return true;
