@@ -46,8 +46,9 @@
 
     // lifecycle: save + gameplay stop/start
     document.addEventListener('visibilitychange', function () {
+      hidden = document.hidden;
       if (document.hidden) { window.GAME.save(); window.GAME_SDK.gameplayStop(); if (window.GAME_MUSIC) window.GAME_MUSIC.stop(); }
-      else { window.GAME_SDK.gameplayStart(); catchUpOffline(); if (window.GAME_MUSIC && window.GAME.state.music) window.GAME_MUSIC.start(); }
+      else { lastT = 0; window.GAME_SDK.gameplayStart(); catchUpOffline(); if (window.GAME_MUSIC && window.GAME.state.music) window.GAME_MUSIC.start(); }
     });
     window.addEventListener('pagehide', function () { window.GAME.save(); });
     window.addEventListener('beforeunload', function () { window.GAME.save(); });
@@ -79,17 +80,24 @@
   // ---- main loop: RAF + delta accumulation ----
   var lastT = 0;
   var acc = 0;
-  var STEP = 0.05; // fixed sim step (s) for determinism
+  var uiAcc = 0;
+  var STEP = 0.05;        // fixed sim step (s) for determinism
+  var UI_STEP = 0.033;    // refresh the DOM at ~30fps — sim + CSS animations stay smooth,
+                          // but we halve style-recalc/DOM writes vs 60fps on low-end Android.
+  var hidden = false;
   function frame(ts) {
     if (!lastT) lastT = ts;
     var dt = (ts - lastT) / 1000;
     lastT = ts;
     lastActive = Date.now();
     if (dt > C.SETTINGS.TICK_MAX_DELTA) dt = C.SETTINGS.TICK_MAX_DELTA; // clamp (offline handles big gaps)
-    acc += dt;
-    var guard = 0;
-    while (acc >= STEP && guard++ < 20) { window.GAME.tick(STEP); acc -= STEP; }
-    window.GAME_UI.update();
+    if (!hidden) {
+      acc += dt;
+      var guard = 0;
+      while (acc >= STEP && guard++ < 20) { window.GAME.tick(STEP); acc -= STEP; }
+      uiAcc += dt;
+      if (uiAcc >= UI_STEP) { uiAcc = 0; window.GAME_UI.update(); }
+    }
     requestAnimationFrame(frame);
   }
   function startLoop() { requestAnimationFrame(frame); }
