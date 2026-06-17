@@ -422,6 +422,15 @@
       setClass(ab, 'hidden', false);
       setText(ab, t('acquire_btn', { name: t('rival_' + tgt.id), v: '$' + fmt(G.acquireCost(tgt.id)) }));
     } else setClass(ab, 'hidden', true);
+    // §4 open-source action: repeatable, slows the leader (+Trust) on a cooldown
+    var ob = $('raceOpenBtn');
+    if (ob) {
+      if (G.rivalsRevealed() && !G.isGameOver()) {
+        setClass(ob, 'hidden', false);
+        if (G.raceOpenReady()) { ob.disabled = false; setText(ob, t('race_opensource')); }
+        else { ob.disabled = true; setText(ob, t('race_opensource_cd', { t: FMT.fmtTime(Math.max(0, 90 - (Date.now() - G.state.raceOpenAt) / 1000)) })); }
+      } else setClass(ob, 'hidden', true);
+    }
     setText($('agiRace'), t('agi_rank', { n: G.agiRank(), total: G.agiFieldSize() }) + ' · ' + t('agi_race_you', { p: Math.round(G.agiProgress()) }) + ' · ' + t('agi_race_lead', { p: Math.round(G.leadingRivalAgi()) }));
   }
 
@@ -1138,28 +1147,8 @@
       for (var i = 0; i < bs.length; i++) (function (b) { b.addEventListener('click', function () { G.applyRaceStance(b.dataset.stance); window.GAME_AUDIO.buy(); hideModal(); }); })(bs[i]);
     } else { $('actOk').onclick = hideModal; }
   }
-  function updateRace() {
-    var rp = $('racePanel');
-    if (!G.rivalsRevealed()) { rp.classList.add('hidden'); return; }
-    rp.classList.remove('hidden');
-    $('raceTitle').innerHTML = t('race_title') + infoBtn('tip_race');
-    // standings: you + rivals, sorted desc by AGI
-    var rows = [{ id: 'you', val: G.agiProgress(), you: true }];
-    C.RIVALS.forEach(function (r) { rows.push({ id: r.id, val: G.state.rivalAgi[r.id] || 0 }); });
-    rows.sort(function (x, y) { return y.val - x.val; });
-    $('raceStandings').innerHTML = rows.map(function (r) {
-      var name = r.you ? t('race_you') : t('rv_' + r.id);
-      var col = r.you ? 'var(--cyan)' : 'var(--rose)';
-      return '<div class="race-row' + (r.you ? ' you' : '') + '"><div class="race-name">' + name + '</div>' +
-        '<div class="bar"><div class="race-fill" style="width:' + r.val.toFixed(1) + '%;background:' + col + '"></div></div>' +
-        '<div class="race-pct">' + Math.floor(r.val) + '%</div></div>';
-    }).join('');
-    var lead = G.leadingRival();
-    $('raceWarn').textContent = (lead.val >= 60 && lead.val > G.agiProgress()) ? t('race_warn', { name: t('rv_' + lead.id), n: Math.ceil(100 - lead.val) }) : '';
-    var ob = $('raceOpenBtn');
-    if (G.raceOpenReady()) { ob.disabled = false; ob.textContent = t('race_opensource'); }
-    else { ob.disabled = true; ob.textContent = t('race_opensource_cd', { t: FMT.fmtTime(Math.max(0, 90 - (Date.now() - G.state.raceOpenAt) / 1000)) }); }
-  }
+  // (the open-source race action now lives on the live World/Race standings panel
+  // via updateStandings; the old duplicate racePanel on the singularity tab is gone)
   // (endings collection now lives on the World/Race finale banner; the old
   // singularity-tab list was unreachable and has been removed)
   function showEndingCinematic(d) {
@@ -1229,7 +1218,7 @@
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); }
-    else if (currentTab === 'singularity') { updateSingularity(); updateRace(); }
+    else if (currentTab === 'singularity') { updateSingularity(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
@@ -1596,7 +1585,7 @@
     // R9: act intros + ending cinematics
     G.on('act', function (d) { showActIntro(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
-    $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); updateRace(); } });
+    if ($('raceOpenBtn')) $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); toast(t('race_opensource_done'), 'good'); updateStandings(); } });
 
     // alignment buy + reactive audit
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
