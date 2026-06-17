@@ -425,10 +425,19 @@
   // 💵 money produced per second by your deployed product. Scales with your infra
   // (compute rate ≈ users served) × shipped generation × market share. 0 until v1
   // ships (garage = tap-for-cash bootstrap). See GAME-DESIGN.md §3-§4.
+  // tamed per-generation revenue ladder (recovery on each ship) — NOT the compounding
+  // genRevenueMult used by funding. revGenFactor(g) = REV_GEN_STEP^modelGen.
+  function revGenFactor() { return Math.pow(C.CORE.REV_GEN_STEP, state.modelGen); }
   function moneyRate() {
     if (state.modelGen <= 0) return 0;            // no product yet → tap bootstrap only
     var trust = worldUnlocked() ? trustMult() : 1; // reputation moves product revenue (±10%)
-    return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100) * trust;
+    // Phase 2: revenue = product capability (revGenFactor) × adoption (compute^ADOPTION_EXP,
+    // sub-linear so burn — linear in compute — outruns it WITHIN a generation) × market share ×
+    // trust. The sub-linear compute term makes the burn squeeze recur; the generation ladder +
+    // share jumps provide the recovery on each ship. Difficulty's revenueMult is applied in
+    // revenuePerSec() (the burn-economy wrapper) so it bites alongside burnMult.
+    var adoption = Math.pow(Math.max(0, computeRate()), C.CORE.ADOPTION_EXP) * C.CORE.REV_COMPUTE_COEF;
+    return adoption * revGenFactor() * (1 + state.marketShare / 100) * trust;
   }
   // Company worth in the SAME universe as the player's cash: liquid cash + physical
   // compute assets + goodwill from proven lifetime earnings, × a market-dominance premium.
@@ -439,6 +448,62 @@
       + (state.totalEarnedAllTime || 0) * C.CORE.VAL_GOODWILL_MULT;
     return assets * (1 + (state.marketShare || 0) / 100 * C.CORE.VAL_SHARE_PREMIUM);
   }
+
+  // ===================================================================
+  // BURN → RUNWAY economy (Phase 2, DESIGN-depth-redesign §1) ----------
+  // A continuous MONTHLY operating cost, computed from the player's scale, drained from
+  // cash each tick. Weighted like reality: compute(~55%) + salaries(~30%) + electricity
+  // (~12%) + datacenter upkeep + overhead, the whole thing × diff('burnMult'). cps() (the
+  // compute/sec your infra produces) is the dominant capacity proxy — and because it grows
+  // exponentially with generator tiers, burn tightens as you scale. Revenue (moneyRate) is
+  // the opposing force; runway = cash / netBurn, in MONTHS, is the headline.
+  // ===================================================================
+  function diffBurnMult() { var m = diff('burnMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
+  function diffComputePriceMult() { var m = diff('computePriceMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
+  // a compute-capacity proxy = compute/sec your generators produce (the same number the
+  // valuation/asset universe uses). Exponential in generator tiers ⇒ exponential burn.
+  function computeCapacity() { return cps(); }
+  // ---- monthly burn breakdown (for the HUD + Stats) ----
+  // returns { compute, electricity, salaries, upkeep, overhead, total } — all $/MONTH.
+  function burnBreakdown() {
+    var B = C.BURN;
+    var cap = computeCapacity();
+    var cpm = diffComputePriceMult();
+    var dm = diffBurnMult();
+    var compute     = cap * B.COMPUTE_PER_CPS * cpm;        // ~55% — the monster
+    var electricity = cap * B.ELEC_PER_CPS * cpm;           // ~12% — visible but minor
+    var salaryPerHead = B.SALARY_PER_RESEARCHER * (1 + (state.modelGen || 0) * B.SALARY_GEN_STEP); // seniority
+    var salaries    = (state.researchers || 0) * salaryPerHead;           // ~30%
+    var upkeep      = (state.datacenters || 0) * B.DC_UPKEEP;
+    var overhead    = B.OVERHEAD_BASE
+                    + (state.researchers || 0) * B.OVERHEAD_PER_HEAD
+                    + (state.datacenters || 0) * B.OVERHEAD_PER_DC;
+    // the whole burn scales with difficulty's burnMult (Easy 0.8 … Impossible 1.5)
+    compute *= dm; electricity *= dm; salaries *= dm; upkeep *= dm; overhead *= dm;
+    var total = compute + electricity + salaries + upkeep + overhead;
+    return { compute: compute, electricity: electricity, salaries: salaries, upkeep: upkeep, overhead: overhead, total: total };
+  }
+  // total MONTHLY burn (the opposing drain to revenue).
+  function monthlyBurn() { return burnBreakdown().total; }
+  // MONTHLY product revenue (the existing per-second income, reframed monthly so it sits in
+  // the same units as burn). moneyRate already weaves product capability (genRevenueMult) ×
+  // marketShare × trust; here we also apply diff('revenueMult') so the difficulty lever bites.
+  function diffRevenueMult() { var m = diff('revenueMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
+  function revenuePerSec() { return moneyRate() * diffRevenueMult(); }
+  function monthlyRevenue() { return revenuePerSec() * C.BURN.MONTH_SEC; }
+  // per-second cash drain from burn (monthly → per-second).
+  function burnPerSec() { return monthlyBurn() / C.BURN.MONTH_SEC; }
+  // net cash rate ($/sec): revenue minus burn. >0 ⇒ profitable.
+  function netCashRate() { return revenuePerSec() - burnPerSec(); }
+  // net MONTHLY burn: burn − revenue. <=0 ⇒ profitable (runway = Infinity).
+  function netMonthlyBurn() { return monthlyBurn() - monthlyRevenue(); }
+  // RUNWAY in MONTHS = cash / netBurn. Infinity when profitable (netBurn ≤ 0).
+  function runwayMonths() {
+    var nb = netMonthlyBurn();
+    if (nb <= 0) return Infinity;
+    return (state.cash || 0) / nb;
+  }
+  function isProfitable() { return netMonthlyBurn() <= 0; }
 
   // ---- researchers / talent ----
   function researcherSpeed() { return 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER); }
@@ -519,14 +584,19 @@
     return null;
   }
   function canTakeFunding() { var r = nextFundingRound(); return !!r && state.modelGen >= r.genReq; }
-  // Cash a round pays = a few minutes of CURRENT income (self-scaling head-start, never a
-  // skip). Floored to a small multiple of the first generator cost so a barely-bootstrapped
-  // gen-1 lab still gets a usable seed instead of ~$0.
+  // Phase 2: a round buys RUNWAY. Cash injected = the round's `months` × current MONTHLY BURN
+  // (so it adds that many months of runway, scaling with your real costs — DESIGN §1 "+12–24
+  // months"), × diff('fundValMult') (Easy 1.2 raises rounds; Impossible 0.7 cuts them — the
+  // lever is now consumed). Floored so a barely-bootstrapped lab still gets a usable seed even
+  // when its burn is tiny; also kept ≥ a few minutes of revenue (legacy behaviour) so a
+  // high-revenue lab isn't shortchanged. `months` lives on each FUNDING entry.
   function fundingPayout(r) {
     if (!r) return 0;
-    var perSec = moneyRate();
-    var floor = GEN[0].baseCost * 40; // ~a handful of starter generators
-    return Math.max(perSec * r.secs, floor);
+    var months = (typeof r.months === 'number') ? r.months : 12;
+    var byBurn = monthlyBurn() * months * (diff('fundValMult') || 1);
+    var byRev = moneyRate() * r.secs;        // legacy floor: a few minutes of revenue
+    var floor = GEN[0].baseCost * 40;        // ~a handful of starter generators (cold-start)
+    return Math.max(byBurn, byRev, floor);
   }
   function takeFunding() {
     var r = nextFundingRound();
@@ -1856,7 +1926,12 @@
     // GDD v3 continuous meta: generators produce COMPUTE; your shipped product
     // produces MONEY (∝ infra × generation × share). No more cash-from-generators.
     state.compute += computeRate() * dt;
-    addCash(moneyRate() * dt);
+    // Phase 2 BURN → RUNWAY: revenue is the income, burn is the opposing operating drain.
+    // Credit revenue through addCash (so lifetime/earned totals stay honest), then subtract
+    // the burn from cash. Cash is FLOORED at 0 here — Phase 2 surfaces runway tension but must
+    // never instakill; bankruptcy/game-over triggers off runway in Phase 3.
+    addCash(revenuePerSec() * dt);
+    state.cash = Math.max(0, state.cash - burnPerSec() * dt);
     if (trainingActive()) {
       if (Date.now() >= state.training.endsAt) finishTraining();
       else emitTrainProgress();   // subtle 25/50/75% progress pings on long runs
@@ -2058,7 +2133,12 @@
     // GDD v3: offline advances the whole company — product revenue (money) AND
     // compute accrue at the offline rate; training is wall-clock so it just
     // completes on return (handled by tick).
-    var earned = moneyRate() * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
+    // Phase 2: offline advances revenue AND burn at the offline rate, so returning players
+    // don't pocket a cost-free windfall. Net is floored at 0 (no offline bankruptcy — that
+    // pressure belongs to active play / Phase 3). Compute keeps accruing regardless.
+    var grossEarned = revenuePerSec() * eff * C.OFFLINE.RATE * offMult * (doubled ? 2 : 1);
+    var offBurn = burnPerSec() * eff * C.OFFLINE.RATE * offMult;
+    var earned = Math.max(0, grossEarned - offBurn);
     var computeGained = computeRate() * eff * C.OFFLINE.RATE * offMult;
     // GDD v3 "while you were away": which parallel timers finished during the gap
     var now = Date.now();
@@ -2209,6 +2289,24 @@
     if (!s.execRecruit || typeof s.execRecruit !== 'object' || Array.isArray(s.execRecruit)) s.execRecruit = { active: false, toTier: -1, startedAt: 0, endsAt: 0 };
     var VALID_MANDATES = { growth: 1, balance: 1, safety: 1, share: 1 };
     if (typeof s.mandate !== 'string' || !VALID_MANDATES[s.mandate]) s.mandate = 'balance';
+    // ---- v12: BURN → RUNWAY economy. The new operating-cost drain must NOT suddenly
+    // bankrupt an established save. Any save predating v12 was balanced under a no-burn
+    // economy, so grandfather a healthy cash buffer: if the player's runway under the new
+    // burn would be tighter than GRANDFATHER_MONTHS, top cash up to that many months of net
+    // burn. Profitable / fresh / runway-already-comfy saves are untouched. We evaluate burn
+    // against `s` via a temporary state swap (the burn fns read the live `state` global).
+    if (fromVer < 12) {
+      var GRANDFATHER_MONTHS = 12;   // returning players land with ≥1 comfortable year
+      var _saved = state; state = s;
+      try {
+        var nb = netMonthlyBurn();                  // burn − revenue, $/month (uses s)
+        if (nb > 0) {
+          var needed = nb * GRANDFATHER_MONTHS;
+          if ((s.cash || 0) < needed) s.cash = needed;   // top up; never lower an existing balance
+        }
+      } catch (e) { /* never let a balance calc break loading */ }
+      finally { state = _saved; }
+    }
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {
@@ -2382,6 +2480,10 @@
     genPerUnitOutput: genPerUnitOutput, genBuyPreview: genBuyPreview,
     // GDD v3 continuous meta
     computeRate: computeRate, tapCompute: tapCompute, moneyRate: moneyRate, valuation: valuation,
+    // Phase 2 burn → runway economy
+    burnBreakdown: burnBreakdown, monthlyBurn: monthlyBurn, monthlyRevenue: monthlyRevenue,
+    revenuePerSec: revenuePerSec, burnPerSec: burnPerSec, netCashRate: netCashRate,
+    netMonthlyBurn: netMonthlyBurn, runwayMonths: runwayMonths, isProfitable: isProfitable,
     genRevenueMult: genRevenueMult, nextGen: nextGen, isAGI: isAGI,
     trainingActive: trainingActive, canStartTraining: canStartTraining, startTraining: startTraining,
     trainingProgress: trainingProgress, trainingTimeLeft: trainingTimeLeft, finishTraining: finishTraining,

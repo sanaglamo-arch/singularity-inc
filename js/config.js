@@ -332,9 +332,11 @@
   var DIFFICULTY = {
     DEFAULT: 'normal',
     ORDER: ['easy', 'normal', 'hard', 'impossible'],
-    // base starting cash seed (×startCashMult) granted once when the difficulty is chosen on
-    // a NEW game — gives a little early runway so the multiplier has something to bite on.
-    START_CASH_SEED: 50,
+    // base starting cash seed (×startCashMult) granted once when the difficulty is chosen on a
+    // NEW game. Sized (Phase 2) so the OPENING runway matches DESIGN §5: ~12–15mo on Normal
+    // (≈ seed / monthly overhead ≈ 360/28), ×startCashMult ⇒ Easy ~18mo · Hard ~9mo ·
+    // Impossible ~6mo. Once you buy compute, the (dominant) compute-burn tightens it from there.
+    START_CASH_SEED: 360,
     levels: {
       easy: {
         startCashMult: 1.5,     // HOOKED — new-game starting cash
@@ -1304,6 +1306,26 @@
     REV_BASE: 0.15,           // tuned in P9
     REV_COMPUTE_FACTOR: 0.10, // (legacy) gentle log scaling
     REV_PER_COMPUTE: 0.5,     // money/sec per compute/sec of infra (product serves users ∝ compute)
+    // ---- Phase 2 BURN → RUNWAY revenue shaping (DESIGN §1) ----
+    // The opposing burn is LINEAR in compute capacity (cps) — and cps grows exponentially with
+    // generator tiers. If revenue rode the same exponential, burn could never bite. So product
+    // revenue scales SUB-LINEARLY in compute (adoption / serving has diminishing returns):
+    //   adoption     = cps^ADOPTION_EXP                                  (sub-linear in compute)
+    //   revenue/mo   = adoption × REV_COMPUTE_COEF × revGenFactor(modelGen)
+    //                            × (1 + marketShare/100) × trust × diff('revenueMult')
+    // Burn (∝ cps) therefore OUTRUNS revenue as you buy compute WITHIN a generation → runway
+    // tightens → you must SHIP the next generation (revGenFactor + market-share jump lift revenue
+    // back above burn) or raise FUNDING to survive. That sawtooth is the "periodic squeeze".
+    // The whole settled curve is tuned (probe.js) so revenue sits a little BELOW burn at a fresh
+    // generation (top labs lose money and live on rounds, per design §1) — comfortable ~12–15mo
+    // runway on Normal that tightens as you scale, recovering on each ship.
+    ADOPTION_EXP: 0.72,       // <1 ⇒ revenue grows polynomially in compute (burn grows linearly)
+    REV_COMPUTE_COEF: 0.022,  // level coefficient on cps^ADOPTION_EXP (tuned by probe.js)
+    // revGenFactor: a TAMED per-generation revenue ladder (NOT the compounding ×55 genRevenueMult
+    // used by funding). Each shipped generation lifts revenue by ~REV_GEN_STEP×, enough to keep
+    // pace with exponential compute-burn across the arc + give a recovery on ship, never enough to
+    // make you permanently, trivially profitable. revGenFactor(g) = REV_GEN_STEP^g.
+    REV_GEN_STEP: 1.68,       // per-shipped-generation revenue multiplier (recovery on each ship)
     // Valuation = a believable "company worth": liquid cash + physical compute assets +
     // goodwill from PROVEN lifetime earnings, boosted by market dominance. Deliberately
     // NOT annualised run-rate × multiple — at compressed game-time that explodes valuation
@@ -1370,24 +1392,65 @@
   // of your CURRENT income (self-scaling, so it can never trivialise the next stage —
   // you'd earn it in those minutes anyway). The real long-term value is `mult`: a
   // PERMANENT revenue boost. `secs` = seconds-of-current-income paid as the lump sum.
+  // `months` (Phase 2): a round injects this many MONTHS of current burn as cash → that much
+  // runway (DESIGN §1 "+12–24 months"). `secs` is kept as a revenue floor (a few minutes of
+  // income) so a high-revenue lab isn't shortchanged. `mult` = the PERMANENT revenue boost.
   var FUNDING = [
-    { id: 'seed', genReq: 1, secs: 180, mult: 1.10 },   // ~3 min head-start
-    { id: 'a',    genReq: 2, secs: 240, mult: 1.15 },   // ~4 min
-    { id: 'b',    genReq: 4, secs: 300, mult: 1.20 },   // ~5 min
-    { id: 'c',    genReq: 6, secs: 420, mult: 1.25 },   // ~7 min
-    { id: 'ipo',  genReq: 8, secs: 600, mult: 1.40 }    // ~10 min
+    { id: 'seed', genReq: 1, secs: 180, months: 12, mult: 1.10 },   // +12 mo runway
+    { id: 'a',    genReq: 2, secs: 240, months: 14, mult: 1.15 },   // +14 mo
+    { id: 'b',    genReq: 4, secs: 300, months: 16, mult: 1.20 },   // +16 mo
+    { id: 'c',    genReq: 6, secs: 420, months: 20, mult: 1.25 },   // +20 mo
+    { id: 'ipo',  genReq: 8, secs: 600, months: 24, mult: 1.40 }    // +24 mo
   ];
+
+  // 1 in-game "day" in real seconds — used by the decision engine's schedule/buff windows
+  // AND the burn→runway economy (a month = 30 days). Declared here so BURN below can read it.
+  var DAY_SEC = 60;
+
+  // ---- BURN → RUNWAY economy (Phase 2, DESIGN-depth-redesign §1) -------
+  // The DRAIN that makes the accumulative economy bite. A continuous MONTHLY operating
+  // cost, computed from the player's scale, drained from cash each tick (monthly→/sec via
+  // MONTH_SEC). Weighted like reality: compute (~55%) dominates · salaries (~30%) ·
+  // electricity (~12%, visible-but-minor) · datacenter upkeep · overhead. Costs grow
+  // ~exponentially with each compute tier/datacenter (cps() already grows ×1.07–1.13 per
+  // unit), while product revenue grows polynomially + jumps on model generations — so the
+  // player is periodically squeezed and must raise funding to survive.
+  //
+  //   RUNWAY = cash / (burn − revenue)  in MONTHS  (the headline HUD number)
+  //
+  // Tuned so a NEW Normal game starts with a COMFORTABLE ~12–15 month runway and tightens
+  // as you buy compute / hire. The whole burn × diff('burnMult'); compute+electricity ×
+  // diff('computePriceMult'). See the simulation harness for the verified curves.
+  var BURN = {
+    MONTH_SEC: DAY_SEC * 30,  // real seconds per in-game MONTH (DAY_SEC=60 ⇒ 1800s/month)
+    // compute (~55%): the monster. cps() = compute/sec your infra produces ≈ capacity.
+    // Monthly compute cost = cps × COMPUTE_PER_CPS. Because cps grows exponentially with
+    // generator tiers, this term is what tightens runway as you scale.
+    COMPUTE_PER_CPS: 26,      // $/month per unit of compute/sec (the dominant term)
+    // electricity (~12%): also tied to compute capacity but minor (kept visible).
+    ELEC_PER_CPS: 5.7,        // $/month per unit of compute/sec
+    // salaries (~30%): per researcher / head, per month. Scales with headcount AND seniority —
+    // each shipped generation means you're competing for scarcer FRONTIER talent, so the
+    // per-head salary rises (1 + modelGen × SALARY_GEN_STEP). Keeps salaries a meaningful slice
+    // of burn as you scale (headcount alone is bounded, so flat salaries vanish vs compute).
+    SALARY_PER_RESEARCHER: 900, // $/month per researcher (gen-0 baseline)
+    SALARY_GEN_STEP: 0.6,       // +60% per-head salary per shipped generation (talent war)
+    // datacenter upkeep: each built DC has a fixed monthly cost (escalates the fixed base).
+    DC_UPKEEP: 1400,          // $/month per datacenter
+    // overhead: total scale — a base office/ramen cost + a small per-head/per-DC slice so
+    // even a bare garage burns a little (so runway is a finite, meaningful number from day 1).
+    OVERHEAD_BASE: 28,        // $/month floor (founder ramen / office) — sets early runway
+    OVERHEAD_PER_HEAD: 120,   // $/month overhead per researcher (HR, desks, tooling)
+    OVERHEAD_PER_DC: 200      // $/month overhead per datacenter (site/admin)
+  };
 
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 11,         // + difficulty vector + data-driven rival roster (state.rivals)
+    SAVE_VERSION: 12,         // + burn/runway economy (no new persisted fields; safe migrate)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
-
-  // 1 in-game "day" in real seconds — used by the decision engine's schedule/buff windows
-  var DAY_SEC = 60;
 
   window.GAME_CONFIG = {
     DAY_SEC: DAY_SEC,
@@ -1403,6 +1466,7 @@
     RESEARCH2: RESEARCH2,
     TALENT: TALENT,
     FUNDING: FUNDING,
+    BURN: BURN,
     UNLOCKS: UNLOCKS,
     RISK: RISK,
     TAP: TAP,
