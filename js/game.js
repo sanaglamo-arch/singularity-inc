@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -77,6 +77,11 @@
       trust: 60,
       cards: [],             // active actionable cards (crisis / decision / opportunity)
       cardAllMult: 1,        // permanent multiplier from one-time opportunities (chip drops)
+      // ===== Decision-engine groundwork (Phase 1) — populated by applyEffect() =====
+      flags: {},             // boolean store: set_flag / clr_flag (e.g. "regulator_watching")
+      vars: {},              // numeric accumulators: set_var (e.g. alignment_debt)
+      scheduled: [],         // queued future events: { event, fireAt(ms), chance } — fired in tick()
+      buffs: [],             // timed multipliers: { key, mult, endsAt(ms) } — expired in tick()
       lastCrisisAt: 0,       // crisis cooldown anchor (ms)
       nextNewsAt: 0,
       newsLog: [],           // recent headline strings for the News feed
@@ -903,14 +908,77 @@
   function hasCrisisCard() { for (var i = 0; i < state.cards.length; i++) if (state.cards[i].kind === 'crisis') return true; return false; }
   var _uid = 1;
 
+  // applyEffect — the shared vocabulary for crisis/news card choices AND (Phase 1
+  // groundwork) the decision engine. The original keys below are UNCHANGED; the new
+  // keys are purely additive so existing content keeps working byte-for-byte.
   function applyEffect(eff) {
     if (!eff) return;
+    // ---- existing card-effect keys (unchanged) ----
     if (eff.cashFrac) state.cash = Math.max(0, state.cash + state.cash * eff.cashFrac);
     if (eff.cashGift) addCash(windfallCash(eff.cashGift, C.CARDS.CASHGIFT_CAP_FRAC, 100));
     if (eff.trust) state.trust = clampTrust(state.trust + eff.trust);
     if (eff.vec) for (var k in eff.vec) state.vec[k] = Math.max(0, Math.min(C.RISK.MAX, state.vec[k] + eff.vec[k]));
     if (eff.penaltySec) state.incidentEndsAt = Date.now() + eff.penaltySec * 1000;
     if (eff.allMult) state.cardAllMult = (state.cardAllMult || 1) * eff.allMult;
+
+    // ---- decision-engine vocabulary (Phase 1 groundwork; additive) ----
+    // resource: flat deltas. cash clamps at 0 unless allowDebt; compute/researchers clamp at 0.
+    if (eff.resource) {
+      var r = eff.resource;
+      if (typeof r.cash === 'number') {
+        var nc = state.cash + r.cash;
+        if (r.cash > 0) addCash(r.cash);                              // earnings count toward totals
+        else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
+      }
+      if (typeof r.compute === 'number') state.compute = Math.max(0, state.compute + r.compute);
+      if (typeof r.researchers === 'number') state.researchers = Math.max(0, Math.floor(state.researchers + r.researchers));
+    }
+    // meter: clamped deltas to derived scoreboards. marketShare/trust 0..100; align via state.align.
+    if (eff.meter) {
+      var m = eff.meter;
+      if (typeof m.marketShare === 'number') state.marketShare = Math.max(0, Math.min(100, state.marketShare + m.marketShare));
+      if (typeof m.trust === 'number') state.trust = clampTrust(state.trust + m.trust);
+      if (typeof m.align === 'number') state.align = Math.max(0, state.align + m.align);
+      // valuation is a DERIVED figure (no stored field) — record the adjustment as an
+      // accumulator now; later phases may fold it into valuation().
+      if (typeof m.valuation === 'number') state.vars.valuation_adj = (state.vars.valuation_adj || 0) + m.valuation;
+    }
+    // flags: boolean store
+    if (eff.set_flag) state.flags[eff.set_flag] = true;
+    if (eff.clr_flag) delete state.flags[eff.clr_flag];
+    // vars: numeric accumulators
+    if (eff.set_var) for (var vk in eff.set_var) state.vars[vk] = (state.vars[vk] || 0) + eff.set_var[vk];
+    // schedule: queue a future event. delay_days (1 day = 1 in-game day) or delaySec.
+    if (eff.schedule) {
+      var sc = eff.schedule;
+      var delaySec = (typeof sc.delaySec === 'number') ? sc.delaySec
+                   : (typeof sc.delay_days === 'number') ? sc.delay_days * C.DAY_SEC : 0;
+      state.scheduled.push({ event: sc.event, fireAt: Date.now() + delaySec * 1000, chance: (typeof sc.chance === 'number') ? sc.chance : 1 });
+    }
+    // rival_effect: nudge rival AGI progress / share. { id: {...} } or { all: {...} }.
+    if (eff.rival_effect) {
+      ensureRivals(); ensureRivalShare();
+      for (var rid in eff.rival_effect) {
+        var d = eff.rival_effect[rid] || {};
+        var targets = (rid === 'all') ? C.RIVALS.map(function (rv) { return rv.id; }) : [rid];
+        targets.forEach(function (tid) {
+          if (typeof d.agi === 'number') state.rivalAgi[tid] = Math.max(0, Math.min(100, (state.rivalAgi[tid] || 0) + d.agi));
+          if (typeof d.share === 'number') state.rivalShare[tid] = Math.max(0, Math.min(C.RIVAL_SHARE_CAP, (state.rivalShare[tid] || 0) + d.share));
+        });
+      }
+    }
+    // buff: timed multiplier stored + expired in tick. days|sec window.
+    if (eff.buff) {
+      var b = eff.buff;
+      var sec = (typeof b.sec === 'number') ? b.sec : (typeof b.days === 'number') ? b.days * C.DAY_SEC : 0;
+      if (b.key && sec > 0) state.buffs.push({ key: b.key, mult: (typeof b.mult === 'number') ? b.mult : 1, endsAt: Date.now() + sec * 1000 });
+    }
+  }
+  // active product of all timed decision buffs (used where output is computed; minimal for now)
+  function decisionBuffMult() {
+    var now = Date.now(), m = 1;
+    for (var i = 0; i < state.buffs.length; i++) if (state.buffs[i].endsAt > now) m *= (state.buffs[i].mult || 1);
+    return m;
   }
   function cardTemplate(card) {
     var arr = card.kind === 'crisis' ? C.CARDS.crises : C.CARDS.news;
@@ -1272,6 +1340,24 @@
     if (state.breakthroughEndsAt && now >= state.breakthroughEndsAt) {
       state.breakthroughEndsAt = 0; state.breakthroughMult = 1; state.lastBreakthroughEndAt = now;
     }
+    // expire decision-engine timed buffs (Phase 1 groundwork)
+    if (state.buffs && state.buffs.length) {
+      for (var bi = state.buffs.length - 1; bi >= 0; bi--) if (state.buffs[bi].endsAt <= now) state.buffs.splice(bi, 1);
+    }
+  }
+  // fire any due scheduled events (Phase 1 stub: emit + toast; real handling in Phase 2)
+  function updateScheduled() {
+    if (!state.scheduled || !state.scheduled.length) return;
+    var now = Date.now();
+    for (var i = state.scheduled.length - 1; i >= 0; i--) {
+      var s = state.scheduled[i];
+      if (s.fireAt > now) continue;
+      state.scheduled.splice(i, 1);
+      if (Math.random() <= (typeof s.chance === 'number' ? s.chance : 1)) {
+        emit('scheduled', { event: s.event });
+        emit('toast', { key: 'scheduled_fired', vars: { event: s.event } });
+      }
+    }
   }
 
   // ---- achievements ----------------------------------------------------
@@ -1366,6 +1452,7 @@
     if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
+    updateScheduled();   // decision-engine: fire due scheduled events (Phase 1 stub)
     updateCards();
     updateMarket();
     updateRace(dt);
@@ -1478,6 +1565,11 @@
     if (typeof s.decacorn !== 'boolean') s.decacorn = false;
     if (!s.acquired || typeof s.acquired !== 'object') s.acquired = {}; // v9
     if (!s.rivalAgiToasted || typeof s.rivalAgiToasted !== 'object') s.rivalAgiToasted = {}; // race-drama toasts
+    // ---- Phase 1: decision-engine state (flags/vars/scheduled/buffs) ----
+    if (!s.flags || typeof s.flags !== 'object' || Array.isArray(s.flags)) s.flags = {};
+    if (!s.vars || typeof s.vars !== 'object' || Array.isArray(s.vars)) s.vars = {};
+    if (!Array.isArray(s.scheduled)) s.scheduled = [];
+    if (!Array.isArray(s.buffs)) s.buffs = [];
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {

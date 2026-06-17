@@ -543,7 +543,11 @@
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
 
+  // 1 in-game "day" in real seconds — used by the decision engine's schedule/buff windows
+  var DAY_SEC = 60;
+
   window.GAME_CONFIG = {
+    DAY_SEC: DAY_SEC,
     GENERATORS: GENERATORS,
     MILESTONES: MILESTONES,
     UPGRADES: UPGRADES,
