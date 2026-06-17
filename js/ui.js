@@ -2525,5 +2525,7 @@
   }
   window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back, isPaused: isPaused,
     // Phase 3 crisis modals (also driven by the engine 'crisis' event + the runway-HUD CTA)
-    showRecoveryModal: showRecoveryModal, showAcquisitionModal: showAcquisitionModal, showNationalizeModal: showNationalizeModal };
+    showRecoveryModal: showRecoveryModal, showAcquisitionModal: showAcquisitionModal, showNationalizeModal: showNationalizeModal,
+    // Phase 7 — scenario reveal (also part of the new-game flow); exposed for QA/render checks
+    showScenario: showScenario };
 })();
