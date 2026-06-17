@@ -72,7 +72,7 @@
     res_compute: 'Power', res_share: 'Market share', res_valuation: 'Company value', res_researchers: 'Researchers',
     models_title: 'Models', model_current: 'Shipped: {name}', model_none: 'No model shipped yet',
     model_progress: 'Generation {n} / {total}',
-    train_btn: 'Train {name}', train_need: 'Need {v} compute — buy hardware to produce it; tapping helps', train_active: 'Training {name}…',
+    train_btn: 'Train {name}', train_need: 'Need {v} Power — buy hardware to produce it; tapping helps', train_active: 'Training {name}…',
     train_left: '{t} left', train_ready: 'Ready to train',
     train_done_toast: 'Shipped {name}! +{p}% revenue · +{s}% market share',
     gen_summary_title: '{name} shipped! 🚀',

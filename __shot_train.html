@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06060f">
+<title>Singularity Inc.</title>
+<link rel="stylesheet" href="fonts.css?v=13">
+<link rel="stylesheet" href="styles.css?v=13">
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <header id="topbar">
+    <div id="brand"><span id="brandIcon"></span><span id="brandText"><span id="brandName">Singularity Inc.</span><span id="actTag" class="hidden"></span></span></div>
+    <div id="trustHud" class="hidden"><span class="thi"></span><span id="trustVal">60</span></div>
+    <div id="cashBox">
+      <div id="cashVal">0</div>
+      <div id="cpsVal">0/sec</div>
+    </div>
+    <button id="inboxBadge" class="hidden" aria-label="decisions inbox"><span class="ib-ico">✉</span><span id="inboxCount">0</span></button>
+  </header>
+
+  <!-- Runway HUD (Phase 2 burn→runway headline): "Runway: 14 mo" headline only.
+       Color states green(>6mo)/amber(3-6mo)/red(<3mo)/profitable. Tap for burn/revenue
+       detail (full breakdown lives in Stats). Race-status badge sits inline on the right.
+       Hidden until you ship v1. -->
+  <div id="runwayBar" class="hidden" data-tip-dyn="runway">
+    <div class="rw-main"><span id="runwayLabel"></span><span id="runwayVal"></span></div>
+    <!-- inline status chips: live boost / world event / race standing (consolidated here so
+         the header is one strip, not four floating bands) -->
+    <div id="boostBadge" class="hidden"></div>
+    <div id="eventBadge" class="hidden"></div>
+    <div id="raceBadge" class="hidden"></div>
+    <!-- Phase 3: in-danger CTA — re-opens the recovery / ultimatum panel any time -->
+    <button id="crisisCta" class="hidden"></button>
+  </div>
+
+  <!-- Day counter + always-on finance line + pre-revenue hint + debt banner (DESIGN §2/§5/§6).
+       The finance line is ALWAYS visible (owner's #1 complaint: costs must never be hidden).
+       Tap it for the full per-line breakdown. The debt banner only shows when cash < 0. -->
+  <div id="financeWrap">
+    <div id="dayCounter"><span id="dayLabel"></span></div>
+    <div id="financeLine" data-tip-dyn="finance" role="button" tabindex="0"></div>
+    <div id="preRevHint" class="hidden"></div>
+    <div id="debtBanner" class="hidden" role="button" tabindex="0">
+      <span id="debtBannerIcon">⚠</span><span id="debtBannerText"></span>
+    </div>
+  </div>
+
+  <!-- Satirical news ticker (narrative arc, stage-based) — hidden until the World/News layer unlocks -->
+  <div id="ticker" class="hidden"><span class="tk-ico"></span><span id="tickerText"></span></div>
+  <!-- Act / campaign progress: thin hairline only (the act is named under the brand) -->
+  <div id="actBar" class="hidden"><div class="actbar-track"><div id="actFill"></div></div></div>
+
+  <!-- Content tabs -->
+  <main id="content">
+    <section class="tab active" data-tab="company">
+      <div id="tapZone">
+        <button id="tapBtn" aria-label="train">
+          <span id="orbSheen" aria-hidden="true"></span>
+          <span id="orbRing" aria-hidden="true"></span>
+          <span id="tapIcon"></span>
+          <span id="tapLabel">TRAIN</span>
+          <span id="tapValue"></span>
+        </button>
+        <div id="tapHint"></div>
+        <div id="comboWrap">
+          <div id="comboLabel"><span id="comboName"></span><span id="comboMult"></span></div>
+          <div id="comboBar"><div id="comboFill"></div></div>
+        </div>
+        <button id="breakthroughBtn" class="hidden"></button>
+        <div id="riskMini">
+          <div id="riskMiniLabel"></div>
+          <div class="bar"><div id="riskMiniFill"></div></div>
+        </div>
+      </div>
+      <div id="labMain">
+        <div id="nudge" class="hidden"><span class="nicon"></span><span id="nudgeText"></span></div>
+        <!-- GDD v3: continuous model-generation training (replaces prestige) -->
+        <div id="modelPanel" class="glass-panel">
+          <div id="resRow">
+            <div class="res"><span class="rlabel" id="rlCompute"></span><span class="rval" id="computeVal">0</span><span class="rsub" id="computeRate"></span></div>
+            <div class="res"><span class="rlabel" id="rlShare"></span><span class="rval" id="shareVal">0%</span></div>
+            <div class="res"><span class="rlabel" id="rlVal"></span><span class="rval" id="valVal">$0</span></div>
+          </div>
+          <div id="modelHead"><span id="modelTitle"></span><span id="modelProg" class="muted small"></span></div>
+          <div id="trainBox">
+            <button id="trainBtn"></button>
+            <div id="trainProg" class="hidden"><div class="bar"><div id="trainFill"></div></div><div id="trainTimer" class="muted small"></div></div>
+            <div id="trainHint" class="muted small"></div>
+          </div>
+          <button id="fundingBtn" class="hidden"></button>
+          <div id="fundNote" class="muted small hidden"></div>
+          <button id="boostBtn" class="hidden"></button>
+          <div id="buildBox">
+            <button id="buildBtn"></button>
+            <div id="buildProg" class="hidden"><div class="bar"><div id="buildFill"></div></div><div id="buildTimer" class="muted small"></div></div>
+          </div>
+        </div>
+        <!-- v17 BILLS: accruing electricity + next tax + pay-now (online, no fee). Gen-gated. -->
+        <div id="billsPanel" class="glass-panel hidden">
+          <div id="billsHead"><span id="billsTitle"></span><span id="billsAccountant" class="muted small"></span></div>
+          <div id="billsList"></div>
+        </div>
+        <!-- Discoverable orb cosmetics: a small swatch row right on the Lab (item 6) -->
+        <div id="labOrbRow" class="hidden"><span id="labOrbLabel" class="cos-label"></span><div id="labOrbList" class="cos-list"></div></div>
+        <!-- Guided first model-release CTA (appears only when the first prestige is worth it) -->
+        <button id="prestigeCta" class="hidden"><span class="cta-title"></span><span class="cta-sub"></span></button>
+        <!-- Buy-mode selector: compact inline segmented control at the TOP of the generator
+             list (item 2). Scrolls with the page; sits right where you buy. -->
+        <div id="buyModeBar" class="hidden">
+          <button data-mode="1">x1</button>
+          <button data-mode="10">x10</button>
+          <button data-mode="100">x100</button>
+          <button data-mode="max">Max</button>
+        </div>
+        <div class="scroll" id="genList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="upgrades">
+      <div class="scroll" id="upgradesPane">
+        <h2 id="upgradesTitle"></h2>
+        <div id="upgradeList"></div>
+        <div id="upgradeEmpty" class="empty-state hidden"></div>
+        <h2 id="managersTitle"></h2>
+        <div id="managerList"></div>
+        <div id="managerEmpty" class="empty-state hidden"></div>
+      </div>
+    </section>
+
+    <!-- GDD v3: the old prestige 'Research' tab is repurposed as the TEAM (hiring) view -->
+    <section class="tab" data-tab="research">
+      <div class="scroll" id="researchPane">
+        <h2 id="teamTitle"></h2>
+        <p id="teamDesc" class="muted small"></p>
+        <div id="teamPanel" class="glass-panel">
+          <div id="teamStats"></div>
+          <button id="hireBtn"></button>
+        </div>
+        <!-- Managing Director (executive ladder): current director, next recruit, mandate -->
+        <h2 id="execTitle"></h2>
+        <div id="execPanel" class="glass-panel">
+          <div id="execCurrent"></div>
+          <div id="execNext"></div>
+          <button id="execRecruitBtn"></button>
+          <div id="execProg" class="hidden"><div class="bar"><div id="execFill"></div></div><div id="execTimer" class="muted small"></div></div>
+          <div id="execGate" class="muted small hidden"></div>
+          <div id="mandateLabel" class="exec-mandate-label muted small"></div>
+          <div class="seg seg-wrap" id="mandateSeg">
+            <button data-mandate="growth"></button><button data-mandate="balance"></button><button data-mandate="safety"></button><button data-mandate="share"></button>
+          </div>
+          <div id="mandateDesc" class="muted small"></div>
+        </div>
+        <h2 id="rndTitle"></h2>
+        <div id="rndPanel" class="glass-panel">
+          <div id="researchStats"></div>
+          <button id="researchBtn"></button>
+          <div id="researchProg2" class="hidden"><div class="bar"><div id="researchFill"></div></div><div id="researchTimer" class="muted small"></div></div>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="tab" data-tab="alignment">
+      <div class="scroll" id="alignPane">
+        <h2 id="alignTitle"></h2>
+        <p id="alignIntro" class="muted"></p>
+        <div id="incidentBox" class="hidden"></div>
+        <div id="riskPanel">
+          <div id="vectorBars"></div>
+          <div class="meterRow" style="margin-top:14px"><span id="alignLabel"></span><span id="alignOwned"></span></div>
+          <div id="alignSuppressTxt" class="muted small"></div>
+          <button id="buyAlignBtn"></button>
+          <button id="auditBtn"></button>
+        </div>
+        <div class="minigrid" id="alignMini"></div>
+        <div class="tip" id="alignTip"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="world">
+      <div class="scroll" id="worldPane">
+        <div id="worldLocked" class="empty-state hidden"></div>
+        <!-- 4 RELATIONSHIP METERS strip (icon + colored bar each) -->
+        <div id="relMetersPanel" class="glass-panel hidden">
+          <div id="relMetersHead"><span id="relMetersTitle"></span></div>
+          <div id="relMeters"></div>
+        </div>
+        <!-- GDD v3: AGI finale banner (win / beaten) + optional Founder's Legacy -->
+        <div id="finaleBanner" class="glass-panel hidden">
+          <div id="finaleTitle"></div>
+          <div id="finaleDesc" class="muted small"></div>
+          <div id="finaleEndingsProgress" class="accent small"></div>
+          <div id="finaleEndingsGrid"></div>
+          <button id="legacyBtn"></button>
+          <div id="legacyNote" class="muted small"></div>
+        </div>
+        <!-- GDD v3: rival market-share race (the central goal) -->
+        <div id="standingsPanel" class="glass-panel">
+          <div id="standingsHead"><span id="standingsTitle"></span><span id="standingsStatus" class="muted small"></span></div>
+          <div id="standingsRows"></div>
+          <div id="agiRace" class="muted small"></div>
+          <button id="acquireBtn" class="hidden"></button>
+          <button id="raceOpenBtn" class="hidden"></button>
+        </div>
+        <h2 id="worldNewsTitle"></h2>
+        <div id="cardList"></div>
+        <h2 id="newsFlavorTitle"></h2>
+        <div id="newsFlavor"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="stats">
+      <div class="scroll" id="statsPane">
+        <h2 id="statsTitle"></h2>
+        <div id="statList"></div>
+        <h3 id="hofTitle" class="hofTitle"></h3>
+        <div id="hofList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="achievements">
+      <div class="scroll" id="achPane">
+        <h2 id="achTitle"></h2>
+        <div id="achProgress" class="muted"></div>
+        <div id="achList"></div>
+      </div>
+    </section>
+
+    <section class="tab" data-tab="settings">
+      <div class="scroll" id="settingsPane">
+        <h2 id="settingsTitle"></h2>
+        <div class="setting-row"><span id="companyNameLabel"></span>
+          <div class="name-edit">
+            <input id="companyNameInput" class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" />
+            <button id="companyNameSave" class="name-save"></button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="langLabel"></span>
+          <div class="seg" id="langSeg">
+            <button data-lang="en">EN</button><button data-lang="ru">RU</button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="soundLabel"></span>
+          <div class="seg" id="soundSeg">
+            <button data-sound="on"></button><button data-sound="off"></button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="musicLabel"></span>
+          <div class="seg" id="musicSeg">
+            <button data-music="on"></button><button data-music="off"></button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="hapticsLabel"></span>
+          <div class="seg" id="hapticsSeg">
+            <button data-haptics="on"></button><button data-haptics="off"></button>
+          </div>
+        </div>
+        <div class="setting-row"><span id="adBoostLabel"></span><button id="adBoostBtn" class="adbtn"></button></div>
+        <div class="setting-row"><span id="adCashLabel"></span><button id="adCashBtn" class="adbtn"></button></div>
+        <h2 id="cosmeticsTitle" style="margin-top:18px"></h2>
+        <div class="cos-row"><span id="cosOrbLabel" class="cos-label"></span><div id="cosOrbList" class="cos-list"></div></div>
+        <div class="cos-row"><span id="cosThemeLabel" class="cos-label"></span><div id="cosThemeList" class="cos-list"></div></div>
+        <button id="saveBtn" class="wide"></button>
+        <button id="resetBtn" class="wide danger"></button>
+        <p id="creditsTxt" class="muted small"></p>
+        <p id="versionTxt" class="muted small"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom tab nav: 5 primary slots (World reveals when unlocked); the rest live in More -->
+  <nav id="tabbar">
+    <button data-tab="company" class="active"><span class="ti"></span><span class="tl" id="nav_company"></span></button>
+    <button data-tab="upgrades" id="navUpgradesBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_upgrades"></span></button>
+    <button data-tab="research" id="navResearchBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_research"></span></button>
+    <button data-tab="world" id="navWorldBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_world"></span></button>
+    <button data-more="1" id="navMoreBtn"><span class="ti"></span><span class="tl" id="nav_more"></span></button>
+  </nav>
+</div>
+
+<div id="toastRoot" role="status" aria-live="polite" aria-atomic="false"></div>
+<!-- Share-change notifications (owner's request): small dismissable cards, top-right -->
+<div id="shareNotis" role="status" aria-live="polite"></div>
+<div id="modalRoot" class="hidden"></div>
+
+<!-- GAME-OVER screen (DESIGN §4): full-screen BLOCKING overlay shown when any finale fires
+     (bankrupt / absorbed / nationalized / beaten / AGI-win). The dead game is not tappable
+     behind it. "New Game" → difficulty select → fresh run. "View Stats" → Stats tab. -->
+<div id="gameOverScreen" class="hidden" role="dialog" aria-modal="true">
+  <div id="goCard">
+    <div id="goEmblem"></div>
+    <div id="goTitle"></div>
+    <div id="goCompany" class="muted"></div>
+    <div id="goFlavor" class="muted small"></div>
+    <div id="goRecord" class="hidden"></div>
+    <div id="goSummary"></div>
+    <!-- Shareable ending card: a one-line punchline + stat line, made to screenshot -->
+    <div id="goPunch"></div>
+    <div id="goBrag" class="muted small"></div>
+    <div id="goButtons">
+      <button id="goNewGame"></button>
+      <button id="goStats" class="ghost"></button>
+    </div>
+  </div>
+</div>
+
+<!-- HOOK: screen-edge glow that intensifies as you approach the first v1 release -->
+<div id="v1Glow" aria-hidden="true"></div>
+
+<div id="fxRoot"></div>
+
+<!-- Splash / loading screen (shown instantly, before JS parses; faded out on boot) -->
+<div id="splash">
+  <div class="splash-orb">
+    <svg viewBox="0 0 120 120" fill="none" stroke="#bfa6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="60" cy="60" r="7" fill="#fff" stroke="none"/>
+      <circle cx="60" cy="60" r="20"/><circle cx="60" cy="60" r="34" opacity="0.6"/><circle cx="60" cy="60" r="48" opacity="0.3"/>
+      <path d="M60 13v12M60 95v12M13 60h12M95 60h12M27 27l8 8M85 85l8 8M93 27l-8 8M35 85l-8 8"/>
+    </svg>
+  </div>
+  <div class="splash-title">SINGULARITY INC.</div>
+  <div class="splash-tag">From a garage script to an artificial god.</div>
+  <div class="splash-bar"><div></div></div>
+</div>
+
+<script src="js/config.js?v=13"></script>
+<script src="js/format.js?v=13"></script>
+<script src="js/i18n.js?v=13"></script>
+<script src="js/sdk.js?v=13"></script>
+<script src="js/ads.js?v=13"></script>
+<script src="js/game.js?v=13"></script>
+<script src="js/audio.js?v=13"></script>
+<script src="js/fx.js?v=13"></script>
+<script src="js/icons.js?v=13"></script>
+<script src="js/music.js?v=13"></script>
+<script src="js/ui.js?v=13"></script>
+<script src="js/main.js?v=13"></script>
+<script>window.__SHOT="train";</script>
+<script src="__drv.js"></script>
+</body>
+</html>
