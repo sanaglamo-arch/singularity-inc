@@ -298,3 +298,56 @@ news feed:
 - SPRINT's `train_boost` is intentionally capped at 95% of remaining time (never instant-finish)
   so it's a meaningful lever, not a skip button.
 - dist zip rebuilt this session (22-file flat bundle, current tree).
+
+---
+
+## R7 — P3 RETENTION: run-objective alt-goals + daily loop (audit §E)
+
+**Run objectives (replayability → Hall of Fame).** 6 optional challenge badges, tracked
+PASSIVELY from existing signals (no new currency):
+- `flawless` — reach AGI with `incidentsThisRun === 0`
+- `monopoly` — `marketShare >= 60` (latches mid-run via trackRunGoals)
+- `bootstrap` — win taking NO funding round (`!tookAnyFunding()`)
+- `no_ipo` — win without an IPO (`!funding.ipo`)
+- `safe_leader` — win with `align >= 5 && trust >= 85` (pristine safe win)
+- `speedrun` — reach AGI in `< 21` in-game days
+
+`runGoalState(id)` → `done|progress|blocked` for a colorblind HUD (✓ / ▲ / ⚠). At the
+finale, `awardRunGoals()` latches met goals into BOTH `state.runGoalsMet` (this run) and
+`records[diff].badges` (persist forever). Badges render on the shareable ending card
+(`#goBadges`) and as a count in the Hall of Fame (Stats panel + game-over modal). Panel
+lives in the Achievements tab.
+
+**Daily loop (monthly retention).** Real-calendar-day goal layered on the existing login
+reward. One rotating goal/day picked by `realDayIndex % GOALS.length`: tap N (40) / ship a
+model / earn $X (stage-scaled = `baseCps × 10s × 30`). Progress = current counter − a
+baseline snapshotted at the day-roll (zero extra tick tracking). Clearing it grants ONE
+boost token. Forgiving streak (1 missed day doesn't reset). Day boundary uses real `Date`
+(local-time `realDayIndex`). Teach-on-first popup when the Achievements tab first opens
+(once, non-nagging). Panel shows streak ("🔥 N days") + goal + progress bar + claim button.
+
+**Latent bug fixed:** a duplicate `function dayIndex` (real-day) silently shadowed the
+in-game `dayIndex` for the whole IIFE, so electricity/tax bills keyed off REAL days and
+basically never settled by period. Renamed the daily one to `realDayIndex()`; in-game
+`dayIndex` is canonical for bills again. Migration re-anchors pre-v19 `lastElec/TaxDay`
+(which were stored as huge real-day indices) to the in-game day so no surprise bill fires.
+Verified: bills now settle by in-game period (powerOwed drops after ~7 in-game days).
+
+**Checks:** `node --check` clean on all js; headless **0 console errors** (Yandex SDK
+aside); **i18n parity 26 new keys × RU/EN → 1468 each, no diff either way**; **migration
+safe** (v18→v19, all new fields default, old saves load clean, bills re-anchor); **no
+overflow 360/390/414** EN+RU — screenshots read at 360 (Daily streak + stage-scaled
+"Earn $433.8K" goal; 6 alt-goals w/ glyphs, Monopoly "Achieved"). RU at 360 wraps clean.
+
+### Honest notes
+- **Fully WIRED, nothing stubbed.** Goals read live state; `awardRunGoals` fires from the
+  real `triggerFinale`; `trackRunGoals` runs in the tick next to `trackRecords`; badges
+  persist through `recordFor().badges` and survive new-game (records are kept).
+- Daily streak/goal state is REAL-CALENDAR, so it's carried through an in-game new-game
+  (added to the `keep` set in `newGame()`), with a counter-reset guard so a fresh run's
+  zeroed taps/modelGen can't make today's progress go negative.
+- `?qa_ach` is a dev-only screenshot hook (seeds mid-game + opens the tab; `?lang=ru`
+  forces RU); no gameplay effect, mirrors the existing `?newstest` pattern.
+- Reward scaling: the login cash already scaled via `windfallCash` (baseCps × seconds,
+  capped by bestRunEarned frac) — modest early, never trivializing late. The daily-goal
+  reward is a flat 1 boost token (retention nudge, not a power spike).
