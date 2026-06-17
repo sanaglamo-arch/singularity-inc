@@ -121,12 +121,8 @@
     $('newsFlavorTitle').textContent = t('news_flavor_title');
     if ($('marketIntro')) $('marketIntro').textContent = t('market_intro');
     buildMarket();
-    // legacy prestige/singularity DOM removed in GDD v3 — guard every reference
-    if ($('singTitle')) $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
-    if ($('singDesc')) $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
-    if ($('metaTitle')) $('metaTitle').textContent = t('meta_title');
-    buildArtifacts(); buildTech(); buildMeta();
-    // (Alignment / Singularity / Stats / Awards / Settings labels live in the More sheet, built on open)
+    // (legacy prestige/singularity/artifacts/tech tabs were retired in GDD v3)
+    // (Alignment / Stats / Awards / Settings labels live in the More sheet, built on open)
     // upgrades + autopilot
     $('upgradesTitle').textContent = t('upgrades_title');
     $('managersTitle').textContent = t('managers_title');
@@ -602,120 +598,6 @@
     }
   }
 
-  // ---------- tech tree ----------
-  function techDesc(tk) { return t('tech_cat_' + tk.cat) + ' ×' + tk.mult; }
-  function buildTech() {
-    var list = $('techList'); if (!list) return; list.innerHTML = '';
-    C.TECH.forEach(function (tk) {
-      var card = el('div', 'card locked'); card.dataset.tid = tk.id;
-      card.innerHTML =
-        '<div class="iconwrap">' + ic('ic_tech') + '</div>' +
-        '<div class="info"><div class="name">' + t(tk.id) + '</div><div class="desc">' + techDesc(tk) + '</div><div class="sub req"></div></div>' +
-        '<div class="right"><button class="minibtn">' + t('rp_cost', { n: tk.cost }) + '</button></div>';
-      card.querySelector('button').addEventListener('click', function () { if (G.buyTech(tk.id)) window.GAME_AUDIO.buy(); });
-      list.appendChild(card);
-    });
-  }
-  function updateTech() {
-    if (!$('techList')) return;
-    var s = G.state, nodes = $('techList').children;
-    for (var i = 0; i < nodes.length; i++) {
-      var tk = C.TECH[i], card = nodes[i], btn = card.querySelector('button'), req = card.querySelector('.req');
-      if (s.tech[tk.id]) { card.classList.add('owned-tech'); card.classList.remove('locked'); btn.textContent = '✓ ' + t('bought'); btn.disabled = true; req.textContent = ''; continue; }
-      var ok = G.techReqMet(tk);
-      if (!ok) {
-        card.classList.add('locked'); btn.disabled = true; btn.textContent = t('rp_cost', { n: tk.cost });
-        if (tk.req.tech) req.textContent = t('tech_locked_tech', { name: t(tk.req.tech) });
-        else if (tk.req.gen) req.textContent = t('tech_locked_gen', { n: tk.req.count, name: t('g_' + tk.req.gen) });
-      } else {
-        req.textContent = '';
-        var afford = s.rp >= tk.cost;
-        card.classList.toggle('locked', !afford); card.classList.toggle('affordable', afford);
-        btn.disabled = !afford; btn.textContent = t('rp_cost', { n: tk.cost });
-      }
-    }
-  }
-
-  // ---------- artifacts ----------
-  function artDesc(a) { return a.effect.type === 'gamble' ? t('art_gamble') : (t('art_' + a.effect.type) + ' ×' + a.effect.value); }
-  function buildArtifacts() {
-    var list = $('artifactList'); if (!list) return; list.innerHTML = '';
-    C.ARTIFACTS.forEach(function (a) {
-      var card = el('div', 'card'); card.dataset.arid = a.id;
-      var tags = a.tags.map(function (tg) { return '<span class="tagchip">' + t('tag_' + tg) + '</span>'; }).join('');
-      card.innerHTML =
-        '<div class="iconwrap">' + ic('ic_artifact') + '</div>' +
-        '<div class="info"><div class="name">' + t(a.id) + '</div><div class="desc">' + artDesc(a) + '</div><div class="tags">' + tags + '</div></div>' +
-        '<div class="right"><button class="minibtn"></button></div>';
-      card.querySelector('button').addEventListener('click', function () {
-        if (G.state.artifactsEquipped.indexOf(a.id) >= 0) G.unequipArtifact(a.id);
-        else if (G.equipArtifact(a.id)) window.GAME_AUDIO.buy();
-        else window.GAME_AUDIO.buy();
-      });
-      list.appendChild(card);
-    });
-  }
-  function updateArtifacts() {
-    if (!$('artifactList')) return;
-    var s = G.state, nodes = $('artifactList').children, anyOwned = false;
-    for (var i = 0; i < nodes.length; i++) {
-      var a = C.ARTIFACTS[i], card = nodes[i], btn = card.querySelector('button');
-      var owned = !!s.artifactsOwned[a.id];
-      card.classList.toggle('hidden', !owned);
-      if (owned) anyOwned = true;
-      var eq = s.artifactsEquipped.indexOf(a.id) >= 0;
-      card.classList.toggle('equipped', eq);
-      card.classList.toggle('affordable', eq);
-      btn.textContent = eq ? t('unequip') : t('equip');
-      btn.disabled = !eq && s.artifactsEquipped.length >= C.ARTIFACT_SLOTS;
-    }
-    $('artSynergy').textContent = anyOwned
-      ? t('equipped_label', { n: s.artifactsEquipped.length, m: C.ARTIFACT_SLOTS }) + '  ·  ' + t('synergy_label') + ' ×' + G.artifactSynergyMult().toFixed(2)
-      : t('artifacts_empty');
-  }
-
-  // ---------- core (meta) upgrades ----------
-  var META_KEY = { globalMult: 'meta_global', rpGain: 'meta_rp', tapMult: 'meta_tap', riskMult: 'meta_risk', offlineCap: 'meta_offline', coreGain: 'meta_core' };
-  function metaDesc(mu) {
-    var lbl = t(META_KEY[mu.type] || 'meta_global');
-    if (mu.type === 'offlineCap') return lbl + ' +' + mu.value + 'h';
-    return lbl + ' ×' + mu.value;
-  }
-  function buildMeta() {
-    var list = $('metaList'); if (!list) return; list.innerHTML = '';
-    C.SINGULARITY.meta.forEach(function (mu) {
-      var card = el('div', 'pcard'); card.dataset.mid = mu.id;
-      card.innerHTML =
-        '<div class="picon">' + ic('ic_core') + '</div>' +
-        '<div class="info"><div class="name">' + t(mu.id) + '</div><div class="desc">' + metaDesc(mu) + '</div></div>' +
-        '<button>' + t('cores_cost', { n: mu.cost }) + '</button>';
-      card.querySelector('button').addEventListener('click', function () { if (G.buyMeta(mu.id)) window.GAME_AUDIO.prestige(); });
-      list.appendChild(card);
-    });
-  }
-  function updateMeta() {
-    var s = G.state, nodes = $('metaList').children;
-    for (var i = 0; i < nodes.length; i++) {
-      var mu = C.SINGULARITY.meta[i], card = nodes[i], btn = card.querySelector('button');
-      if (s.meta[mu.id]) { card.classList.add('owned'); btn.textContent = '✓ ' + t('bought'); btn.disabled = true; }
-      else { card.classList.remove('owned'); btn.textContent = t('cores_cost', { n: mu.cost }); btn.disabled = s.cores < mu.cost; }
-    }
-  }
-  function updateSingularity() {
-    var s = G.state;
-    var gain = G.coresGain();
-    var btn = $('singBtn'); btn.textContent = t('singularity_btn');
-    if (!G.singUnlocked()) {
-      $('singGain').textContent = t('singularity_locked', { n: C.SINGULARITY.UNLOCK_RP });
-      btn.disabled = true;
-    } else {
-      $('singGain').textContent = G.canSingularity() ? t('singularity_gain', { n: gain }) : t('singularity_locked', { n: C.SINGULARITY.UNLOCK_RP });
-      btn.disabled = !G.canSingularity();
-    }
-    $('coresHave').textContent = t('cores_have', { n: s.cores });
-    $('coresBonus').textContent = t('cores_bonus', { p: Math.round(s.cores * C.SINGULARITY.CORE_BONUS * 100) });
-    updateMeta();
-  }
 
   // ---------- cosmetics ----------
   var ORB_PREVIEW = {
@@ -1218,7 +1100,6 @@
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); }
-    else if (currentTab === 'singularity') { updateSingularity(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
@@ -1561,23 +1442,8 @@
     apMode[0].addEventListener('click', function () { G.setAutopilotMode('roi'); window.GAME_AUDIO.buy(); updateAutopilot(); });
     apMode[1].addEventListener('click', function () { G.setAutopilotMode('milestone'); window.GAME_AUDIO.buy(); updateAutopilot(); });
 
-    // singularity (second prestige)
-    $('singBtn').addEventListener('click', function () {
-      if (!G.canSingularity()) return;
-      var gain = G.coresGain();
-      showModal(
-        '<h3>' + t('singularity_title') + '</h3>' +
-        '<p>' + t('singularity_confirm', { n: gain }) + '</p>' +
-        '<div class="row"><button class="secondary" id="sCancel">✕</button>' +
-        '<button class="primary" id="sOk">' + t('singularity_btn') + '</button></div>'
-      );
-      $('sCancel').onclick = hideModal;
-      $('sOk').onclick = function () {
-        hideModal();
-        if (G.doSingularity()) { switchTab('company'); } // ending cinematic fires via the 'ending' event
-      };
-    });
-    // (singularity flavor shown in the ritual cinematic subtitle)
+    // (the singularity/2nd-prestige tab was retired in GDD v3; doSingularity
+    //  remains in the engine only for the 'beaten' ending path)
     G.on('card', function (d) {
       if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); buzz([0,40,60,40]); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
