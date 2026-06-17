@@ -1119,17 +1119,18 @@
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
   function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
-  function leadingRival() { var best = null, bv = -1; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) { var a = state.rivalAgi[r.id] || 0; if (a > bv) { bv = a; best = r; } } }); return best ? { id: best.id, agi: bv } : null; }
   // Topbar race-status badge (item 3): show '#1' when you lead the market AND no rival is
   // closing in; otherwise surface the most threatening rival's AGI %. Null = nothing to show
   // yet (race not revealed). The threat takes priority once a rival passes ~40% AGI.
+  // (uses the existing leadingRival() defined below, which returns {id, val}.)
   function raceStatus() {
     if (!rivalsRevealed() || !rivalsActive()) return null;
     var lr = leadingRival();
-    var threat = lr && lr.agi >= 40;
-    if (threat) return { kind: 'threat', id: lr.id, pct: Math.round(lr.agi) };
+    var agi = lr && lr.id ? (lr.val || 0) : 0;
+    var threat = lr && lr.id && agi >= 40;
+    if (threat) return { kind: 'threat', id: lr.id, pct: Math.round(agi) };
     if (isMarketLeader()) return { kind: 'lead' };
-    return lr ? { kind: 'threat', id: lr.id, pct: Math.round(lr.agi) } : null;
+    return (lr && lr.id) ? { kind: 'threat', id: lr.id, pct: Math.round(agi) } : null;
   }
   function rivalAcquired(id) { return !!(state.acquired && state.acquired[id]); }
   // §5 acquisitions: buy out the strongest remaining rival (one-time each, post mid-game)
@@ -1658,7 +1659,7 @@
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding, fundingPayout: fundingPayout,
-    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, leadingRival: leadingRival, raceStatus: raceStatus, agiRank: agiRank, agiFieldSize: agiFieldSize,
+    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, raceStatus: raceStatus, agiRank: agiRank, agiFieldSize: agiFieldSize,
     acquireTarget: acquireTarget, acquireCost: acquireCost, acquireUnlocked: acquireUnlocked, canAcquire: canAcquire, acquireRival: acquireRival,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
     researchEfficiencyMult: researchEfficiencyMult, researchProjCost: researchProjCost, researchActive: researchActive, canStartResearch: canStartResearch, startResearch: startResearch, researchProgress: researchProgress, researchTimeLeft: researchTimeLeft, processSpeed: processSpeed,
