@@ -391,7 +391,10 @@
         debtGraceDays: 35, debtCeilingK: 2
       },
       impossible: {
-        startCashMult: 0.5, burnMult: 1.5, computePriceMult: 1.4, revenueMult: 0.7,
+        // ECONOMY REBALANCE (DESIGN-GDD §3, audit A3): Impossible was MATHEMATICALLY unwinnable
+        // (rev/burn capped ≤0.75 at any share). Softened burnMult 1.5→1.3 and computePriceMult
+        // 1.4→1.25 so rev/burn CAN exceed 1.0 with strong play — brutal-but-fair, not impossible.
+        startCashMult: 0.5, burnMult: 1.3, computePriceMult: 1.25, revenueMult: 0.7,
         fundValMult: 0.7, rivalAggroMult: 1.6, failWarnMonths: 1, failMonths: 0,
         acqWindow: 2, eventSeverityMult: 1.6, rivalAGIspeedMult: 1.45, varianceMult: 1.6,
         lifecycleCdMult: 0.6, entrantMult: 2.0,
@@ -1870,13 +1873,28 @@
     // The whole settled curve is tuned (probe.js) so revenue sits a little BELOW burn at a fresh
     // generation (top labs lose money and live on rounds, per design §1) — comfortable ~12–15mo
     // runway on Normal that tightens as you scale, recovering on each ship.
-    ADOPTION_EXP: 0.72,       // <1 ⇒ revenue grows polynomially in compute (burn grows linearly)
-    REV_COMPUTE_COEF: 0.022,  // level coefficient on cps^ADOPTION_EXP (tuned by probe.js)
+    // ECONOMY REBALANCE (DESIGN-GDD §2, audit A1): ADOPTION_EXP raised 0.72 → 1.0 so revenue is
+    // LINEAR in compute (matching the linear burn). With a pure-linear adoption term the marginal
+    // d(rev)/d(compute) is CONSTANT (never decays with cps depth), so a marginal generator buy is
+    // NET-POSITIVE from v1 at ANY scale — killing the old sublinear curve where building always
+    // lost money at depth + a "park" exploit dominated. Challenge no longer comes from compute
+    // being a money-loser; it comes from FIXED costs (salaries/DC upkeep/overhead), the
+    // exponential generator COST curve, the compute-STOCK gate on shipping, rivals, and difficulty.
+    ADOPTION_EXP: 1.0,
+    // REV_COMPUTE_COEF tuned (proof-sim) for the linear curve + newly-wired fundingRevMult
+    // round-mult compounding in moneyRate(). Sized so the gen1 marginal buy is net-positive on ALL
+    // FOUR difficulties (incl. Impossible) while early game stays cash-gated (tiny cps × tiny
+    // share, fixed overhead) and disciplined play pushes rev/burn comfortably > 1.0.
+    REV_COMPUTE_COEF: 0.0075,
     // revGenFactor: a TAMED per-generation revenue ladder (NOT the compounding ×55 genRevenueMult
     // used by funding). Each shipped generation lifts revenue by ~REV_GEN_STEP×, enough to keep
     // pace with exponential compute-burn across the arc + give a recovery on ship, never enough to
     // make you permanently, trivially profitable. revGenFactor(g) = REV_GEN_STEP^g.
-    REV_GEN_STEP: 1.68,       // per-shipped-generation revenue multiplier (recovery on each ship)
+    // ECONOMY REBALANCE: gentled 1.68 → 1.35 so the per-generation revenue ladder doesn't
+    // compound late-game rev/burn into the absurd (with the now-LINEAR adoption + wired round
+    // mult, 1.68^gen exploded a mature lab's margin). 1.35 keeps a felt recovery on each ship
+    // while leaving challenge to fixed costs / cost curve / share gating / rivals / difficulty.
+    REV_GEN_STEP: 1.35,       // per-shipped-generation revenue multiplier (recovery on each ship)
     // Valuation = a believable "company worth": liquid cash + physical compute assets +
     // goodwill from PROVEN lifetime earnings, boosted by market dominance. Deliberately
     // NOT annualised run-rate × multiple — at compressed game-time that explodes valuation

@@ -617,6 +617,18 @@
     for (var f = 0; f < C.FUNDING.length; f++) if (state.funding[C.FUNDING[f].id]) m *= C.FUNDING[f].mult;
     return m;
   }
+  // ECONOMY REBALANCE (DESIGN-GDD §2, audit A2): the PERMANENT compounding revenue multiplier
+  // from FUNDING ROUNDS only (roundMult). Previously DEAD — funding gave a one-time cash lump but
+  // NO lasting revenue lift (the genRevenueMult round-mult ladder was never read in moneyRate()).
+  // Now WIRED into moneyRate() so each round permanently compounds revenue (Seed ×1.10 … IPO
+  // ×1.40), making rounds a real engine of growth, not just a runway band-aid. The per-GENERATION
+  // ladder is carried separately by revGenFactor() (REV_GEN_STEP^modelGen) so the two never
+  // double-count (genRevenueMult above — which bundles BOTH — stays the funding-payout helper).
+  function fundingRevMult() {
+    var m = 1;
+    for (var f = 0; f < C.FUNDING.length; f++) if (state.funding[C.FUNDING[f].id]) m *= C.FUNDING[f].mult;
+    return m;
+  }
   // 💵 money produced per second by your deployed product. Scales with your infra
   // (compute rate ≈ users served) × shipped generation × market share. 0 until v1
   // ships (garage = tap-for-cash bootstrap). See GAME-DESIGN.md §3-§4.
@@ -629,13 +641,19 @@
     // through to revGenFactor()=Math.pow(step, undefined)=NaN and poison cash (the reported bug).
     if (!(finiteNum(state.modelGen) > 0)) return 0;   // no product yet → tap bootstrap only
     var trust = worldUnlocked() ? trustMult() : 1; // reputation moves product revenue (±10%)
-    // Phase 2: revenue = product capability (revGenFactor) × adoption (compute^ADOPTION_EXP,
-    // sub-linear so burn — linear in compute — outruns it WITHIN a generation) × market share ×
-    // trust. The sub-linear compute term makes the burn squeeze recur; the generation ladder +
-    // share jumps provide the recovery on each ship. Difficulty's revenueMult is applied in
-    // revenuePerSec() (the burn-economy wrapper) so it bites alongside burnMult.
+    // ECONOMY REBALANCE (DESIGN-GDD §2, audit A1/A2): revenue is now LINEAR in compute
+    // (ADOPTION_EXP = 1.0) so a marginal generator buy is NET-POSITIVE from v1 at any scale —
+    // "building pays off" instead of the old sublinear curve where buying compute always lost
+    // money at depth and a "park" exploit dominated. Burn is linear in compute; with revenue
+    // linear too and the gen ladder + funding round-mult compounding ON TOP, marginal Δrev > Δburn
+    // from the start. The newly-wired fundingRevMult() makes funding rounds compound revenue.
+    //   revenue/s = compute^ADOPTION_EXP × REV_COMPUTE_COEF      (linear adoption)
+    //             × revGenFactor(gen)    (per-generation recovery ladder, REV_GEN_STEP^gen)
+    //             × fundingRevMult()     (PERMANENT round-mult — NEWLY WIRED; rounds compound)
+    //             × (1 + share%/100) × trust
+    // Difficulty's revenueMult is applied in revenuePerSec() so it bites alongside burnMult.
     var adoption = Math.pow(Math.max(0, computeRate()), C.CORE.ADOPTION_EXP) * C.CORE.REV_COMPUTE_COEF;
-    return adoption * revGenFactor() * (1 + state.marketShare / 100) * trust;
+    return adoption * revGenFactor() * fundingRevMult() * (1 + state.marketShare / 100) * trust;
   }
   // Company worth in the SAME universe as the player's cash: liquid cash + physical
   // compute assets + goodwill from proven lifetime earnings, × a market-dominance premium.
@@ -3641,7 +3659,7 @@
     // in-the-red debt model (DESIGN-debt-bankruptcy §B): UI reads these for the banner + Day N.
     inRed: inRed, redDaysElapsed: redDaysElapsed, redGraceDays: redGraceDays, redBankruptDay: redBankruptDay,
     debtCeiling: debtCeiling, debtCeilingK: debtCeilingK, dayNow: dayNow, updateRedDebt: updateRedDebt,
-    genRevenueMult: genRevenueMult, nextGen: nextGen, isAGI: isAGI,
+    genRevenueMult: genRevenueMult, fundingRevMult: fundingRevMult, nextGen: nextGen, isAGI: isAGI,
     trainingActive: trainingActive, canStartTraining: canStartTraining, startTraining: startTraining,
     trainingProgress: trainingProgress, trainingTimeLeft: trainingTimeLeft, finishTraining: finishTraining,
     trainDuration: trainDuration,
