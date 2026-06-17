@@ -751,7 +751,11 @@ button { font-family: var(--font-ui); color: var(--fg); }
 #tabbar .ti { width: 22px; height: 22px; display: inline-flex; }
 #tabbar .ti svg { width: 22px; height: 22px; }
 #tabbar .tl { font-size: 9px; font-weight: 600; letter-spacing: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 380px) { #tabbar .tl { font-size: 8px; } #tabbar .ti, #tabbar .ti svg { width: 20px; height: 20px; } }
+/* give the label the full button width (no side padding eating into it) so longer RU
+   labels like 'Команда'/'Апгрейды' read fully at 8px instead of ellipsis-truncating (item 7) */
+#tabbar button { padding-left: 0; padding-right: 0; }
+@media (max-width: 380px) { #tabbar .tl { font-size: 8px; letter-spacing: -0.2px; } #tabbar .ti, #tabbar .ti svg { width: 20px; height: 20px; } }
+@media (max-width: 340px) { #tabbar .tl { font-size: 7.5px; } }
 
 /* ---------- toasts / fx ---------- */
 #toastRoot { position: fixed; left: 50%; bottom: calc(78px + var(--safe-bottom)); transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; width: 92%; max-width: 440px; }
