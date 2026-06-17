@@ -1943,6 +1943,22 @@
         });
       }
     }
+    // train_boost: SPRINT lever (audit §E "late-game empty waiting"). Pulls the ACTIVE
+    // training run's finish forward by `frac` of the time REMAINING (0..1) — a real lever
+    // the player can spend cash/compute on (cost lives in the same option's `resource`
+    // block) to close the AGI gap mid-train. No-op if nothing is training (safe). Returns
+    // nothing; emits trainprogress so the UI ring jumps immediately.
+    if (eff.train_boost) {
+      var tbFrac = numDelta(eff.train_boost.frac);
+      if (tbFrac === undefined && typeof eff.train_boost === 'number') tbFrac = eff.train_boost;
+      if (typeof tbFrac === 'number' && isFinite(tbFrac) && tbFrac > 0 && trainingActive()) {
+        var tr0 = state.training, nowTb = Date.now();
+        var leftMs = Math.max(0, tr0.endsAt - nowTb);
+        tr0.endsAt = nowTb + leftMs * (1 - Math.min(0.95, tbFrac));   // never instant-finish (≤95%)
+        emit('trainprogress', { pct: Math.floor(trainingProgress() * 100), left: trainingTimeLeft(), gen: tr0.gen + 1 });
+        emit('change');
+      }
+    }
     // buff: timed multiplier stored + expired in tick. days|sec window.
     if (eff.buff) {
       var b = eff.buff;
@@ -1985,6 +2001,10 @@
       case 'resource.compute':     return state.compute || 0;
       case 'resource.researchers': return state.researchers || 0;
       case 'resource.modelGen':    return state.modelGen || 0;
+      // AGI-race fields (audit §E late-game agency decisions gate on these)
+      case 'meter.raceGap':        return agiProgress() - maxRivalAgi();   // you − leader (negative = behind)
+      case 'meter.rivalLeadAgi':   return maxRivalAgi();                   // leading rival's AGI%
+      case 'meter.training':       return trainingActive() ? 1 : 0;       // is a training run live?
       default: return undefined;
     }
   }

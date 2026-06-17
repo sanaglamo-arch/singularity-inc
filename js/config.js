@@ -1657,6 +1657,116 @@
         { id: 'ship_safe', tooltip_meters: ['trust', 'morale'],
           effects: { meter: { trust: '+2', morale: '-1' } } }
       ]
+    },
+
+    // ===================== LATE-GAME RACE AGENCY (audit §E "empty waiting") ===========
+    // During the long Frontier→AGI training timers the player used to just WAIT. These give
+    // real LEVERS that affect the AGI race — they fire MORE OFTEN in the endgame (weight_mods
+    // bump them when act>=3 / a rival is closing) and let the player SPRINT, SABOTAGE, ally,
+    // or DEFEND. They read the live rival `agi` data (rival_effect) + the new train_boost verb
+    // + the relationship meters (R3). All telegraphed in the news via decisionNews.
+
+    // SPRINT — burn cash + compute to crash-accelerate YOUR current training (close the gap).
+    // train_boost pulls the active run's finish forward; only useful WHILE training, so it's
+    // gated on meter.training and weighted UP when you're behind or a rival is closing.
+    {
+      id: 'dec_race_sprint', tier: 4, act: [2, 3, 4], category: 'race', weight: 70,
+      cooldown_sec: 220, once: false, priority: 'interrupt', default_option: 'steady',
+      trigger: { AND: [{ 'meter.training': '>=1' }, { 'resource.modelGen': '>=3' }] },
+      weight_mods: [
+        { factor: 1.8, when: { 'meter.act': '>=3' } },
+        { factor: 1.6, when: { 'meter.raceGap': '<5' } }
+      ],
+      options: [
+        // crash sprint: ~35% off the time remaining, paid in cash (months of burn) + compute + morale.
+        { id: 'sprint', tooltip_meters: ['cash', 'compute', 'morale'],
+          effects: { resource: { cashMonthsBurn: -4, compute: '-200' }, train_boost: { frac: 0.35 },
+                     meter: { morale: '-3' }, set_var: { crunch_debt: '+1' } } },
+        // measured push: a smaller, cheaper nudge that doesn't burn the team out.
+        { id: 'push', tooltip_meters: ['cash', 'morale'],
+          effects: { resource: { cashMonthsBurn: -2 }, train_boost: { frac: 0.15 }, meter: { morale: '-1' } } },
+        { id: 'steady', tooltip_meters: ['morale'],
+          effects: { meter: { morale: '+1' } } }
+      ]
+    },
+
+    // SABOTAGE / COUNTER-INTEL — slow the LEADING rival's AGI progress at a cost + a real risk
+    // (industry/gov relationship hit, plus a scheduled blowback that can bite if it leaks).
+    {
+      id: 'dec_race_sabotage', tier: 4, act: [3, 4], category: 'race', weight: 52,
+      cooldown_sec: 340, once: false, priority: 'interrupt', default_option: 'abstain',
+      trigger: { AND: [{ 'resource.modelGen': '>=5' }, { 'meter.rivalLeadAgi': '>=45' }] },
+      weight_mods: [
+        { factor: 2.0, when: { 'meter.raceGap': '<0' } },   // you're BEHIND → tempting
+        { factor: 1.5, when: { 'meter.act': '>=4' } }
+      ],
+      options: [
+        // counter-intel op: knock the leader back hard, pay cash, bruise industry/gov standing,
+        // and risk a leak (scheduled blowback) that hits trust if it surfaces.
+        { id: 'sabotage', tooltip_meters: ['cash', 'industry', 'gov', 'risk'],
+          effects: { resource: { cashMonthsBurn: -3 }, rival_effect: { leader: { agi: -10 } },
+                     meter: { industryRel: '-6', govLoyalty: '-4' }, vec: { sec: 6 },
+                     schedule: { event: 'dec_race_sabotage_leak', delaySec: 120, chance: 0.4, callback: 'callback_sabotage' } } },
+        // quiet poach: a softer, deniable slow (less impact, smaller relationship cost).
+        { id: 'poach', tooltip_meters: ['cash', 'industry', 'morale'],
+          effects: { resource: { cashMonthsBurn: -2 }, rival_effect: { leader: { agi: -4 } },
+                     meter: { industryRel: '-2', morale: '+1' } } },
+        { id: 'abstain', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+2' } } }
+      ]
+    },
+    // SABOTAGE blowback (scheduled): if the op leaks, the press runs it — trust + gov hit.
+    {
+      id: 'dec_race_sabotage_leak', act: [3, 4], category: 'race', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'spin', tooltip_meters: ['trust', 'gov'],
+          effects: { meter: { trust: '-3', govLoyalty: '-3' } } },
+        { id: 'own_it', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cashMonthsBurn: -2 }, meter: { trust: '-1' } } }
+      ]
+    },
+
+    // ALLIANCE / OPEN-SOURCE GAMBIT — slow ALL rivals but help the field (you give up edge).
+    // Trade-off: every rival's AGI dips + a big approval/industry boost, but your own share slips.
+    {
+      id: 'dec_race_alliance', tier: 4, act: [3, 4], category: 'race', weight: 50,
+      cooldown_sec: 360, once: false, priority: 'interrupt', default_option: 'decline',
+      trigger: { AND: [{ 'resource.modelGen': '>=5' }, { 'meter.rivalLeadAgi': '>=40' }] },
+      weight_mods: [{ factor: 1.5, when: { 'meter.act': '>=4' } }],
+      options: [
+        // safety coalition: open-source a key technique — slows the WHOLE field, big trust/industry
+        // win, but you surrender market share (giving away your edge).
+        { id: 'coalition', tooltip_meters: ['trust', 'industry', 'marketShare'],
+          effects: { rival_effect: { all: { agi: -6 } }, meter: { trust: '+8', industryRel: '+8', marketShare: '-4' }, set_flag: 'oss_lab' } },
+        // private pact: ally with ONE leader to pace the race (slows the leader, modest costs).
+        { id: 'pact', tooltip_meters: ['industry', 'marketShare'],
+          effects: { rival_effect: { leader: { agi: -5 } }, meter: { industryRel: '+4', marketShare: '-1' } } },
+        { id: 'decline', tooltip_meters: ['marketShare'],
+          effects: { meter: { marketShare: '+1' } } }
+      ]
+    },
+
+    // DEFEND — a rival is sabotaging/poaching YOU. Invest to harden (protect morale + a small
+    // counter-slow), or shrug it off and eat the hit. Fires when a rival is a real threat.
+    {
+      id: 'dec_race_defend', tier: 4, act: [3, 4], category: 'race', weight: 48,
+      cooldown_sec: 320, once: false, priority: 'interrupt', default_option: 'absorb',
+      trigger: { AND: [{ 'resource.modelGen': '>=5' }, { 'meter.rivalLeadAgi': '>=50' }] },
+      weight_mods: [{ factor: 1.8, when: { 'meter.raceGap': '<0' } }],
+      options: [
+        // harden: spend cash to retain talent + secure the lab — protects morale, counter-nudges
+        // the leader back a touch (you caught their op).
+        { id: 'harden', tooltip_meters: ['cash', 'morale', 'industry'],
+          effects: { resource: { cashMonthsBurn: -3 }, meter: { morale: '+4', industryRel: '+1' }, rival_effect: { leader: { agi: -3 } } } },
+        // legal: file a complaint — gov-flavored protection, slower but cheaper.
+        { id: 'legal', tooltip_meters: ['cash', 'gov'],
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { govLoyalty: '+3' } } },
+        // absorb: take the hit — lose some morale, the rival presses their advantage.
+        { id: 'absorb', tooltip_meters: ['morale', 'risk'],
+          effects: { meter: { morale: '-3' }, rival_effect: { leader: { agi: 3 } }, vec: { sec: 3 } } }
+      ]
     }
   ];
 
