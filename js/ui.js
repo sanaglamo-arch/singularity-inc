@@ -809,7 +809,7 @@
   }
   function startTicker() { rotateTicker(); if (tickerTimer) clearInterval(tickerTimer); tickerTimer = setInterval(rotateTicker, 7000); }
   // PART B — per-type icon for a news headline (decision / rival / regulatory / milestone).
-  var NEWS_ICON = { decision: 'ic_brain', rival: 'ic_risk', regulatory: 'ic_world', milestone: 'ic_breakthrough', flavor: 'ic_market' };
+  var NEWS_ICON = { decision: 'ic_brain', rival: 'ic_risk', regulatory: 'ic_world', milestone: 'ic_breakthrough', flavor: 'ic_market', blackswan: 'ic_risk' };
   function newsRowHTML(n) {
     var type = n.type || 'flavor';
     return '<div class="nf-row nf-' + type + '"><span class="nf-ico">' + ic(NEWS_ICON[type] || 'ic_market') + '</span>' +
@@ -1283,14 +1283,16 @@
     var names = opt.tooltip_meters.map(function (m) { return t('meter_' + m) || m; });
     return '<div class="nc-meters">' + t('decision_meters', { m: names.join(' · ') }) + '</div>';
   }
-  function renderDecisionHTML(ev, cls, uid, incident) {
+  function renderDecisionHTML(ev, cls, uid, incident, blackswan) {
     var btns = ev.options.map(function (op) {
       return metersLine(op) +
         '<button class="cardchoice" data-ev="' + ev.id + '" data-op="' + op.id + '"' + (uid != null ? ' data-uid="' + uid + '"' : '') + '>' +
         t(ev.id + '_' + op.id) + '</button>';
     }).join('');
-    var tag = incident ? t('tag_incident') : t(cls === 'bankable' ? 'tag_bankable' : 'tag_interrupt');
-    return '<div class="newscard ' + (incident ? 'crisis' : (cls || 'decision')) + '">' +
+    // PHASE 8: black swans wear a red "BLACK SWAN" tag and the crisis (red) card styling.
+    var tag = blackswan ? t('tag_blackswan') : incident ? t('tag_incident') : t(cls === 'bankable' ? 'tag_bankable' : 'tag_interrupt');
+    var cardCls = blackswan ? 'crisis nc-blackswan' : (incident ? 'crisis' : (cls || 'decision'));
+    return '<div class="newscard ' + cardCls + '">' +
       '<div class="nc-tag">' + tag + '</div>' +
       '<div class="nc-title">' + t(ev.id + '_t') + '</div>' +
       '<div class="nc-desc">' + t(ev.id + '_d') + '</div>' +
@@ -1315,13 +1317,14 @@
   var _interruptOpen = false;
   function showDecisionModal(ev, opts) {
     opts = opts || {};
-    window.GAME_AUDIO.incident(); buzz([0, 30, 50, 30]);
-    // incidents flash red (a felt consequence), regular decisions stay purple.
-    window.GAME_FX.flash(opts.incident ? 'rgba(251,92,120,0.28)' : 'rgba(139,92,246,0.25)');
-    if (opts.incident && window.GAME_FX.incident) window.GAME_FX.incident();
+    window.GAME_AUDIO.incident(); buzz(opts.blackswan ? [0, 60, 90, 60, 90] : [0, 30, 50, 30]);
+    // incidents + black swans flash red (a felt consequence), regular decisions stay purple.
+    // black swans flash harder (a deeper red) — the existential framing.
+    window.GAME_FX.flash(opts.blackswan ? 'rgba(251,92,120,0.42)' : opts.incident ? 'rgba(251,92,120,0.28)' : 'rgba(139,92,246,0.25)');
+    if ((opts.incident || opts.blackswan) && window.GAME_FX.incident) window.GAME_FX.incident();
     _interruptOpen = true;
-    var wrap = opts.incident ? 'crisis-modal cr-danger' : 'crisis-modal';
-    showModal('<div class="' + wrap + '">' + renderDecisionHTML(ev, 'decision', null, opts.incident) + '</div>');
+    var wrap = (opts.incident || opts.blackswan) ? 'crisis-modal cr-danger' : 'crisis-modal';
+    showModal('<div class="' + wrap + '">' + renderDecisionHTML(ev, 'decision', null, opts.incident, opts.blackswan) + '</div>');
     wireDecisionButtons($('modalRoot'), function () {
       _interruptOpen = false; hideModal(); updateInboxBadge(); updateWorld();
       // SUB-PART B: the first scandal IS the tutorial — reveal the Safety lab afterwards.
@@ -2111,7 +2114,7 @@
     G.on('decision', function (d) {
       if (d.kind === 'interrupt') {
         var ev = G.decisionById(d.id);
-        if (ev) showDecisionModal(ev, { callback: d.callback, callbackKey: d.callbackKey, incident: d.incident, teach: d.teach });
+        if (ev) showDecisionModal(ev, { callback: d.callback, callbackKey: d.callbackKey, incident: d.incident, teach: d.teach, blackswan: d.blackswan });
       } else if (d.kind === 'bankable') {
         updateInboxBadge(); window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); buzz(12);
         toast(t(d.id + '_t'), 'gold');
@@ -2128,6 +2131,14 @@
         else { window.GAME_FX.flash('rgba(251,92,120,0.24)'); window.GAME_AUDIO.incident && window.GAME_AUDIO.incident(); buzz([0, 30, 50]); }
         if (d.outcome.news) toast(t(d.outcome.news), d.outcome.good ? 'good' : 'bad');
       }
+    });
+    // PHASE 8 — BLACK SWAN TELEGRAPH (Impossible-only): a warning beat before the swan
+    // bites. Red flash + urgent toast; the warning headline also ticks via newsline.
+    G.on('blackswan_warn', function (d) {
+      if (!d) return;
+      window.GAME_AUDIO.incident && window.GAME_AUDIO.incident(); buzz([0, 50, 80]);
+      window.GAME_FX.flash('rgba(251,92,120,0.30)');
+      toast(t((d.id || '') + '_warn', { co: G.state.companyName || '' }), 'bad');
     });
     // PHASE 7 — LUCKY BREAK: a celebratory flash + toast (the headline ticks via newsline).
     G.on('lucky', function (d) {

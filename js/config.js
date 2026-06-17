@@ -1642,6 +1642,160 @@
     }
   ];
 
+  // ===================================================================
+  // PHASE 8 — IMPOSSIBLE-ONLY BLACK SWANS (DESIGN-rivals-replayability §1)
+  // ===================================================================
+  // A pool of brutal, existential, time-pressured events that fire ONLY on
+  // difficulty === 'impossible' (NEVER easy/normal/hard — the roller gate in
+  // game.js enforces this, and these are in their OWN pool, never in the
+  // ambient DECISIONS lottery). Decision-shaped: same modal + applyEffect
+  // grammar + %-of-scale magnitudes so each hit auto-scales garage→frontier.
+  // Each is FAIR per the project guardrail: existential magnitude, but a tight
+  // response with a real trade-off and ALWAYS a recovery path (never a silent
+  // instakill — bankruptcy/takeover still route through the Phase-3 crisis
+  // engine). Several gamble options `schedule` an escalation if you roll the
+  // dice. `act` gates them past the garage so they're never turn-1. i18n keys:
+  // {id}_t / {id}_d / {id}_{opt} + per-option {id}_{opt}_news + a {id}_warn
+  // telegraph headline fired a beat before the swan bites.
+  var BLACKSWAN_CFG = {
+    FIRST_GRACE_SEC: 360,    // no swan in the first ~6 min of a run (past the opening)
+    COOLDOWN_SEC: 240,       // long global cooldown — RARE-but-devastating (≥4 min apart)
+    CHECK_EVERY_SEC: 8,      // roll cadence (a "cycle")
+    CHANCE: 0.06,            // per-eligible-cycle chance (≈ one every few minutes at most)
+    TELEGRAPH_SEC: 6,        // warning headline fires this long before the swan modal pops
+    MIN_VAL: 5e6             // size gate: must be a real company (≥$5M) before a swan can hit
+  };
+  var BLACKSWAN = [
+    // 1 — COMPUTE EMBARGO: overnight −50% compute capacity (export ban).
+    {
+      id: 'bsw_embargo', act: [2, 3, 4], weight: 100,
+      options: [
+        { id: 'efficiency', tooltip_meters: ['cash', 'compute'],
+          effects: { resource: { computePct: -0.5, cashMonthsBurn: -1 }, meter: { trust: '+2' }, buff: { key: 'compute_eff', mult: 1.12, days: 6 } } },
+        { id: 'greymarket', tooltip_meters: ['cash', 'compute', 'risk'],
+          effects: { resource: { cashPctVal: -0.06 },
+            outcomes: [
+              { id: 'smuggled', chance: 0.5, good: true, effect: { resource: { computePct: -0.15 }, vec: { reg: 10 } } },
+              { id: 'seized', chance: 0.5, good: false, effect: { resource: { computePct: -0.6 }, meter: { trust: '-6' }, vec: { reg: 22 },
+                  schedule: { event: 'bsw_embargo', delaySec: 130, chance: 0.35, callback: 'bsw_embargo_warn' } } }
+            ] } },
+        { id: 'eat', tooltip_meters: ['compute', 'marketShare'],
+          effects: { resource: { computePct: -0.5 }, meter: { marketShare: '-7' } } }
+      ]
+    },
+    // 2 — RIVAL CARTEL: rivals ally — simultaneous price war + talent raid.
+    {
+      id: 'bsw_cartel', act: [2, 3, 4], weight: 100,
+      options: [
+        { id: 'trust', tooltip_meters: ['cash', 'trust', 'marketShare'],
+          effects: { resource: { cashMonthsBurn: -2 }, meter: { trust: '+6', marketShare: '-3' } } },
+        { id: 'buyout', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cashPctVal: -0.1 },
+            outcomes: [
+              { id: 'split', chance: 0.55, good: true, effect: { meter: { marketShare: '+3' }, rival_effect: { all: { share: -3 } } } },
+              { id: 'held', chance: 0.45, good: false, effect: { meter: { marketShare: '-6', trust: '-4' }, resource: { researchersPct: -0.1 } } }
+            ] } },
+        { id: 'fold', tooltip_meters: ['marketShare', 'researchers'],
+          effects: { meter: { marketShare: '-8' }, resource: { researchersPct: -0.12 } } }
+      ]
+    },
+    // 3 — THE MOLE: a top researcher is a spy; your latest model leaks to a rival.
+    {
+      id: 'bsw_mole', act: [3, 4], weight: 90,
+      options: [
+        { id: 'counterintel', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cashPctVal: -0.08, researchers: '-1' }, meter: { trust: '+2' }, set_flag: 'counterintel' } },
+        { id: 'legal', tooltip_meters: ['modelGen', 'risk'],
+          effects: { resource: { modelGen: -1 }, meter: { trust: '-3' }, vec: { sec: 14 }, rival_effect: { leader: { agi: +6, share: +3 } },
+            schedule: { event: 'bsw_mole', delaySec: 140, chance: 0.3, callback: 'bsw_mole_warn' } } },
+        { id: 'ignore', tooltip_meters: ['modelGen', 'marketShare'],
+          effects: { resource: { modelGen: -1 }, meter: { marketShare: '-4' }, rival_effect: { leader: { agi: +8, share: +4 } } } }
+      ]
+    },
+    // 4 — FLASH CRASH: the AI bubble pops — valuation −~50%, funding closed N turns.
+    {
+      id: 'bsw_crash', act: [2, 3, 4], weight: 100,
+      options: [
+        { id: 'cut', tooltip_meters: ['valuation', 'researchers', 'trust'],
+          effects: { meter: { valPct: -0.45, trust: '+3' }, resource: { researchersPct: -0.1 }, set_flag: 'funding_frozen',
+            schedule: { event: 'bsw_crash_thaw', delaySec: 150, chance: 1, callback: 'bsw_crash_thaw_news' } } },
+        { id: 'debt', tooltip_meters: ['valuation', 'cash', 'risk'],
+          effects: { meter: { valPct: -0.5 }, resource: { cashMonthsBurn: 4 }, set_var: { venture_debt: '+1' }, set_flag: 'funding_frozen',
+            schedule: { event: 'bsw_crash_thaw', delaySec: 150, chance: 1, callback: 'bsw_crash_thaw_news' } } },
+        { id: 'ride', tooltip_meters: ['valuation', 'cash'],
+          effects: { meter: { valPct: -0.5 }, resource: { cashMonthsBurn: -2 }, set_flag: 'funding_frozen',
+            schedule: { event: 'bsw_crash_thaw', delaySec: 150, chance: 1, callback: 'bsw_crash_thaw_news' } } }
+      ]
+    },
+    // 4b — FLASH CRASH thaw: scheduled-only callback that lifts the funding freeze.
+    {
+      id: 'bsw_crash_thaw', weight: 0, priority: 'scheduled', _callback: true, _auto: true,
+      options: [
+        { id: 'reopen', effects: { clr_flag: 'funding_frozen', meter: { trust: '+1' } } }
+      ]
+    },
+    // 5 — REGULATOR SHUTDOWN ORDER: ultimatum to delete your frontier model.
+    {
+      id: 'bsw_shutdown', act: [3, 4], weight: 90,
+      options: [
+        { id: 'comply', tooltip_meters: ['modelGen', 'cash', 'trust'],
+          effects: { resource: { modelGen: -1, cashMonthsBurn: -1 }, meter: { trust: '+5' }, vec: { reg: -20 } } },
+        { id: 'fight', tooltip_meters: ['valuation', 'risk'],
+          effects: { meter: { valPct: -0.12 }, vec: { reg: 22 },
+            outcomes: [
+              { id: 'injunction', chance: 0.5, good: true, effect: { meter: { trust: '+3' }, vec: { reg: -10 } } },
+              { id: 'seized', chance: 0.5, good: false, effect: { resource: { modelGen: -1 }, meter: { valPct: -0.18, trust: '-8' }, vec: { reg: 18, sec: 8 },
+                  schedule: { event: 'bsw_shutdown', delaySec: 150, chance: 0.3, callback: 'bsw_shutdown_warn' } } }
+            ] } }
+      ]
+    },
+    // 6 — AGI PANIC: a rival announces near-AGI → global emergency regulation, you hardest.
+    {
+      id: 'bsw_agipanic', act: [3, 4], weight: 90,
+      options: [
+        { id: 'safety', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cashMonthsBurn: -2 }, meter: { trust: '+7' }, vec: { reg: -14, sec: -10 } } },
+        { id: 'lobby', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cashPctVal: -0.07 },
+            outcomes: [
+              { id: 'carveout', chance: 0.5, good: true, effect: { vec: { reg: -12 }, meter: { marketShare: '+2' } } },
+              { id: 'backfire', chance: 0.5, good: false, effect: { meter: { trust: '-8', valPct: -0.1 }, vec: { reg: 20 } } }
+            ] } },
+        { id: 'race', tooltip_meters: ['trust', 'risk', 'marketShare'],
+          effects: { meter: { trust: '-6', marketShare: '+4' }, vec: { reg: 18, sec: 12 } } }
+      ]
+    },
+    // 7 — TALENT EXODUS: a viral "doomer" letter → mass resignations industry-wide.
+    {
+      id: 'bsw_exodus', act: [2, 3, 4], weight: 100,
+      weight_mods: [{ when: { 'meter.trust': '>=70' }, factor: 0.5 }],
+      options: [
+        { id: 'retain', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cashMonthsBurn: -2, researchersPct: -0.05 }, meter: { trust: '+3' } } },
+        { id: 'mission', tooltip_meters: ['researchers', 'trust', 'risk'],
+          effects: { meter: { trust: '+4' },
+            outcomes: [
+              { id: 'rallied', chance: 0.5, good: true, effect: { resource: { researchersPct: -0.08 } } },
+              { id: 'walkout', chance: 0.5, good: false, effect: { resource: { researchersPct: -0.3 }, meter: { trust: '-4' } } }
+            ] } },
+        { id: 'letgo', tooltip_meters: ['researchers', 'marketShare'],
+          effects: { resource: { researchersPct: -0.35 }, meter: { marketShare: '-4' } } }
+      ]
+    },
+    // 8 — ENERGY CRISIS: electricity ×3 + community moratorium blocking DC expansion.
+    {
+      id: 'bsw_energy', act: [2, 3, 4], weight: 100,
+      options: [
+        { id: 'ownpower', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cashPctVal: -0.12 }, meter: { trust: '+3' }, buff: { key: 'energy_indep', mult: 1.1, days: 8 } } },
+        { id: 'efficiency', tooltip_meters: ['compute', 'cash'],
+          effects: { resource: { computePct: -0.25, cashMonthsBurn: -1 }, buff: { key: 'energy_eff', mult: 1.08, days: 6 } } },
+        { id: 'eat', tooltip_meters: ['cash', 'marketShare', 'trust'],
+          effects: { resource: { cashMonthsBurn: -4 }, meter: { marketShare: '-5', trust: '-4' } } }
+      ]
+    }
+  ];
+
   // ---- Market / investing minigame -------------------------------------
   // R13 anti-printer rework: a BOUNDED RANDOM WALK (REVERT 0) — no mean-reversion
   // edge, so buy-low/sell-high is a coin-flip that loses to the fee on average. A
@@ -1941,6 +2095,8 @@
     DECISIONS: DECISIONS,
     INCIDENTS: INCIDENTS,
     INCIDENTS_CFG: INCIDENTS_CFG,
+    BLACKSWAN: BLACKSWAN,
+    BLACKSWAN_CFG: BLACKSWAN_CFG,
     DECISIONS_PACING: DECISIONS_PACING,
     DECISION_TIERS: DECISION_TIERS,
     DECISION_TIER_OVERLAP: DECISION_TIER_OVERLAP,
