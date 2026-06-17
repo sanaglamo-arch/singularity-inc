@@ -88,6 +88,10 @@
       categoryCooldowns: {}, // category -> last-fired epoch ms (anti-clustering)
       eventBag: {},          // category -> shuffle-bag of remaining event ids (anti-repeat)
       inbox: [],             // pending `bankable` decisions: { uid, id, addedAt, autoAt }
+      // ===== Executive / Managing Director (DESIGN-exec-team.md) =====
+      exec: -1,              // owned tier INDEX into C.EXECS (-1 = none hired yet)
+      execRecruit: { active: false, toTier: -1, startedAt: 0, endsAt: 0 }, // active recruit timer
+      mandate: 'balance',    // offline strategy: 'growth' | 'balance' | 'safety' | 'share'
       nextDecisionAt: 0,     // epoch ms of the next pacing roll
       lastCrisisAt: 0,       // crisis cooldown anchor (ms)
       nextNewsAt: 0,
@@ -1773,6 +1777,8 @@
     }
     if (buildActive() && Date.now() >= state.build.endsAt) finishBuild();        // parallel timers
     if (researchActive() && Date.now() >= state.research2.endsAt) finishResearch();
+    if (execRecruitActive() && Date.now() >= state.execRecruit.endsAt) finishExecRecruit(); // managing-director recruit
+
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
     if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
     if (!state.unicorn && state.modelGen >= 1 && valuation() >= 1e9) { state.unicorn = true; emit('toast', { key: 'milestone_unicorn' }); } // §9 shareable
@@ -1817,6 +1823,144 @@
 
     state.playtime += dt;
     checkAchievements();
+  }
+
+  // ===== EXECUTIVE / MANAGING DIRECTOR (DESIGN-exec-team.md) ============
+  // ONE slot, a long tier ladder. The hired director auto-resolves decisions while you're
+  // away, with quality scaling on `judgment` + your MANDATE. Recruit timers are wall-clock.
+  function execTier(i) { return (C.EXECS && i >= 0 && i < C.EXECS.length) ? C.EXECS[i] : null; }
+  function currentExec() { return execTier(state.exec); }                 // null if none
+  function nextExecTier() { return execTier((state.exec || -1) + 1); }    // null at top
+  function execTopReached() { return state.exec >= (C.EXECS ? C.EXECS.length - 1 : 0); }
+  // full cash price of a tier (base + any legendary signing package).
+  function execCost(tier) { return tier ? (tier.costCash + (tier.signing || 0)) : 0; }
+  // is a tier's gate satisfied right now? (valuation / trust / modelGen requirements)
+  function execGateMet(tier) {
+    if (!tier || !tier.gate) return true;
+    var g = tier.gate;
+    if (typeof g.valuation === 'number' && valuation() < g.valuation) return false;
+    if (typeof g.trust === 'number' && (state.trust || 0) < g.trust) return false;
+    if (typeof g.modelGen === 'number' && (state.modelGen || 0) < g.modelGen) return false;
+    return true;
+  }
+  function execRecruitActive() { return !!(state.execRecruit && state.execRecruit.active); }
+  function canRecruitExec() {
+    if (execRecruitActive() || execTopReached()) return false;
+    var nx = nextExecTier();
+    return !!nx && execGateMet(nx) && state.cash >= execCost(nx);
+  }
+  function startExecRecruit() {
+    if (!canRecruitExec()) return false;
+    var nx = nextExecTier(), to = (state.exec || -1) + 1;
+    state.cash -= execCost(nx);   // pay the signing package up front
+    state.execRecruit = { active: true, toTier: to, startedAt: Date.now(), endsAt: Date.now() + nx.recruitSec * 1000 };
+    emit('change');
+    return true;
+  }
+  function execRecruitProgress() {
+    if (!execRecruitActive()) return 0;
+    var r = state.execRecruit, tot = r.endsAt - r.startedAt;
+    return tot <= 0 ? 1 : Math.max(0, Math.min(1, (Date.now() - r.startedAt) / tot));
+  }
+  function execRecruitTimeLeft() { return execRecruitActive() ? Math.max(0, (state.execRecruit.endsAt - Date.now()) / 1000) : 0; }
+  function finishExecRecruit() {
+    if (!execRecruitActive()) return false;
+    var to = state.execRecruit.toTier;
+    state.exec = Math.max(state.exec, to);
+    state.execRecruit = { active: false, toTier: -1, startedAt: 0, endsAt: 0 };
+    var tier = currentExec();
+    if (tier) emitNews('milestone', ['nh_exec_hired'], { name: t_safe(tier.name) });
+    emit('execHired', { tier: state.exec, name: tier ? tier.name : '' });
+    checkAchievements(); emit('change');
+    return true;
+  }
+  function setMandate(m) {
+    var ok = { growth: 1, balance: 1, safety: 1, share: 1 };
+    if (!ok[m]) return false;
+    state.mandate = m; emit('change'); return true;
+  }
+
+  // ---- offline DELEGATION scoring ----
+  // Score one option's "value" under a mandate from its effects vocabulary. Higher = better
+  // for the company under that posture. Pure read of opt.effects (no state mutation).
+  function optionScore(opt, mandate) {
+    var e = (opt && opt.effects) || {}, m = e.meter || {}, r = e.resource || {};
+    function nd(v) { var n = numDelta(v); return n === undefined ? 0 : n; }
+    var dShare = nd(m.marketShare), dVal = nd(m.valuation), dTrust = nd(m.trust), dAlign = nd(m.align);
+    var dCash = nd(r.cash), dCompute = nd(r.compute), dRes = nd(r.researchers);
+    // risk pressure: sum of positive vec deltas (rising risk is bad); debt vars are bad too.
+    var risk = 0; if (e.vec) for (var k in e.vec) risk += (nd(e.vec[k]) > 0 ? nd(e.vec[k]) : nd(e.vec[k]) * 0.5);
+    var debt = 0; if (e.set_var) for (var vk in e.set_var) { if (/debt|friction|dilution/.test(vk)) debt += nd(e.set_var[vk]); }
+    // normalize money/compute to comparable scale with meters (they swing far larger)
+    var cashU = dCash / 60, compU = dCompute / 60, resU = dRes * 3;
+    var growth = dVal * 0.6 + dShare * 1.0 + cashU * 0.5 + compU * 0.4 + resU - risk * 0.3 - debt * 1.5;
+    var safety = dTrust * 1.2 + dAlign * 1.4 - risk * 1.6 - debt * 2.5 + cashU * 0.2;
+    var share  = dShare * 1.6 + dVal * 0.4 + cashU * 0.3 - risk * 0.2 - debt * 0.6;
+    var bal    = dVal * 0.35 + dShare * 0.5 + dTrust * 0.5 + dAlign * 0.5 + cashU * 0.3 + compU * 0.25 + resU * 0.5 - risk * 0.9 - debt * 1.6;
+    switch (mandate) {
+      case 'growth': return growth;
+      case 'safety': return safety;
+      case 'share':  return share;
+      default:       return bal;
+    }
+  }
+  // The director picks an option for an event under the mandate. Quality rises with judgment:
+  // low judgment → noisy (often the WORST/debt option); top judgment → near-optimal + an
+  // occasional bonus. Returns the chosen option (never null for a valid event).
+  function execChoose(ev, judgment, mandate) {
+    var opts = (ev && ev.options) || [];
+    if (!opts.length) return null;
+    var scored = opts.map(function (o) { return { opt: o, score: optionScore(o, mandate) }; });
+    var sorted = scored.slice().sort(function (a, b) { return b.score - a.score; });
+    var best = sorted[0], worst = sorted[sorted.length - 1];
+    var j = Math.max(0, Math.min(100, judgment)) / 100;
+    // probability of taking the mandate-best option scales with judgment (0.15 → 0.97).
+    var pBest = 0.15 + j * 0.82;
+    var roll = Math.random();
+    if (roll < pBest) {
+      best.bonus = (j > 0.9 && Math.random() < (j - 0.9) * 4);   // legend occasionally squeezes a bonus
+      return best;
+    }
+    // a miss: low judgment skews toward the WORST option; mid judgment picks a random other.
+    if (Math.random() < (1 - j) * 0.7 && worst.opt !== best.opt) return worst;
+    var others = sorted.slice(1);
+    return others.length ? others[Math.floor(Math.random() * others.length)] : best;
+  }
+  // Run the director over the away window: resolve up to MAX decisions that "would have
+  // fired", applying effects + a news headline each. Returns a report array for the modal.
+  // Pure-eligible: draws from the SAME live pool drawDecision() uses, recording cooldowns so
+  // it never resolves the same event twice in one batch.
+  function execResolveOffline(awaySec) {
+    var report = [];
+    var tier = currentExec();
+    if (!tier || awaySec <= 0) return report;
+    var O = C.EXECS_OFFLINE || { AVG_DECISION_SEC: 1800, MAX_RESOLVED: 6 };
+    var n = Math.max(0, Math.min(O.MAX_RESOLVED || 6, Math.floor(awaySec / (O.AVG_DECISION_SEC || 1800))));
+    var now = Date.now();
+    for (var i = 0; i < n; i++) {
+      var ev = drawDecision(now);
+      if (!ev) break;                                  // pool exhausted for this state
+      // record the fire so the next draw can't repeat it (mirrors fireDecision bookkeeping)
+      state.eventCooldowns[ev.id] = now;
+      state.categoryCooldowns[ev.category] = now;
+      if (ev.once) state.eventsFired[ev.id] = true;
+      var pick = execChoose(ev, tier.judgment, state.mandate);
+      if (!pick) continue;
+      var opt = pick.opt;
+      applyEffect(opt.effects);
+      if (pick.bonus) applyEffect({ resource: { cash: '+' + Math.round(moneyRate() * 30 + 50) } }); // legend bonus
+      decisionNews(ev, opt.id);
+      // good/bad framing from the realized score sign under the active mandate
+      var sc = optionScore(opt, state.mandate);
+      report.push({
+        evId: ev.id, optId: opt.id,
+        title: t_safe(ev.id + '_t', coVars()),
+        choice: t_safe(ev.id + '_' + opt.id, coVars()),
+        good: sc >= 0, bonus: !!pick.bonus
+      });
+    }
+    if (report.length) checkAchievements();
+    return report;
   }
 
   // ---- offline ---------------------------------------------------------
@@ -1947,6 +2091,12 @@
     if (!s.eventBag || typeof s.eventBag !== 'object' || Array.isArray(s.eventBag)) s.eventBag = {};
     if (!Array.isArray(s.inbox)) s.inbox = [];
     if (typeof s.nextDecisionAt !== 'number') s.nextDecisionAt = 0;
+    // ---- v10: executive / managing-director ladder (safe backfill for old saves) ----
+    if (typeof s.exec !== 'number') s.exec = -1;
+    s.exec = Math.floor(clean(s.exec, -1, -1, (C.EXECS ? C.EXECS.length : 1) - 1));
+    if (!s.execRecruit || typeof s.execRecruit !== 'object' || Array.isArray(s.execRecruit)) s.execRecruit = { active: false, toTier: -1, startedAt: 0, endsAt: 0 };
+    var VALID_MANDATES = { growth: 1, balance: 1, safety: 1, share: 1 };
+    if (typeof s.mandate !== 'string' || !VALID_MANDATES[s.mandate]) s.mandate = 'balance';
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {
@@ -2020,6 +2170,20 @@
       var elapsed = Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000);
       if (elapsed > 30) offline = computeOffline(elapsed, false);
       if (elapsed > 3600) { grantBoostToken(1); if (offline) offline.idleBoost = true; } // idle reward
+      // Managing-director offline delegation: if a recruit completed while away, seat the new
+      // director first; then (only if a director is hired) auto-resolve the decisions that
+      // "would have fired" under the active mandate. No exec ⇒ no auto-resolve (current behavior).
+      if (execRecruitActive() && Date.now() >= state.execRecruit.endsAt) finishExecRecruit();
+      if (currentExec()) {
+        var rep = execResolveOffline(elapsed);
+        if (rep.length) {
+          if (!offline) offline = computeOffline(elapsed, false);
+          offline.execReport = rep;
+          var ct = currentExec();
+          offline.execName = ct ? ct.name : '';
+          offline.mandate = state.mandate;
+        }
+      }
     }
     return offline;
   }
@@ -2144,6 +2308,12 @@
     evalCond: evalCond, _evalCondTest: _evalCondTest,
     decisionById: decisionById, resolveDecision: resolveDecision, removeInbox: removeInbox,
     pickDefaultOption: pickDefaultOption, decisionWeight: decisionWeight,
+    // executive / managing-director ladder
+    execTier: execTier, currentExec: currentExec, nextExecTier: nextExecTier, execTopReached: execTopReached,
+    execCost: execCost, execGateMet: execGateMet, canRecruitExec: canRecruitExec, startExecRecruit: startExecRecruit,
+    execRecruitActive: execRecruitActive, execRecruitProgress: execRecruitProgress, execRecruitTimeLeft: execRecruitTimeLeft,
+    finishExecRecruit: finishExecRecruit, setMandate: setMandate,
+    execResolveOffline: execResolveOffline, optionScore: optionScore,
     // force-fire a decision NOW (manual testing / debug). Bypasses pacing + cooldowns.
     _forceDecision: function (id) { var ev = decisionById(id); if (!ev) return false; fireDecision(ev, Date.now()); return true; },
     newState: newState

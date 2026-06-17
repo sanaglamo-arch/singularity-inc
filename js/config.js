@@ -433,6 +433,36 @@
     NO_REPEAT_SEC: 60,      // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
     BANKABLE_AUTO_SEC: 240  // a bankable decision auto-resolves (default option) after this if ignored
   };
+  // ===== EXECUTIVE / MANAGING DIRECTOR ladder (DESIGN-exec-team.md) =====
+  // ONE slot, a long tier ladder. While you're AWAY, your director auto-resolves the
+  // decisions that "would have fired" — quality scales with `judgment` (0..100) and your
+  // MANDATE. Cost + recruit time + judgment escalate up the ladder; the TOP tier is gated
+  // by high valuation + high trust + a huge signing package + a multi-day timer so reaching
+  // it is the ~15-real-day "white whale" of the monthly arc.
+  //   { id, name(i18n key), judgment, costCash, recruitSec, gate?{valuation,trust,modelGen}, perk? }
+  // perk = a small ONLINE bonus (decoration; honored where noted). recruitSec is REAL wall-clock.
+  var H = 3600;  // one real hour, in seconds (recruit timers are real-time)
+  var EXECS = [
+    { id: 'exec_t1',  name: 'exec_t1_name',  judgment: 10, costCash: 250,        recruitSec: 120 },
+    { id: 'exec_t2',  name: 'exec_t2_name',  judgment: 20, costCash: 1500,       recruitSec: 300,        perk: { buildSpeed: 0.03 } },
+    { id: 'exec_t3',  name: 'exec_t3_name',  judgment: 30, costCash: 9000,       recruitSec: 0.75 * H,   perk: { buildSpeed: 0.06 } },
+    { id: 'exec_t4',  name: 'exec_t4_name',  judgment: 40, costCash: 55000,      recruitSec: 2 * H,      perk: { researchSpeed: 0.05 } },
+    { id: 'exec_t5',  name: 'exec_t5_name',  judgment: 50, costCash: 320000,     recruitSec: 5 * H,      perk: { researchSpeed: 0.08 } },
+    { id: 'exec_t6',  name: 'exec_t6_name',  judgment: 62, costCash: 1.9e6,      recruitSec: 12 * H,     perk: { researchSpeed: 0.10 } },
+    { id: 'exec_t7',  name: 'exec_t7_name',  judgment: 72, costCash: 1.1e7,      recruitSec: 22 * H,     perk: { riskDamp: 0.06 } },
+    { id: 'exec_t8',  name: 'exec_t8_name',  judgment: 82, costCash: 6.5e7,      recruitSec: 40 * H,     perk: { dealBonus: 0.10 },
+      gate: { valuation: 5e8, trust: 60 } },
+    { id: 'exec_t9',  name: 'exec_t9_name',  judgment: 90, costCash: 4e8,        recruitSec: 72 * H,     perk: { dealBonus: 0.15 },
+      gate: { valuation: 5e9, trust: 70, modelGen: 4 } },
+    { id: 'exec_t10', name: 'exec_t10_name', judgment: 99, costCash: 1e8 /*signing bonus shown separately*/, recruitSec: 96 * H,
+      perk: { dealBonus: 0.20, researchSpeed: 0.10 },
+      gate: { valuation: 5e10, trust: 80, modelGen: 6 }, legendary: true,
+      signing: 2.5e9 /*$2.5B signing package on TOP of base cost*/ },
+  ];
+  // offline delegation: how often a decision "would have fired" while away (avg real sec).
+  // N resolved = clamp(floor(awaySec / this), 0, MAX).
+  var EXECS_OFFLINE = { AVG_DECISION_SEC: 1800, MAX_RESOLVED: 6 };
+
   // PHASE 3 WAVE 1 — ~40 real decision events (≈4 per category × 10 catalog cats).
   // Reskinned from DESIGN-events-catalog.md (130 real situations). Rivals = Helion /
   // Cerebra / OmniNet. Balance rule enforced: every option costs something, trade-offs
@@ -1236,7 +1266,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 9,          // GDD v3: + rival acquisitions
+    SAVE_VERSION: 10,         // + executive / managing-director ladder (exec/mandate)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1275,6 +1305,8 @@
     CARDS: CARDS,
     DECISIONS: DECISIONS,
     DECISIONS_PACING: DECISIONS_PACING,
+    EXECS: EXECS,
+    EXECS_OFFLINE: EXECS_OFFLINE,
     MARKET: MARKET,
     COSMETICS: COSMETICS,
     EVENTS: EVENTS,
