@@ -62,6 +62,15 @@
     achievement: function () { voice(660, 0.12, 'sine', 0.055); setTimeout(function () { voice(880, 0.16, 'sine', 0.055); }, 85); },
     // bright triad chime
     milestone: function () { seq([523, 659, 784], 55, function (f) { voice(f, 0.22, 'triangle', 0.06); }); },
+    // parallel-timer completions — each a DISTINCT subtle cue so they're recognizable by ear.
+    // build = a low→high "online" two-note (datacenter humming up).
+    buildDone: function () { voice(330, 0.16, 'sine', 0.05); setTimeout(function () { voice(495, 0.20, 'triangle', 0.05); }, 110); },
+    // research = a bright quick three-note run (distinct from build's low pair).
+    researchDone: function () { seq([784, 988, 1319], 60, function (f) { voice(f, 0.14, 'sine', 0.045); }); },
+    // hire = a warm welcoming fifth (a person joining the team).
+    hireDone: function () { voice(523, 0.14, 'triangle', 0.05); setTimeout(function () { voice(784, 0.18, 'sine', 0.045); }, 90); },
+    // funding = a rising celebratory jingle (item 5; happier/greener than prestige's arpeggio).
+    funding: function () { seq([523, 659, 784, 1047], 70, function (f) { voice(f, 0.26, 'triangle', 0.05); voice(f * 1.5, 0.16, 'sine', 0.02); }); },
     // sparkle: quick high arpeggio
     insight: function () { seq([880, 1175, 1568, 2093], 48, function (f) { voice(f, 0.12, 'sine', 0.05); }); },
     // power-up: a rising glide + a confirming fifth (distinct from prestige)

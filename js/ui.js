@@ -1599,8 +1599,16 @@
       else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
     G.on('process', function (d) {
-      if (d.kind === 'build') toast(t('build_done_toast', { n: d.n }), 'gold');
-      else if (d.kind === 'research') toast(t('research_done_toast', { n: d.n }), 'gold');
+      // parallel-timer wins shouldn't be silent — give each completion a distinct audio cue,
+      // a haptic pulse, and a clear quantified toast (item 4).
+      if (d.kind === 'build') {
+        window.GAME_AUDIO.buildDone && window.GAME_AUDIO.buildDone(); buzz([0, 18, 40, 26]);
+        window.GAME_FX.flash('rgba(34,211,238,0.16)');
+        toast(t('build_done_full', { n: d.n, p: Math.round((C.DATACENTER.bonus || 0) * 100) }), 'gold');
+      } else if (d.kind === 'research') {
+        window.GAME_AUDIO.researchDone && window.GAME_AUDIO.researchDone(); buzz([0, 14, 34, 22]);
+        toast(t('research_done_full', { n: d.n, p: Math.round((C.RESEARCH2.computeBonus || 0) * 100) }), 'gold');
+      }
     });
     // subtle 25/50/75% training-progress pings on long runs (item 2)
     G.on('trainprogress', function (d) {
@@ -1616,8 +1624,12 @@
     // GDD v3: hire a researcher (speeds up training/research/builds)
     var hireBtn = $('hireBtn');
     if (hireBtn) hireBtn.addEventListener('click', function () {
-      if (G.hireResearcher()) { window.GAME_AUDIO.buy(); buzz(10); updateTeam(); }
-      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+      if (G.hireResearcher()) {
+        // distinct welcoming cue + clear toast — hiring speeds every parallel timer (item 4)
+        window.GAME_AUDIO.hireDone && window.GAME_AUDIO.hireDone(); buzz([0, 12, 28, 18]);
+        toast(t('hire_done_toast', { p: (C.PROCESS.RESEARCHER_SPEED_PER * 100).toFixed(1) }), 'gold');
+        updateTeam();
+      } else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
     // GDD v3: raise a funding round
     var fundingBtn = $('fundingBtn');
