@@ -466,9 +466,13 @@
     REV_BASE: 0.15,           // tuned in P9
     REV_COMPUTE_FACTOR: 0.10, // (legacy) gentle log scaling
     REV_PER_COMPUTE: 0.5,     // money/sec per compute/sec of infra (product serves users ∝ compute)
-    // valuation = annual revenue run-rate × multiple (clean; no double-count)
-    SECONDS_YEAR: 31536000,
-    VAL_REV_MULT: 20,         // ARR multiple (≈ real frontier-lab multiples)
+    // Valuation = a believable "company worth": liquid cash + physical compute assets +
+    // goodwill from PROVEN lifetime earnings, boosted by market dominance. Deliberately
+    // NOT annualised run-rate × multiple — at compressed game-time that explodes valuation
+    // to millions× the player's real cash. This keeps it in the same universe as cash.
+    VAL_GOODWILL_MULT: 3,     // company worth ≈ 3× lifetime earnings (track record / IP / users)
+    VAL_COMPUTE_ASSET: 1,     // each unit of compute capacity counts as a physical asset
+    VAL_SHARE_PREMIUM: 2,     // market-dominance premium: ×(1 + share% × this/100); #1 ⇒ pride
     START_MONEY: 0
   };
 
@@ -528,12 +532,16 @@
   // Funding rounds gate by MODEL GENERATION (genReq) — valuation grows too
   // explosively to gate on, so generations are the reliable progressive trigger;
   // valuation is still the shown scoreboard, and each round pays cashFrac × valuation.
+  // Funding = a MEANINGFUL HEAD-START, never a game-skip. Cash injected = a few minutes
+  // of your CURRENT income (self-scaling, so it can never trivialise the next stage —
+  // you'd earn it in those minutes anyway). The real long-term value is `mult`: a
+  // PERMANENT revenue boost. `secs` = seconds-of-current-income paid as the lump sum.
   var FUNDING = [
-    { id: 'seed', genReq: 1, cashFrac: 0.20, mult: 1.10 },
-    { id: 'a',    genReq: 2, cashFrac: 0.18, mult: 1.15 },
-    { id: 'b',    genReq: 4, cashFrac: 0.16, mult: 1.20 },
-    { id: 'c',    genReq: 6, cashFrac: 0.14, mult: 1.25 },
-    { id: 'ipo',  genReq: 8, cashFrac: 0.12, mult: 1.40 }
+    { id: 'seed', genReq: 1, secs: 180, mult: 1.10 },   // ~3 min head-start
+    { id: 'a',    genReq: 2, secs: 240, mult: 1.15 },   // ~4 min
+    { id: 'b',    genReq: 4, secs: 300, mult: 1.20 },   // ~5 min
+    { id: 'c',    genReq: 6, secs: 420, mult: 1.25 },   // ~7 min
+    { id: 'ipo',  genReq: 8, secs: 600, mult: 1.40 }    // ~10 min
   ];
 
   // ---- Misc ------------------------------------------------------------

@@ -316,7 +316,7 @@
     var fb = $('fundingBtn'), round = G.nextFundingRound();
     if (round && G.canTakeFunding()) {
       setClass(fb, 'hidden', false); fb.disabled = false;
-      setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.valuation() * round.cashFrac) }));
+      setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.fundingPayout(round)) }));
     } else { setClass(fb, 'hidden', true); }
     // earned-boost activation (speeds ALL timers ×2 for 2h)
     var bzb = $('boostBtn');
@@ -1522,7 +1522,7 @@
     });
     G.on('funding', function (d) {
       var r = null; for (var i = 0; i < C.FUNDING.length; i++) if (C.FUNDING[i].id === d.id) r = C.FUNDING[i];
-      toast(t('fund_done_toast', { name: t('fund_' + d.id), v: '$' + fmt(G.valuation() * (r ? r.cashFrac : 0)), p: r ? Math.round((r.mult - 1) * 100) : 0 }), 'gold');
+      toast(t('fund_done_toast', { name: t('fund_' + d.id), v: '$' + fmt(G.fundingPayout(r)), p: r ? Math.round((r.mult - 1) * 100) : 0 }), 'gold');
     });
     G.on('generation', function (d) {
       var g = (d.gen >= 1 && C.MODELGEN[d.gen - 1]) ? C.MODELGEN[d.gen - 1] : null;

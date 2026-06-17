@@ -349,9 +349,14 @@
   }
   // company valuation (derived scoreboard): annual revenue run-rate × multiple,
   // floored by tangible assets (cash + infra) so a pre-revenue garage isn't $0.
+  // Company worth in the SAME universe as the player's cash: liquid cash + physical
+  // compute assets + goodwill from proven lifetime earnings, × a market-dominance premium.
+  // Grows impressively but plausibly (~tens× cash), never the old millions× ARR explosion.
   function valuation() {
-    var arr = moneyRate() * C.CORE.SECONDS_YEAR;  // annualised run-rate
-    return Math.max(arr * C.CORE.VAL_REV_MULT, state.cash + state.compute * 2);
+    var assets = state.cash
+      + state.compute * C.CORE.VAL_COMPUTE_ASSET
+      + (state.totalEarnedAllTime || 0) * C.CORE.VAL_GOODWILL_MULT;
+    return assets * (1 + (state.marketShare || 0) / 100 * C.CORE.VAL_SHARE_PREMIUM);
   }
 
   // ---- researchers / talent ----
@@ -415,11 +420,20 @@
     return null;
   }
   function canTakeFunding() { var r = nextFundingRound(); return !!r && state.modelGen >= r.genReq; }
+  // Cash a round pays = a few minutes of CURRENT income (self-scaling head-start, never a
+  // skip). Floored to a small multiple of the first generator cost so a barely-bootstrapped
+  // gen-1 lab still gets a usable seed instead of ~$0.
+  function fundingPayout(r) {
+    if (!r) return 0;
+    var perSec = moneyRate();
+    var floor = GEN[0].baseCost * 40; // ~a handful of starter generators
+    return Math.max(perSec * r.secs, floor);
+  }
   function takeFunding() {
     var r = nextFundingRound();
     if (!r || state.modelGen < r.genReq) return false;
     state.funding[r.id] = true;
-    addCash(valuation() * r.cashFrac);
+    addCash(fundingPayout(r));
     checkAchievements();
     emit('funding', { id: r.id });
     emit('change');
@@ -1565,7 +1579,7 @@
     trainingProgress: trainingProgress, trainingTimeLeft: trainingTimeLeft, finishTraining: finishTraining,
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
-    nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding,
+    nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding, fundingPayout: fundingPayout,
     rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, agiRank: agiRank, agiFieldSize: agiFieldSize,
     acquireTarget: acquireTarget, acquireCost: acquireCost, acquireUnlocked: acquireUnlocked, canAcquire: canAcquire, acquireRival: acquireRival,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
