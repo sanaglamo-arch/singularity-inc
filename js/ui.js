@@ -52,6 +52,7 @@
   function ic(key) { return EXTRA[key] || ICON[key] || ''; }
 
   // ---------- helpers ----------
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
   function el(tag, cls, html) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -690,21 +691,57 @@
 
   // ---------- news ticker ----------
   var tickerIdx = -1, tickerTimer = null;
+  function coName() { return G.state.companyName || t('game_title'); }
+  // stage-flavor pool (never-empty filler), {co} resolved.
   function currentNews() {
     var lang = window.GAME_I18N.getLang();
     var arr = (window.GAME_I18N.DICTS[lang] && window.GAME_I18N.DICTS[lang].news) || window.GAME_I18N.DICTS.en.news || [];
     var stage = parseInt(document.documentElement.getAttribute('data-stage') || '0', 10) || 0;
-    return arr[Math.min(stage, arr.length - 1)] || arr[0] || [''];
+    var pool = arr[Math.min(stage, arr.length - 1)] || arr[0] || [''];
+    return pool.map(function (l) { return l.replace(/\{co\}/g, coName()); });
+  }
+  // PART B — the LIVE ticker pool: real headlines first (recent → older), then stage
+  // flavor woven in so it's never empty early. Real events always take priority.
+  function tickerPool() {
+    var log = (G.state.newsLog || []).map(function (n) { return n.line; });
+    var flavor = currentNews();
+    if (!log.length) return flavor;
+    // interleave: every real headline, then one flavor line, so the feed breathes.
+    var out = [], fi = 0;
+    for (var i = 0; i < log.length; i++) {
+      out.push(log[i]);
+      if (flavor.length) { out.push(flavor[fi % flavor.length]); fi++; }
+    }
+    return out;
+  }
+  function setTickerText(line) {
+    var el2 = $('tickerText');
+    if (el2 && line != null) { el2.textContent = line; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
   }
   function rotateTicker() {
-    var pool = currentNews(); if (!pool.length) return;
+    var pool = tickerPool(); if (!pool.length) return;
     tickerIdx = (tickerIdx + 1) % pool.length;
-    var el2 = $('tickerText');
-    // item 2: {co} in a headline reads as the player's chosen company name
-    var line = pool[tickerIdx].replace(/\{co\}/g, G.state.companyName || t('game_title'));
-    if (el2) { el2.textContent = line; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
+    setTickerText(pool[tickerIdx]);
   }
-  function startTicker() { rotateTicker(); if (tickerTimer) clearInterval(tickerTimer); tickerTimer = setInterval(rotateTicker, 9000); }
+  function startTicker() { rotateTicker(); if (tickerTimer) clearInterval(tickerTimer); tickerTimer = setInterval(rotateTicker, 7000); }
+  // PART B — per-type icon for a news headline (decision / rival / regulatory / milestone).
+  var NEWS_ICON = { decision: 'ic_brain', rival: 'ic_risk', regulatory: 'ic_world', milestone: 'ic_breakthrough', flavor: 'ic_market' };
+  function newsRowHTML(n) {
+    var type = n.type || 'flavor';
+    return '<div class="nf-row nf-' + type + '"><span class="nf-ico">' + ic(NEWS_ICON[type] || 'ic_market') + '</span>' +
+      '<span class="nf-line">' + esc(n.line) + '</span></div>';
+  }
+  // The live News-Feed panel (opened by tapping the ticker). Real headlines, newest first.
+  function showNewsFeed() {
+    var log = G.state.newsLog || [];
+    var rows = log.length
+      ? log.map(newsRowHTML).join('')
+      : '<div class="nf-empty">' + t('news_feed_empty') + '</div>';
+    showModal('<h3 class="nf-title">' + t('news_feed_title') + '<span class="nf-live-tag">LIVE</span></h3>' +
+      '<div class="news-feed">' + rows + '</div>' +
+      '<div class="row"><button class="primary" id="nfClose">✕</button></div>');
+    if ($('nfClose')) $('nfClose').onclick = hideModal;
+  }
 
   // ---------- achievements ----------
   function buildAchievements() {
@@ -1138,9 +1175,15 @@
         setText(timers[ti], t('card_expires', { t: FMT.fmtTime(Math.max(0, (sorted[ti].expiresAt - Date.now()) / 1000)) }));
       }
     }
-    // flavor headlines (stage-based)
-    var pool = currentNews();
-    $('newsFlavor').innerHTML = pool.map(function (h) { return '<div class="flavor-line">• ' + h + '</div>'; }).join('');
+    // Newsroom — REAL feed (newest first) from the live newsLog; stage flavor only
+    // fills in when no real headlines exist yet (so it's never empty).
+    var log = G.state.newsLog || [];
+    var nf = $('newsFlavor');
+    if (log.length) {
+      nf.innerHTML = log.slice(0, 14).map(newsRowHTML).join('');
+    } else {
+      nf.innerHTML = currentNews().map(function (h) { return '<div class="flavor-line">• ' + esc(h) + '</div>'; }).join('');
+    }
   }
 
   // ---------- R9: acts, race, endings ----------
@@ -1312,8 +1355,10 @@
     toggleNav('navUpgradesBtn', G.upgradesUnlocked());
     toggleNav('navResearchBtn', G.researchUnlocked());
     toggleNav('navWorldBtn', wu);
-    // satirical news ticker is part of the World/News layer — hidden until it unlocks (Stage 6)
-    var tk = $('ticker'); if (tk) setClass(tk, 'hidden', !wu);
+    // LIVE news ticker: reveal once the World layer unlocks OR the moment the feed has a
+    // real headline (early-game decisions surface here before v1 ships, per owner ask).
+    var tickerLive = wu || ((G.state.newsLog || []).length > 0);
+    var tk = $('ticker'); if (tk) setClass(tk, 'hidden', !tickerLive);
     // Trust HUD rides with the World stage
     var th = $('trustHud');
     if (th) {
@@ -1698,14 +1743,19 @@
         updateInboxBadge(); toast(t(d.id + '_t'), '');
       }
     });
-    // a decision that auto-resolved or any new ticker line nudges the ticker copy
+    // a new real headline jumps to the front of the ticker AND refreshes an open feed/World.
     G.on('newsline', function (d) {
-      var el2 = $('tickerText');
-      if (el2 && d && d.line) { el2.textContent = d.line; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
+      if (d && d.line) setTickerText(d.line);
+      if (currentTab === 'world') updateWorld();
+      var mr = $('modalRoot');
+      if (mr && !mr.classList.contains('hidden') && mr.querySelector('.news-feed')) showNewsFeed();
     });
     // open the inbox from the topbar badge
     var inboxBadge = $('inboxBadge');
     if (inboxBadge) inboxBadge.addEventListener('click', function () { window.GAME_AUDIO.buy(); showInboxModal(); });
+    // PART B — tapping the LIVE ticker opens the news-feed panel
+    var tkEl = $('ticker');
+    if (tkEl) { tkEl.classList.add('tappable'); tkEl.addEventListener('click', function () { window.GAME_AUDIO.buy(); buzz(8); showNewsFeed(); }); }
     // R9: act intros + ending cinematics
     G.on('act', function (d) { showActIntroDeferred(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
@@ -1978,6 +2028,27 @@
     // modal is up, it chains the daily on dismiss (maybeShowDaily) so we never
     // clobber the un-collected offline summary; otherwise fire it now.
     if (!offlineShown) { if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 60); }
+    // DEV/QA hook: ?newstest seeds sample headlines and opens the news feed for screenshots.
+    if (/[?&]newstest/.test(location.search)) {
+      window.__openNewsFeed = showNewsFeed;
+      window.__seedNews = function () {
+        var seeds = [
+          ['nh_react_lead', 'milestone', {}], ['nh_react_risk', 'regulatory', {}],
+          ['nh_rival_agi', 'rival', { name: t('rival_helion'), pct: 75 }],
+          ['dec_data_dilemma_t', 'decision', {}], ['nh_fund_1', 'milestone', { round: t('fund_b') }],
+          ['callback_lawsuit', 'rival', {}], ['nh_react_trust', 'rival', {}],
+          ['nh_gen_1', 'milestone', { name: t('g_v4') }]
+        ];
+        var co = G.state.companyName || t('game_title');
+        var log = seeds.map(function (s) {
+          var v = s[2]; v.co = co;
+          return { line: t(s[0], v), type: s[1], at: Date.now() };
+        });
+        G.state.newsLog = log;
+        if (/world/.test(location.search)) { switchTab('world'); updateWorld(); } else showNewsFeed();
+      };
+      setTimeout(window.__seedNews, 120);
+    }
   }
   function showDaily() {
     if (!G.dailyAvailable()) return;

@@ -251,7 +251,30 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
    is visible, reserve a strip so the centered ×2 boost plaque can't overlap the ticker
    copy — the LIVE text simply flows below the badge row. No overlap @360/390/414. */
 #ticker.has-badge { padding-top: 26px; }
+#ticker.tappable { cursor: pointer; }
+#ticker.tappable:active { background: rgba(8,8,18,0.65); }
 @keyframes tickerFade { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; } }
+
+/* ---------- live news-feed panel (tap the ticker) ---------- */
+.nf-title { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; }
+.nf-live-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+  color: var(--rose); padding: 2px 7px 2px 14px; border: 1px solid var(--rose); border-radius: 999px; position: relative; }
+.nf-live-tag::before { content: ''; position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px;
+  border-radius: 50%; background: var(--rose); box-shadow: 0 0 6px var(--glow-rose, var(--rose)); }
+.news-feed { display: flex; flex-direction: column; gap: 7px; max-height: 56vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; }
+.nf-row { display: flex; align-items: flex-start; gap: 9px; padding: 8px 10px; border: 1px solid var(--glass-border); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: var(--inset-hi); }
+.nf-row .nf-ico { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px; opacity: 0.85; }
+.nf-row .nf-ico svg { width: 17px; height: 17px; }
+.nf-row .nf-line { font-size: 12.5px; line-height: 1.35; min-width: 0; word-break: break-word; }
+.nf-decision .nf-ico { color: var(--accent, #8b5cf6); }
+.nf-rival .nf-ico { color: var(--rose, #f43f5e); }
+.nf-regulatory .nf-ico { color: var(--cyan, #22d3ee); }
+.nf-milestone .nf-ico { color: var(--green, #34d399); }
+.nf-flavor .nf-ico { color: var(--fg-muted); }
+.nf-empty { text-align: center; color: var(--fg-muted); font-size: 13px; padding: 22px 14px; }
+#newsFlavor .nf-row { margin-bottom: 0; }
+#newsFlavor { display: flex; flex-direction: column; gap: 7px; }
 
 /* ---------- cosmetics gallery ---------- */
 .cos-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--glass-border); }

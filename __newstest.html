@@ -1,0 +1,14 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>news seed</title></head>
+<body><script>
+  var p = new URLSearchParams(location.search);
+  var lang = p.get('lang') || 'en';
+  var save = { version: 99, modelGen: 4, marketShare: 22, trust: 64, cash: 5000, compute: 800,
+    researchers: 3, playtime: 600, onboarded: true, act: 3, companyName: 'Nimbus AI', companyNamed: true,
+    lang: lang, lastSeen: Date.now() + 1000, lastDailyDay: 999999999 };
+  try {
+    localStorage.setItem('singularity_inc_save_v1', JSON.stringify(save));
+    localStorage.setItem('singularity_inc_lang', lang);
+  } catch(e){}
+  var extra = p.get('world') ? '&world=1' : '';
+  location.replace('index.html?newstest=1&lang=' + lang + extra);
+</script>SEEDING…</body></html>
