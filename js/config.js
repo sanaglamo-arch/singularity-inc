@@ -550,6 +550,34 @@
     NO_REPEAT_SEC: 60,      // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
     BANKABLE_AUTO_SEC: 240  // a bankable decision auto-resolves (default option) after this if ignored
   };
+  // ===== PHASE 4 — SEVERITY TIERS GATED BY SIZE (DESIGN §3) ===============
+  // Each rollable decision is tagged with a size TIER. A tier maps to a valuation band; an
+  // event only enters the draw POOL while the player's valuation() sits inside its band (a
+  // garage lab can't draw a $2B antitrust suit; a $50B frontier lab stops drawing trivial
+  // garage onboarding events). Bands OVERLAP at the seams (the `out` margins below) so the
+  // pool transitions smoothly instead of snapping empty at a hard boundary, and an event can
+  // OVERRIDE with explicit minVal/maxVal. Events WITHOUT a tier (e.g. scheduled callbacks)
+  // are NEVER gated by size — they fire on their own trigger logic. Keeps early game gentle.
+  //   tier 1 Garage · tier 2 Startup · tier 3 Scale-up · tier 4 Frontier (existential)
+  // The design frames the bands in REAL-WORLD money ($50M / $1B / $20B). The game's valuation()
+  // is a deliberately COMPRESSED "company worth" (CORE comment: kept in the same universe as the
+  // player's cash, NOT annualised run-rate × multiple), so it runs ~$200 (fresh garage) → ~$7B
+  // (AGI race). These band edges are calibrated to THAT in-game curve (verified against the act
+  // progression) while keeping the design's tier LABELS: Garage <$5K · Startup $5K–$100K ·
+  // Scale-up $100K–$5M · Frontier >$5M (the "$20B existential" bracket of the compressed economy).
+  var DECISION_TIERS = {
+    GARAGE:   { tier: 1, min: 0,     max: 5e3      },   // fresh lab → first models
+    STARTUP:  { tier: 2, min: 5e3,   max: 1e5      },   // shipping v2–v3, first share
+    SCALEUP:  { tier: 3, min: 1e5,   max: 5e6      },   // real lab: regulators, compute wars
+    FRONTIER: { tier: 4, min: 5e6,   max: Infinity }    // existential: antitrust, nationalization
+  };
+  // Per-tier OVERLAP margin: a tier's effective gate is widened by these fractions of its band
+  // so events linger one notch past their nominal band (smooth pool hand-off, no dead air).
+  //   effMin = min × (1 − OUT_LOW)   effMax = max × (1 + OUT_HIGH)
+  var DECISION_TIER_OVERLAP = { OUT_LOW: 0.5, OUT_HIGH: 1.0 };
+  // resolve a numeric tier (1..4) to its {min,max} band (with overlap applied). Tier 1's lower
+  // edge stays at 0; the top tier's upper edge stays Infinity.
+  var DECISION_TIER_BY_NUM = { 1: DECISION_TIERS.GARAGE, 2: DECISION_TIERS.STARTUP, 3: DECISION_TIERS.SCALEUP, 4: DECISION_TIERS.FRONTIER };
   // ===== EXECUTIVE / MANAGING DIRECTOR ladder (DESIGN-exec-team.md) =====
   // ONE slot, a long tier ladder. While you're AWAY, your director auto-resolves the
   // decisions that "would have fired" — quality scales with `judgment` (0..100) and your
@@ -594,7 +622,7 @@
     // on a fresh game (act 0 = garage). Mostly bankable, a couple interrupt, a couple
     // ambient. Effects stay modest (garage economy is tiny). i18n: {id}_t/_d + per-option.
     {
-      id: 'dec_eq_split', act: [0, 1], category: 'funding', weight: 130,
+      id: 'dec_eq_split', tier: 1, act: [0, 1], category: 'funding', weight: 130,
       cooldown_sec: 0, once: true, priority: 'interrupt',
       trigger: { 'meter.act': '<=1' },
       options: [
@@ -605,7 +633,7 @@
       ]
     },
     {
-      id: 'dec_first_hire', act: [0, 1], category: 'talent', weight: 120,
+      id: 'dec_first_hire', tier: 1, act: [0, 1], category: 'talent', weight: 120,
       cooldown_sec: 200, once: true, priority: 'bankable', default_option: 'generalist',
       trigger: { 'resource.compute': '>=10' },
       options: [
@@ -618,7 +646,7 @@
       ]
     },
     {
-      id: 'dec_ramen_or_raise', act: [0, 1], category: 'funding', weight: 110,
+      id: 'dec_ramen_or_raise', tier: 1, act: [0, 1], category: 'funding', weight: 110,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'ramen',
       trigger: { 'resource.compute': '>=15' },
       options: [
@@ -629,7 +657,7 @@
       ]
     },
     {
-      id: 'dec_first_customer', act: [0, 1], category: 'product', weight: 105,
+      id: 'dec_first_customer', tier: 1, act: [0, 1], category: 'product', weight: 105,
       cooldown_sec: 220, once: true, priority: 'interrupt',
       trigger: { 'resource.compute': '>=25' },
       options: [
@@ -640,7 +668,7 @@
       ]
     },
     {
-      id: 'dec_vanity_metric', act: [0, 1, 2], category: 'funding', weight: 95,
+      id: 'dec_vanity_metric', tier: 1, act: [0, 1, 2], category: 'funding', weight: 95,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'honest',
       trigger: { 'resource.compute': '>=20' },
       options: [
@@ -651,7 +679,7 @@
       ]
     },
     {
-      id: 'dec_name_model', act: [0, 1], category: 'pr', weight: 100,
+      id: 'dec_name_model', tier: 1, act: [0, 1], category: 'pr', weight: 100,
       cooldown_sec: 0, once: true, priority: 'ambient', default_option: 'sensible',
       trigger: { 'resource.compute': '>=12' },
       options: [
@@ -662,7 +690,7 @@
       ]
     },
     {
-      id: 'dec_viral_demo', act: [0, 1], category: 'pr', weight: 100,
+      id: 'dec_viral_demo', tier: 1, act: [0, 1], category: 'pr', weight: 100,
       cooldown_sec: 200, once: false, priority: 'interrupt',
       trigger: { 'resource.compute': '>=30' },
       options: [
@@ -685,7 +713,7 @@
       ]
     },
     {
-      id: 'dec_open_or_closed', act: [0, 1], category: 'opensource', weight: 95,
+      id: 'dec_open_or_closed', tier: 1, act: [0, 1], category: 'opensource', weight: 95,
       cooldown_sec: 220, once: true, priority: 'bankable', default_option: 'closed',
       trigger: { 'resource.compute': '>=18' },
       options: [
@@ -696,7 +724,7 @@
       ]
     },
     {
-      id: 'dec_journalist', act: [0, 1, 2], category: 'pr', weight: 90,
+      id: 'dec_journalist', tier: 1, act: [0, 1, 2], category: 'pr', weight: 90,
       cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'decline',
       trigger: { 'resource.compute': '>=22' },
       options: [
@@ -707,7 +735,7 @@
       ]
     },
     {
-      id: 'dec_gpu_spike', act: [0, 1, 2], category: 'compute', weight: 100,
+      id: 'dec_gpu_spike', tier: 1, act: [0, 1, 2], category: 'compute', weight: 100,
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'absorb',
       trigger: { 'resource.compute': '>=14' },
       weight_mods: [{ factor: 1.4, when: { 'resource.compute': '>=200' } }],
@@ -719,7 +747,7 @@
       ]
     },
     {
-      id: 'dec_poach_engineer', act: [0, 1], category: 'talent', weight: 110,
+      id: 'dec_poach_engineer', tier: 1, act: [0, 1], category: 'talent', weight: 110,
       cooldown_sec: 180, once: false, priority: 'interrupt',
       trigger: { 'resource.researchers': '>=1' },
       options: [
@@ -732,7 +760,7 @@
       ]
     },
     {
-      id: 'dec_cloud_credits', act: [0, 1], category: 'compute', weight: 95,
+      id: 'dec_cloud_credits', tier: 1, act: [0, 1], category: 'compute', weight: 95,
       cooldown_sec: 240, once: true, priority: 'bankable', default_option: 'decline',
       trigger: { 'resource.compute': '>=16' },
       options: [
@@ -746,7 +774,7 @@
     // ========================= REGULATION (4) =============================
     // ARC-REG: a one-shot safe-harbor pledge → its delayed disclosure bill.
     {
-      id: 'dec_reg_eu_act', act: [2, 3], category: 'regulation', weight: 95,
+      id: 'dec_reg_eu_act', tier: 3, act: [2, 3], category: 'regulation', weight: 95,
       cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'meter.marketShare': '>=8' }, { 'meter.vec.reg': '>=20' }] },
       weight_mods: [{ factor: 2.0, when: { 'meter.vec.reg': '>=55' } }],
@@ -761,7 +789,7 @@
       ]
     },
     {
-      id: 'dec_reg_safe_harbor', act: [2, 3], category: 'regulation', weight: 70,
+      id: 'dec_reg_safe_harbor', tier: 3, act: [2, 3], category: 'regulation', weight: 70,
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'decline',
       trigger: { AND: [{ 'meter.marketShare': '>=10' }, { 'meter.trust': '>=35' }] },
       options: [
@@ -784,7 +812,7 @@
       ]
     },
     {
-      id: 'dec_reg_patchwork', act: [2, 3], category: 'regulation', weight: 80,
+      id: 'dec_reg_patchwork', tier: 3, act: [2, 3], category: 'regulation', weight: 80,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'comply_all',
       trigger: { 'meter.marketShare': '>=12' },
       options: [
@@ -810,7 +838,7 @@
 
     // ========================= COMPUTE / CHIPS (4) =======================
     {
-      id: 'dec_chip_takeorpay', act: [2, 3], category: 'compute', weight: 90,
+      id: 'dec_chip_takeorpay', tier: 3, act: [2, 3], category: 'compute', weight: 90,
       cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { 'resource.compute': '>=200' },
       weight_mods: [{ factor: 1.6, when: { 'meter.marketShare': '>=20' } }],
@@ -824,7 +852,7 @@
       ]
     },
     {
-      id: 'dec_chip_datacenter', act: [2, 3], category: 'compute', weight: 75,
+      id: 'dec_chip_datacenter', tier: 3, act: [2, 3], category: 'compute', weight: 75,
       cooldown_sec: 260, once: false, priority: 'bankable', default_option: 'permits',
       trigger: { 'resource.compute': '>=400' },
       options: [
@@ -847,7 +875,7 @@
       ]
     },
     {
-      id: 'dec_chip_custom_silicon', act: [3], category: 'compute', weight: 60,
+      id: 'dec_chip_custom_silicon', tier: 4, act: [3], category: 'compute', weight: 60,
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'stay',
       trigger: { AND: [{ 'resource.compute': '>=2000' }, { 'resource.cash': '>=600' }] },
       options: [
@@ -859,7 +887,7 @@
       ]
     },
     {
-      id: 'dec_chip_deepseek_shock', act: [2, 3], category: 'compute', weight: 55,
+      id: 'dec_chip_deepseek_shock', tier: 3, act: [2, 3], category: 'compute', weight: 55,
       cooldown_sec: 280, once: true, priority: 'interrupt',
       trigger: { 'meter.marketShare': '>=18' },
       options: [
@@ -872,7 +900,7 @@
 
     // ========================= TALENT (4) ================================
     {
-      id: 'dec_talent_poach', act: [1, 2, 3], category: 'talent', weight: 100,
+      id: 'dec_talent_poach', tier: 2, act: [1, 2, 3], category: 'talent', weight: 100,
       cooldown_sec: 180, once: false, priority: 'bankable', default_option: 'counter',
       trigger: { 'resource.researchers': '>=1' },
       weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=15' } }],
@@ -886,7 +914,7 @@
       ]
     },
     {
-      id: 'dec_talent_megapackage', act: [2, 3], category: 'talent', weight: 70,
+      id: 'dec_talent_megapackage', tier: 3, act: [2, 3], category: 'talent', weight: 70,
       cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.cash': '>=400' }, { 'meter.marketShare': '>=18' }] },
       options: [
@@ -897,7 +925,7 @@
       ]
     },
     {
-      id: 'dec_talent_acquihire', act: [3], category: 'talent', weight: 55,
+      id: 'dec_talent_acquihire', tier: 4, act: [3], category: 'talent', weight: 55,
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'pass',
       trigger: { 'resource.cash': '>=800' },
       options: [
@@ -908,7 +936,7 @@
       ]
     },
     {
-      id: 'dec_talent_noncompete', act: [1, 2], category: 'talent', weight: 65,
+      id: 'dec_talent_noncompete', tier: 2, act: [1, 2], category: 'talent', weight: 65,
       cooldown_sec: 200, once: false, priority: 'ambient', default_option: 'reasonable',
       trigger: { 'resource.researchers': '>=2' },
       options: [
@@ -921,7 +949,7 @@
 
     // ========================= SAFETY / INCIDENTS (4) ====================
     {
-      id: 'dec_safety_review', act: [2, 3], category: 'safety', weight: 85,
+      id: 'dec_safety_review', tier: 2, act: [2, 3], category: 'safety', weight: 85,
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'review',
       trigger: { 'resource.modelGen': '>=2' },
       weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=50' } }],
@@ -934,7 +962,7 @@
       ]
     },
     {
-      id: 'dec_safety_pledge', act: [2, 3], category: 'safety', weight: 60,
+      id: 'dec_safety_pledge', tier: 3, act: [2, 3], category: 'safety', weight: 60,
       cooldown_sec: 300, once: true, priority: 'interrupt',
       trigger: { AND: [{ 'meter.marketShare': '>=15' }, { 'meter.trust': '>=30' }] },
       options: [
@@ -945,7 +973,7 @@
       ]
     },
     {
-      id: 'dec_safety_jailbreak', act: [1, 2, 3], category: 'safety', weight: 75,
+      id: 'dec_safety_jailbreak', tier: 2, act: [1, 2, 3], category: 'safety', weight: 75,
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'patch',
       trigger: { 'resource.modelGen': '>=1' },
       weight_mods: [{ factor: 1.5, when: { 'meter.vec.sec': '>=40' } }],
@@ -971,7 +999,7 @@
     // ========================= LEGAL (4) =================================
     // ARC-COPYRIGHT: scrape data → (delayed) lawsuit → settle-or-fight.
     {
-      id: 'dec_data_dilemma', act: [1, 2], category: 'legal', weight: 100,
+      id: 'dec_data_dilemma', tier: 2, act: [1, 2], category: 'legal', weight: 100,
       cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.compute': '>=20' }, { NOT: { flag: 'sued_copyright' } }] },
       weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=60' } }],
@@ -995,7 +1023,7 @@
       ]
     },
     {
-      id: 'dec_legal_logs', act: [2, 3], category: 'legal', weight: 70,
+      id: 'dec_legal_logs', tier: 3, act: [2, 3], category: 'legal', weight: 70,
       cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'meter.marketShare': '>=15' }, { 'resource.modelGen': '>=3' }] },
       options: [
@@ -1006,7 +1034,7 @@
       ]
     },
     {
-      id: 'dec_legal_defamation', act: [2, 3], category: 'legal', weight: 60,
+      id: 'dec_legal_defamation', tier: 2, act: [2, 3], category: 'legal', weight: 60,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'disclaim',
       trigger: { 'resource.modelGen': '>=2' },
       options: [
@@ -1019,7 +1047,7 @@
 
     // ========================= OPEN-SOURCE (4) ===========================
     {
-      id: 'dec_oss_release', act: [1, 2, 3], category: 'opensource', weight: 65,
+      id: 'dec_oss_release', tier: 2, act: [1, 2, 3], category: 'opensource', weight: 65,
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'gated',
       trigger: { 'resource.modelGen': '>=2' },
       options: [
@@ -1030,7 +1058,7 @@
       ]
     },
     {
-      id: 'dec_oss_weights_leak', act: [2, 3], category: 'opensource', weight: 55,
+      id: 'dec_oss_weights_leak', tier: 3, act: [2, 3], category: 'opensource', weight: 55,
       cooldown_sec: 260, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.modelGen': '>=3' }, { 'meter.vec.sec': '>=30' }] },
       options: [
@@ -1041,7 +1069,7 @@
       ]
     },
     {
-      id: 'dec_oss_distill_claim', act: [2, 3], category: 'opensource', weight: 50,
+      id: 'dec_oss_distill_claim', tier: 3, act: [2, 3], category: 'opensource', weight: 50,
       cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'ignore',
       trigger: { 'meter.marketShare': '>=20' },
       options: [
@@ -1052,7 +1080,7 @@
       ]
     },
     {
-      id: 'dec_oss_pricewar', act: [2, 3], category: 'opensource', weight: 70,
+      id: 'dec_oss_pricewar', tier: 3, act: [2, 3], category: 'opensource', weight: 70,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'hold',
       trigger: { 'meter.marketShare': '>=12' },
       weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=25' } }],
@@ -1066,7 +1094,7 @@
 
     // ========================= PRODUCT / MARKET (4) ======================
     {
-      id: 'dec_prod_demo', act: [1, 2], category: 'product', weight: 85,
+      id: 'dec_prod_demo', tier: 2, act: [1, 2], category: 'product', weight: 85,
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'rehearse',
       trigger: { 'resource.modelGen': '>=1' },
       options: [
@@ -1077,7 +1105,7 @@
       ]
     },
     {
-      id: 'dec_prod_sycophancy', act: [2, 3], category: 'product', weight: 70,
+      id: 'dec_prod_sycophancy', tier: 3, act: [2, 3], category: 'product', weight: 70,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'tune_down',
       trigger: { 'resource.modelGen': '>=3' },
       options: [
@@ -1088,7 +1116,7 @@
       ]
     },
     {
-      id: 'dec_prod_viral_trend', act: [2, 3], category: 'product', weight: 75,
+      id: 'dec_prod_viral_trend', tier: 3, act: [2, 3], category: 'product', weight: 75,
       cooldown_sec: 200, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.modelGen': '>=3' }, { 'resource.compute': '>=500' }] },
       options: [
@@ -1099,7 +1127,7 @@
       ]
     },
     {
-      id: 'dec_prod_deprecate', act: [3], category: 'product', weight: 55,
+      id: 'dec_prod_deprecate', tier: 4, act: [3], category: 'product', weight: 55,
       cooldown_sec: 240, once: false, priority: 'ambient', default_option: 'keep',
       trigger: { 'resource.modelGen': '>=5' },
       options: [
@@ -1113,7 +1141,7 @@
     // ========================= FUNDING (4) ===============================
     // ARC-BOARD: take a giant's strategic round → (delayed) board reckoning.
     {
-      id: 'dec_fund_megaround', act: [1, 2], category: 'funding', weight: 80,
+      id: 'dec_fund_megaround', tier: 2, act: [1, 2], category: 'funding', weight: 80,
       cooldown_sec: 280, once: true, priority: 'interrupt',
       trigger: { AND: [{ 'resource.modelGen': '>=2' }, { 'meter.marketShare': '>=8' }] },
       options: [
@@ -1136,7 +1164,7 @@
       ]
     },
     {
-      id: 'dec_fund_pbc', act: [2, 3], category: 'funding', weight: 55,
+      id: 'dec_fund_pbc', tier: 3, act: [2, 3], category: 'funding', weight: 55,
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'keep_mission',
       trigger: { AND: [{ 'meter.marketShare': '>=18' }, { 'meter.valuation': '>=40' }] },
       options: [
@@ -1147,7 +1175,7 @@
       ]
     },
     {
-      id: 'dec_fund_circular', act: [3], category: 'funding', weight: 50,
+      id: 'dec_fund_circular', tier: 4, act: [3], category: 'funding', weight: 50,
       cooldown_sec: 260, once: false, priority: 'ambient', default_option: 'disclose',
       trigger: { 'meter.valuation': '>=60' },
       options: [
@@ -1160,7 +1188,7 @@
 
     // ========================= GEOPOLITICS (4) ===========================
     {
-      id: 'dec_geo_exportban', act: [2, 3], category: 'geopolitics', weight: 70,
+      id: 'dec_geo_exportban', tier: 3, act: [2, 3], category: 'geopolitics', weight: 70,
       cooldown_sec: 260, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.compute': '>=600' }, { 'meter.marketShare': '>=18' }] },
       options: [
@@ -1171,7 +1199,7 @@
       ]
     },
     {
-      id: 'dec_geo_smuggle', act: [3], category: 'geopolitics', weight: 50,
+      id: 'dec_geo_smuggle', tier: 4, act: [3], category: 'geopolitics', weight: 50,
       cooldown_sec: 280, once: false, priority: 'bankable', default_option: 'refuse',
       trigger: { AND: [{ 'resource.compute': '>=1000' }, { 'meter.vec.sec': '>=30' }] },
       options: [
@@ -1182,7 +1210,7 @@
       ]
     },
     {
-      id: 'dec_geo_sovereign', act: [3], category: 'geopolitics', weight: 55,
+      id: 'dec_geo_sovereign', tier: 4, act: [3], category: 'geopolitics', weight: 55,
       cooldown_sec: 280, once: false, priority: 'bankable', default_option: 'decline',
       trigger: { AND: [{ 'meter.marketShare': '>=20' }, { 'resource.cash': '>=400' }] },
       options: [
@@ -1193,7 +1221,7 @@
       ]
     },
     {
-      id: 'dec_geo_espionage', act: [3], category: 'geopolitics', weight: 45,
+      id: 'dec_geo_espionage', tier: 4, act: [3], category: 'geopolitics', weight: 45,
       cooldown_sec: 300, once: true, priority: 'interrupt',
       trigger: { AND: [{ 'resource.researchers': '>=4' }, { 'meter.vec.sec': '>=35' }] },
       options: [
@@ -1206,7 +1234,7 @@
 
     // ========================= PR / CULTURE (4) ==========================
     {
-      id: 'dec_pr_scarjo', act: [2, 3], category: 'pr', weight: 70,
+      id: 'dec_pr_scarjo', tier: 3, act: [2, 3], category: 'pr', weight: 70,
       cooldown_sec: 220, once: false, priority: 'interrupt',
       trigger: { 'resource.modelGen': '>=3' },
       options: [
@@ -1217,7 +1245,7 @@
       ]
     },
     {
-      id: 'dec_pr_layoffs', act: [2, 3], category: 'pr', weight: 65,
+      id: 'dec_pr_layoffs', tier: 3, act: [2, 3], category: 'pr', weight: 65,
       cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'reskill',
       trigger: { 'meter.marketShare': '>=15' },
       options: [
@@ -1228,7 +1256,7 @@
       ]
     },
     {
-      id: 'dec_pr_doomer', act: [3], category: 'pr', weight: 55,
+      id: 'dec_pr_doomer', tier: 4, act: [3], category: 'pr', weight: 55,
       cooldown_sec: 240, once: false, priority: 'ambient', default_option: 'measured',
       trigger: { 'resource.modelGen': '>=5' },
       options: [
@@ -1239,7 +1267,7 @@
       ]
     },
     {
-      id: 'dec_pr_eacc_manifesto', act: [1, 2], category: 'pr', weight: 60,
+      id: 'dec_pr_eacc_manifesto', tier: 2, act: [1, 2], category: 'pr', weight: 60,
       cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'neutral',
       trigger: { 'meter.marketShare': '>=10' },
       options: [
@@ -1543,6 +1571,9 @@
     CARDS: CARDS,
     DECISIONS: DECISIONS,
     DECISIONS_PACING: DECISIONS_PACING,
+    DECISION_TIERS: DECISION_TIERS,
+    DECISION_TIER_OVERLAP: DECISION_TIER_OVERLAP,
+    DECISION_TIER_BY_NUM: DECISION_TIER_BY_NUM,
     EXECS: EXECS,
     EXECS_OFFLINE: EXECS_OFFLINE,
     MARKET: MARKET,

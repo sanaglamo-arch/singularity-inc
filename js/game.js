@@ -1583,11 +1583,34 @@
     return w;
   }
   function decNoRepeatMs() { return (C.DECISIONS_PACING.NO_REPEAT_SEC || C.DAY_SEC) * 1000; }
+  // PHASE 4 — SIZE-TIER POOL GATE (DESIGN §3). Returns true if the event's tier band (widened by
+  // the configured overlap) currently contains the player's valuation. Events with no tier tag
+  // (scheduled callbacks, anything explicitly untiered) are never size-gated. An event may also
+  // override the band directly with minVal/maxVal. This is what makes a $10M lab unable to draw a
+  // $2B antitrust suit, and a $50B lab stop drawing trivial garage onboarding events.
+  function decisionTierEligible(ev) {
+    var lo, hi;
+    if (typeof ev.minVal === 'number' || typeof ev.maxVal === 'number') {
+      lo = (typeof ev.minVal === 'number') ? ev.minVal : 0;
+      hi = (typeof ev.maxVal === 'number') ? ev.maxVal : Infinity;
+    } else if (ev.tier) {
+      var band = C.DECISION_TIER_BY_NUM ? C.DECISION_TIER_BY_NUM[ev.tier] : null;
+      if (!band) return true;                                    // unknown tier number → don't gate
+      var ov = C.DECISION_TIER_OVERLAP || { OUT_LOW: 0, OUT_HIGH: 0 };
+      lo = (band.min > 0) ? band.min * (1 - (ov.OUT_LOW || 0)) : 0;          // tier 1 floor stays 0
+      hi = (band.max === Infinity) ? Infinity : band.max * (1 + (ov.OUT_HIGH || 0)); // top tier stays open
+    } else {
+      return true;                                               // untiered events are never size-gated
+    }
+    var v = valuation();
+    return v >= lo && v <= hi;
+  }
   // is an event currently eligible to roll in the ambient pool?
   function decisionEligible(ev, now) {
     if (!ev || ev.priority === 'scheduled' || ev.weight <= 0) return false;  // scheduled-only / zero-weight never roll
     if (ev.once && state.eventsFired[ev.id]) return false;
     if (ev.act && ev.act.indexOf(currentAct()) < 0) return false;
+    if (!decisionTierEligible(ev)) return false;                            // PHASE 4: size-tier pool gate
     var last = state.eventCooldowns[ev.id] || 0;
     if (now - last < Math.max((ev.cooldown_sec || 0) * 1000, decNoRepeatMs())) return false; // per-event cooldown + no-repeat floor
     var catLast = state.categoryCooldowns[ev.category] || 0;
