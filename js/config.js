@@ -1956,7 +1956,12 @@
 
   // 1 in-game "day" in real seconds — used by the decision engine's schedule/buff windows
   // AND the burn→runway economy (a month = 30 days). Declared here so BURN below can read it.
-  var DAY_SEC = 60;
+  // NEW TIME MODEL (DESIGN-time-accountant): 1 in-game day = 5 real minutes = 300s. A real
+  // month ≈ 8,640 in-game days ≈ ~23.7 in-game years. MONTH_SEC derives automatically
+  // (DAY_SEC×30 = 9000s = 2.5 real hours). Day-derived timers (debt grace, decision no-repeat)
+  // rescale with this — debt grace of 60 in-game days = 5 real hours of red before bankruptcy.
+  // Saves store playtime in REAL seconds, so old saves reinterpret correctly with no migration.
+  var DAY_SEC = 300;
 
   // ---- BURN → RUNWAY economy (Phase 2, DESIGN-depth-redesign §1) -------
   // The DRAIN that makes the accumulative economy bite. A continuous MONTHLY operating
@@ -1973,7 +1978,7 @@
   // as you buy compute / hire. The whole burn × diff('burnMult'); compute+electricity ×
   // diff('computePriceMult'). See the simulation harness for the verified curves.
   var BURN = {
-    MONTH_SEC: DAY_SEC * 30,  // real seconds per in-game MONTH (DAY_SEC=60 ⇒ 1800s/month)
+    MONTH_SEC: DAY_SEC * 30,  // real seconds per in-game MONTH (DAY_SEC=300 ⇒ 9000s/month = 2.5h)
     // compute (~55%): the monster. cps() = compute/sec your infra produces ≈ capacity.
     // Monthly compute cost = cps × COMPUTE_PER_CPS. Because cps grows exponentially with
     // generator tiers, this term is what tightens runway as you scale.
