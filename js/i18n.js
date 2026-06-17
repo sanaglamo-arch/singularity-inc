@@ -218,7 +218,7 @@
     stance_fast: 'Move fast', stance_fast_d: '+output burst. Rivals gain too.',
     stance_open: 'Open everything', stance_open_d: '+Trust, slow the leader.',
     // --- endings ---
-    endings_title: 'Endings', endings_progress: '{n}/{m} discovered', ending_locked: 'Undiscovered — try a different strategy.',
+    endings_progress: '{n}/{m} discovered', ending_locked: 'Undiscovered — try a different strategy.',
     ending_unlocked_toast: 'Ending unlocked: {name}', ending_perk_note: 'Each ending discovered: +{p}% permanent output.',
     ending_aligned_t: 'Aligned Singularity', ending_aligned_d: 'You crossed the threshold safely. The model is wise, patient, and on your side.',
     ending_foom_t: 'Reckless Foom', ending_foom_d: 'You won the race — by skipping the safety review. It works. Probably.',
@@ -689,7 +689,7 @@
     stance_safe: 'Безопасность', stance_safe_d: '+Элайнмент. Медленнее, стабильнее.',
     stance_fast: 'Быстро', stance_fast_d: '+всплеск выработки. Конкуренты тоже ускорятся.',
     stance_open: 'Всё открыто', stance_open_d: '+Доверие, притормозить лидера.',
-    endings_title: 'Концовки', endings_progress: 'Открыто {n}/{m}', ending_locked: 'Не открыто — попробуй другую стратегию.',
+    endings_progress: 'Открыто {n}/{m}', ending_locked: 'Не открыто — попробуй другую стратегию.',
     ending_unlocked_toast: 'Концовка открыта: {name}', ending_perk_note: 'За каждую концовку: +{p}% к постоянной выработке.',
     ending_aligned_t: 'Согласованная сингулярность', ending_aligned_d: 'Ты перешёл порог безопасно. Модель мудра, терпелива и на твоей стороне.',
     ending_foom_t: 'Безрассудный Foom', ending_foom_d: 'Ты выиграл гонку — пропустив ревью безопасности. Работает. Наверное.',

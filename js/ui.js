@@ -121,7 +121,6 @@
     $('newsFlavorTitle').textContent = t('news_flavor_title');
     if ($('marketIntro')) $('marketIntro').textContent = t('market_intro');
     buildMarket();
-    buildEndings();
     // legacy prestige/singularity DOM removed in GDD v3 — guard every reference
     if ($('singTitle')) $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
     if ($('singDesc')) $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
@@ -1161,27 +1160,8 @@
     if (G.raceOpenReady()) { ob.disabled = false; ob.textContent = t('race_opensource'); }
     else { ob.disabled = true; ob.textContent = t('race_opensource_cd', { t: FMT.fmtTime(Math.max(0, 90 - (Date.now() - G.state.raceOpenAt) / 1000)) }); }
   }
-  function buildEndings() {
-    var list = $('endingsList'); if (!list) return; list.innerHTML = '';
-    C.ENDINGS.list.forEach(function (id) {
-      var c = el('div', 'ending-card'); c.dataset.eid = id;
-      c.innerHTML = '<div class="ec-badge">' + ic('nav_singularity') + '</div><div class="ec-info"><div class="ec-name"></div><div class="ec-desc"></div></div>';
-      list.appendChild(c);
-    });
-  }
-  function updateEndings() {
-    var s = G.state, n = G.endingsUnlocked(), m = C.ENDINGS.list.length;
-    $('endingsTitle').textContent = t('endings_title');
-    $('endingsProgress').textContent = t('endings_progress', { n: n, m: m });
-    $('endingPerkNote').textContent = t('ending_perk_note', { p: Math.round(C.ENDINGS.PERK_PER * 100) });
-    var nodes = $('endingsList').children;
-    for (var i = 0; i < nodes.length; i++) {
-      var id = nodes[i].dataset.eid, has = !!s.endings[id];
-      nodes[i].classList.toggle('locked', !has);
-      nodes[i].querySelector('.ec-name').textContent = has ? t('ending_' + id + '_t') : '???';
-      nodes[i].querySelector('.ec-desc').textContent = has ? t('ending_' + id + '_d') : t('ending_locked');
-    }
-  }
+  // (endings collection now lives on the World/Race finale banner; the old
+  // singularity-tab list was unreachable and has been removed)
   function showEndingCinematic(d) {
     var won = d.won !== false && d.id !== 'beaten';
     window.GAME_FX.ritual({ kind: won ? 'singularity' : 'prestige', title: (won ? t('agi_title') + ' · ' : '') + t('ending_' + d.id + '_t'), subtitle: t('ending_' + d.id + '_d') });
@@ -1249,7 +1229,7 @@
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); }
-    else if (currentTab === 'singularity') { updateSingularity(); updateRace(); updateEndings(); }
+    else if (currentTab === 'singularity') { updateSingularity(); updateRace(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
