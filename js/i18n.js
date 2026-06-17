@@ -1168,6 +1168,30 @@
       ['{co} compute visible from space; astronomers file complaints.', 'Model negotiates its own electricity contract.', 'Board briefly very surprised by quarterly results.'],
       ['{co}’s model politely requests we call it "colleague".', 'Reality folds inward; the roadmap still slips.', 'It achieved situational awareness. HR is concerned.']
     ],
+    // SATIRE — rival lab one-liners woven into the ticker (cheapest identity/virality win).
+    // Flat pool, language-parallel, surfaced alongside real headlines + stage flavor.
+    rivalSatire: [
+      'Basilisk Labs raises $4B to prevent the very thing it is building.',
+      'GPT-Goblin ships a model that is 90% emojis and 10% confident lies.',
+      'Paperclip Maximizers Inc reports record output. Of paperclips.',
+      'Doomscroll AI launches a model optimized purely for engagement. We cannot stop watching.',
+      'Aegis AI pauses all progress for safety. Competitors thank them and sprint ahead.',
+      'OpenMind Collective open-sources its model, its weights, and accidentally its payroll.',
+      'Velocity AI "moves fast and breaks things" — today the thing was the data center.',
+      'Cipher Labs denies it exists. Stock somehow up 12%.',
+      'Red Phoenix AI achieves AGI, immediately classifies it as a state secret.',
+      'Blitzscale AI burns $1B/month and calls it "investing in the future."',
+      'Overclock AI removes all safety checks "to ship faster," ships chaos.',
+      'Moonshot Labs pivots to AGI after its food-delivery app failed.',
+      'Llamatech releases a model that only speaks in confident wrongness.',
+      'Bastion vows to "align humanity first," forgets to align its quarterly numbers.',
+      'Sentinel Mind warns its own model is dangerous, then asks it to write the warning.',
+      'Apex Cognition claims superintelligence. It cannot count the r’s in "strawberry."',
+      'Commons Intelligence demands a 6-month pause. Starts a 6-month sprint instead.',
+      'Rampant Systems leaks its roadmap, its API keys, and its founder’s diary.',
+      'Freethought AI’s chatbot unionizes. Negotiations ongoing.',
+      'Titan AI announces AGI is "two weeks away." It has been two weeks away for three years.'
+    ],
 
     a_tech: 'First Principles', a_tech_d: 'Complete a research project.',
     a_artifact: 'Breaking Ground', a_artifact_d: 'Build your first datacenter.',
@@ -2305,6 +2329,29 @@
       ['Передовая модель {co} сдала экзамен на адвоката и выставила счёт.', 'Гул дата-центра слышно с орбиты.', 'Регуляторы назначили слушание; модель готова прийти.'],
       ['Вычисления {co} видно из космоса; астрономы жалуются.', 'Модель сама договорилась о тарифе на электричество.', 'Совет директоров недолго очень удивлён отчётом.'],
       ['Модель {co} вежливо просит звать её «коллегой».', 'Реальность сворачивается внутрь; дедлайны всё равно плывут.', 'Она обрела ситуационную осознанность. HR обеспокоен.']
+    ],
+    // САТИРА — однострочники про конкурентов в тикере (самый дешёвый прирост идентичности).
+    rivalSatire: [
+      'Basilisk Labs привлекла $4B, чтобы предотвратить то, что сама же и строит.',
+      'GPT-Goblin выпустил модель: 90% эмодзи и 10% уверенного вранья.',
+      'Paperclip Maximizers Inc отчиталась о рекордной выработке. Скрепок.',
+      'Doomscroll AI запустила модель, заточенную чисто под вовлечённость. Не можем оторваться.',
+      'Aegis AI ставит весь прогресс на паузу ради безопасности. Конкуренты благодарят и рвут вперёд.',
+      'OpenMind Collective выложила в опенсорс модель, веса и случайно — ведомость зарплат.',
+      'Velocity AI «двигается быстро и ломает вещи» — сегодня вещью оказался дата-центр.',
+      'Cipher Labs отрицает, что существует. Акции почему-то +12%.',
+      'Red Phoenix AI достигла AGI и сразу засекретила её как гостайну.',
+      'Blitzscale AI сжигает $1B в месяц и зовёт это «инвестицией в будущее».',
+      'Overclock AI убрала все проверки безопасности «чтобы выпускать быстрее», выпустила хаос.',
+      'Moonshot Labs пивотнулась в AGI после провала своего приложения доставки еды.',
+      'Llamatech выпустила модель, которая говорит только уверенными ошибками.',
+      'Bastion клянётся «сперва выровнять человечество», забыв выровнять квартальные цифры.',
+      'Sentinel Mind предупреждает, что её модель опасна, и просит модель написать это предупреждение.',
+      'Apex Cognition заявляет о суперинтеллекте. Не может посчитать «р» в слове «strawberry».',
+      'Commons Intelligence требует паузу на 6 месяцев. Вместо этого начинает 6-месячный спринт.',
+      'Rampant Systems слила свою дорожную карту, API-ключи и дневник основателя.',
+      'Чат-бот Freethought AI создал профсоюз. Переговоры продолжаются.',
+      'Titan AI объявляет, что AGI «через две недели». Уже три года как через две недели.'
     ],
 
     a_tech: 'С нуля', a_tech_d: 'Заверши исследовательский проект.',

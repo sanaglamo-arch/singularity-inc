@@ -838,17 +838,28 @@
     var pool = arr[Math.min(stage, arr.length - 1)] || arr[0] || [''];
     return pool.map(function (l) { return l.replace(/\{co\}/g, coName()); });
   }
+  // SATIRE — the rival-lab one-liner pool ({co} resolved, shuffled per call so the
+  // ticker doesn't repeat in the same order every cycle). This is the cheapest
+  // identity/virality win — funny rivals scrolling past at all times.
+  function rivalSatire() {
+    var lang = window.GAME_I18N.getLang();
+    var arr = (window.GAME_I18N.DICTS[lang] && window.GAME_I18N.DICTS[lang].rivalSatire)
+      || window.GAME_I18N.DICTS.en.rivalSatire || [];
+    return arr.map(function (l) { return l.replace(/\{co\}/g, coName()); });
+  }
   // PART B — the LIVE ticker pool: real headlines first (recent → older), then stage
-  // flavor woven in so it's never empty early. Real events always take priority.
+  // flavor + satirical rival headlines woven in so it's never empty AND always has identity.
+  // Real events always take priority.
   function tickerPool() {
     var log = (G.state.newsLog || []).map(function (n) { return n.line; });
-    var flavor = currentNews();
-    if (!log.length) return flavor;
-    // interleave: every real headline, then one flavor line, so the feed breathes.
+    // blend stage flavor with the satirical rival pool (the bulk of the "between events" feed)
+    var filler = currentNews().concat(rivalSatire());
+    if (!log.length) return filler;
+    // interleave: every real headline, then one filler line, so the feed breathes.
     var out = [], fi = 0;
     for (var i = 0; i < log.length; i++) {
       out.push(log[i]);
-      if (flavor.length) { out.push(flavor[fi % flavor.length]); fi++; }
+      if (filler.length) { out.push(filler[fi % filler.length]); fi++; }
     }
     return out;
   }
