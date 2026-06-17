@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], rivallife: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [], lucky: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], rivallife: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [], lucky: [], blackswan_warn: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -159,6 +159,12 @@
       lastLuckyAt: 0,        // lucky-break global cooldown anchor (ms)
       nextLuckyCheckAt: 0,   // throttles the lucky-break roll cycle (ms)
       luckyTotal: 0,         // lifetime lucky breaks fired (stats/flavor)
+      // ===== Phase 8 — IMPOSSIBLE-ONLY BLACK SWANS (DESIGN §1) =====
+      lastSwanAt: 0,         // black-swan global cooldown anchor (ms) — Impossible-only
+      nextSwanCheckAt: 0,    // throttles the black-swan roll cycle (ms)
+      swanBag: [],           // shuffle-bag of remaining swan ids (no-repeat ordering)
+      swanWarned: null,      // { id, fireAt(ms) } — a telegraphed swan pending its bite
+      swanTotal: 0,          // lifetime black swans fired (stats/flavor)
       companyName: 'Singularity Inc.', // player-chosen AI-lab name (item 2; shown as topbar brand)
       companyNamed: false,   // has the player confirmed a name yet (false => show the naming step)
       lastSeen: Date.now(),
@@ -713,7 +719,10 @@
     for (var i = 0; i < C.FUNDING.length; i++) if (!state.funding[C.FUNDING[i].id]) return C.FUNDING[i];
     return null;
   }
-  function canTakeFunding() { var r = nextFundingRound(); return !!r && state.modelGen >= r.genReq; }
+  // PHASE 8: a Flash-Crash black swan can FREEZE funding for a window (state.flags.funding_frozen,
+  // lifted by the scheduled bsw_crash_thaw). While frozen, no round can be raised — "rounds closed".
+  function fundingFrozen() { return !!(state.flags && state.flags.funding_frozen); }
+  function canTakeFunding() { var r = nextFundingRound(); return !!r && state.modelGen >= r.genReq && !fundingFrozen(); }
   // Phase 2: a round buys RUNWAY. Cash injected = the round's `months` × current MONTHLY BURN
   // (so it adds that many months of runway, scaling with your real costs — DESIGN §1 "+12–24
   // months"), × diff('fundValMult') (Easy 1.2 raises rounds; Impossible 0.7 cuts them — the
@@ -730,7 +739,7 @@
   }
   function takeFunding() {
     var r = nextFundingRound();
-    if (!r || state.modelGen < r.genReq) return false;
+    if (!r || state.modelGen < r.genReq || fundingFrozen()) return false;
     state.funding[r.id] = true;
     addCash(fundingPayout(r));
     checkAchievements();
@@ -1505,7 +1514,13 @@
         if (dCash > 0) addCash(dCash);                                // earnings count toward totals
         else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
       }
-      var dCompute = numDelta(r.compute); if (dCompute !== undefined) state.compute = Math.max(0, state.compute + dCompute);
+      // computePct: lose/gain a FRACTION of current compute capacity (PHASE 8 — a "compute
+      // embargo" auto-scales with the size of your fleet: −0.5 = "−50% capacity overnight").
+      // Folds into the same flat dCompute path; harmful = NEGATIVE, scaled by severity.
+      var dCompute = numDelta(r.compute);
+      var fComputePct = numDelta(r.computePct);
+      if (fComputePct !== undefined) dCompute = (dCompute === undefined ? 0 : dCompute) + fComputePct * (state.compute || 0);
+      if (dCompute !== undefined) { dCompute = scaleHarm(dCompute, -1); state.compute = Math.max(0, state.compute + dCompute); }
       // PHASE 4: modelGen delta — a frontier event can ROLL BACK a model generation (the
       // "DOJ deletes your latest model"). Clamped to [0, MODELGEN.length]. This is an inherently
       // scale-relative loss: it strips the latest revenue-multiplier rung off your product ladder.
@@ -1694,6 +1709,8 @@
     for (var i = 0; i < D.length; i++) if (D[i].id === id) return D[i];
     var I = C.INCIDENTS || [];   // PHASE 5: incidents reuse the decision modal/effect/news path
     for (var j = 0; j < I.length; j++) if (I[j].id === id) return I[j];
+    var B = C.BLACKSWAN || [];   // PHASE 8: black swans reuse the same modal/effect/news path
+    for (var b = 0; b < B.length; b++) if (B[b].id === id) return B[b];
     return null;
   }
   // effective weight = base × Π(matching weight_mods)
@@ -2106,6 +2123,80 @@
     emitNews('milestone', [ev.id + '_news']);
     emit('lucky', { id: ev.id });
     checkAchievements(); emit('change');
+  }
+
+  // ===== PHASE 8 — IMPOSSIBLE-ONLY BLACK SWANS (DESIGN §1) ==============
+  // A pool of brutal, existential, time-pressured events that fire ONLY on
+  // difficulty === 'impossible'. The gate below is the SINGLE choke point — it
+  // is checked first, so NONE of these can ever fire on easy/normal/hard. They
+  // are also in their own C.BLACKSWAN pool (never in the ambient DECISIONS
+  // lottery). Brutal but FAIR: telegraphed (a warning headline a beat before),
+  // rare (long cooldown + grace + size gate), and each carries a real choice
+  // with a recovery path — bankruptcy/takeover still route through the Phase-3
+  // crisis engine, never a silent instakill.
+  function blackSwanEnabled() { return state.difficulty === 'impossible'; }
+  // an event is eligible if its act band contains the current act (untracked = always).
+  function swanEligible(ev) {
+    if (!ev || ev.weight <= 0 || ev.priority === 'scheduled') return false;
+    if (Array.isArray(ev.act) && ev.act.indexOf(currentAct()) < 0) return false;
+    return true;
+  }
+  // weighted shuffle-bag draw across the eligible swan pool (no-repeat ordering via swanBag).
+  function drawSwan() {
+    var pool = (C.BLACKSWAN || []).filter(swanEligible);
+    if (!pool.length) return null;
+    // honor the no-repeat bag: prefer ids not yet drawn this cycle-through.
+    var fresh = pool.filter(function (ev) { return (state.swanBag || []).indexOf(ev.id) < 0; });
+    var candidates = fresh.length ? fresh : pool;
+    if (!fresh.length) state.swanBag = [];   // bag exhausted → refill (rotation restarts)
+    var total = 0, weights = candidates.map(function (ev) { return (total += decisionWeight(ev)), decisionWeight(ev); });
+    if (total <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
+    var roll = Math.random() * total, acc = 0, pick = candidates[candidates.length - 1];
+    for (var i = 0; i < candidates.length; i++) { acc += weights[i]; if (roll <= acc) { pick = candidates[i]; break; } }
+    state.swanBag = (state.swanBag || []).concat([pick.id]);
+    return pick;
+  }
+  // fire a telegraphed-then-due swan: pop the existential modal + headline.
+  function fireSwan(ev, now) {
+    now = now || Date.now();
+    state.lastSwanAt = now;
+    state.swanTotal = (state.swanTotal || 0) + 1;
+    state.eventCooldowns[ev.id] = now;       // also record on the shared cooldown map (callbacks reuse it)
+    emitNews('blackswan', [ev.id + '_news']);
+    emit('decision', { kind: 'interrupt', id: ev.id, blackswan: true });
+    checkAchievements(); emit('change');
+  }
+  function updateBlackSwan() {
+    if (!blackSwanEnabled()) return;          // ← THE GATE: Impossible-only. Never fires otherwise.
+    var BS = C.BLACKSWAN_CFG, now = Date.now();
+    // a telegraphed swan that is now due → bite (the warning headline already fired).
+    if (state.swanWarned && now >= state.swanWarned.fireAt) {
+      var due = decisionById(state.swanWarned.id); state.swanWarned = null;
+      if (due) { fireSwan(due, now); return; }
+    }
+    if (state.swanWarned) return;             // a telegraph is in flight — wait for it
+    if (now < (state.nextSwanCheckAt || 0)) return;
+    state.nextSwanCheckAt = now + BS.CHECK_EVERY_SEC * 1000;
+    if (incidentActive() || hasCrisisCard()) return;     // don't pile a swan on an active blow-up
+    // first-fire grace anchor (no swan in the opening minutes of a fresh Impossible run).
+    if (!state.lastSwanAt) { state.lastSwanAt = now - (BS.COOLDOWN_SEC - BS.FIRST_GRACE_SEC) * 1000; return; }
+    if (now - state.lastSwanAt < BS.COOLDOWN_SEC * 1000) return;   // long cooldown — RARE
+    if (valuation() < BS.MIN_VAL) return;     // size gate: must be a real company first (not turn-1)
+    if (Math.random() > BS.CHANCE) return;
+    var ev = drawSwan();
+    if (!ev) return;
+    // TELEGRAPH: anchor the cooldown now (so the warning itself spaces the next roll), fire a
+    // warning headline, and schedule the bite a beat later. Falls back to firing immediately if
+    // no telegraph window is configured.
+    var lead = (typeof BS.TELEGRAPH_SEC === 'number' ? BS.TELEGRAPH_SEC : 0) * 1000;
+    state.lastSwanAt = now;
+    if (lead > 0) {
+      emitNews('blackswan', [ev.id + '_warn', ev.id + '_news']);
+      state.swanWarned = { id: ev.id, fireAt: now + lead };
+      emit('blackswan_warn', { id: ev.id });
+    } else {
+      fireSwan(ev, now);
+    }
   }
   function updateCards() {
     var now = Date.now(), changed = false;
@@ -2630,6 +2721,18 @@
       state.scheduled.splice(i, 1);
       if (Math.random() > (typeof s.chance === 'number' ? s.chance : 1)) continue;  // chance gate (save-scum guard)
       var ev = decisionById(s.event);
+      if (ev && ev._auto) {
+        // PHASE 8 — AUTO callback (no player choice): apply the single option's effect
+        // silently and surface only a news headline. Used by bsw_crash_thaw to LIFT the
+        // funding freeze when the window elapses (funding markets simply reopen).
+        var autoOpt = pickDefaultOption(ev);
+        if (autoOpt) applyEffect(autoOpt.effects);
+        state.eventCooldowns[ev.id] = now;
+        if (s.callbackKey) { pushNews(t_safe(s.callbackKey, coVars()), 'milestone'); emit('toast', { key: s.callbackKey }); }
+        emit('scheduled', { event: s.event, auto: true });
+        checkAchievements(); emit('change');
+        continue;
+      }
       if (ev) {
         // the callback toast tags the original gamble before the decision surfaces
         var cbKey = s.callbackKey || (ev.category === 'legal' ? 'callback_lawsuit' : 'scheduled_fired');
@@ -2753,6 +2856,7 @@
 
     updateIncidents();   // PHASE 5: teach-by-scandal + named incidents rolled vs Incident Risk
     updateLucky();       // PHASE 7: lucky breaks — fortune the GOOD way (cooldowned, × varianceMult)
+    updateBlackSwan();   // PHASE 8: Impossible-ONLY existential black swans (telegraphed, rare, fair)
     if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
@@ -3427,6 +3531,10 @@
     execResolveOffline: execResolveOffline, optionScore: optionScore,
     // force-fire a decision NOW (manual testing / debug). Bypasses pacing + cooldowns.
     _forceDecision: function (id) { var ev = decisionById(id); if (!ev) return false; fireDecision(ev, Date.now()); return true; },
+    // PHASE 8 — black swans (Impossible-only). updateBlackSwan exposed for the headless sim;
+    // _forceSwan force-fires one (debug); blackSwanEnabled reflects the Impossible-only gate.
+    updateBlackSwan: updateBlackSwan, blackSwanEnabled: blackSwanEnabled,
+    _forceSwan: function (id) { var ev = id ? decisionById(id) : drawSwan(); if (!ev) return false; fireSwan(ev, Date.now()); return true; },
     newState: newState
   };
 })();
