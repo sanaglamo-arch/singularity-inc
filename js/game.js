@@ -836,9 +836,22 @@
   }
 
   // ---- ad rewards ------------------------------------------------------
+  // Speed up any IN-PROGRESS timer when a boost starts, so the player SEES the bars
+  // surge (timers lock endsAt at start, so without this a mid-run boost would feel inert).
+  // Bounded by the boost window: work done at N× over B wall-clock = B×N, saving the rest.
+  function reaccelTimers(boostWindowMs) {
+    var now = Date.now(), N = C.ADS.BOOST_MULT;
+    [state.training, state.build, state.research2].forEach(function (tm) {
+      if (!tm || !tm.active) return;
+      var R = tm.endsAt - now; if (R <= 0) return;
+      var newR = (boostWindowMs * N >= R) ? R / N : R - boostWindowMs * (N - 1);
+      tm.endsAt = now + Math.max(0, newR);
+    });
+  }
   function applyBoost() {
     var base = boostActive() ? state.boostUntil : Date.now();
     state.boostUntil = base + C.ADS.BOOST_DURATION * 1000;
+    reaccelTimers(C.ADS.BOOST_DURATION * 1000);   // make the active timers visibly jump
     emit('toast', { key: 'ad_boost_started' });
     emit('change');
   }

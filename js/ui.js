@@ -315,6 +315,9 @@
   }
 
   // ---------- GDD v3: model-generation training panel ----------
+  // visible process-speed multiplier (researchers + research + boost) appended to live
+  // timers, so the player SEES that hiring / boosting makes processes faster.
+  function speedTag() { var s = G.processSpeed(); return s > 1.05 ? ' · ⚡×' + s.toFixed(1) : ''; }
   function updateModelPanel() {
     var s = G.state;
     setText($('computeVal'), fmt(s.compute));
@@ -346,7 +349,7 @@
     if (G.buildActive()) {
       setClass(bb, 'hidden', true); setClass(bp, 'hidden', false);
       setStyleP($('buildFill'), 'width', (G.buildProgress() * 100).toFixed(1) + '%');
-      setText($('buildTimer'), t('build_active', { t: FMT.fmtTime(G.buildTimeLeft()) }));
+      setText($('buildTimer'), t('build_active', { t: FMT.fmtTime(G.buildTimeLeft()) }) + speedTag());
     } else {
       setClass(bp, 'hidden', true); setClass(bb, 'hidden', false);
       setText(bb, t('build_btn', { v: '$' + fmt(G.buildCost()), p: Math.round(C.DATACENTER.bonus * 100) }));
@@ -362,7 +365,7 @@
     if (G.trainingActive()) {
       setClass(btn, 'hidden', true); setClass(prog, 'hidden', false);
       setStyleP($('trainFill'), 'width', (G.trainingProgress() * 100).toFixed(1) + '%');
-      setText($('trainTimer'), t('train_active', { name: t(C.MODELGEN[s.training.gen].id) }) + ' · ' + t('train_left', { t: FMT.fmtTime(G.trainingTimeLeft()) }));
+      setText($('trainTimer'), t('train_active', { name: t(C.MODELGEN[s.training.gen].id) }) + ' · ' + t('train_left', { t: FMT.fmtTime(G.trainingTimeLeft()) }) + speedTag());
       setText(hint, '');
     } else {
       setClass(prog, 'hidden', true); setClass(btn, 'hidden', false);
@@ -392,7 +395,7 @@
     if (G.researchActive()) {
       setClass(rb, 'hidden', true); setClass(rp, 'hidden', false);
       setStyleP($('researchFill'), 'width', (G.researchProgress() * 100).toFixed(1) + '%');
-      setText($('researchTimer'), t('research_active', { t: FMT.fmtTime(G.researchTimeLeft()) }));
+      setText($('researchTimer'), t('research_active', { t: FMT.fmtTime(G.researchTimeLeft()) }) + speedTag());
     } else {
       setClass(rp, 'hidden', true); setClass(rb, 'hidden', false);
       setText(rb, t('research_btn', { v: '$' + fmt(G.researchProjCost()) }));
