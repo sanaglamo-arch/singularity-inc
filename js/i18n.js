@@ -49,7 +49,7 @@
     tip_models: 'Ship better model generations (v1→AGI). Each needs compute + training time, then permanently boosts revenue and market share — you never reset; your infrastructure is kept forever.',
     tip_compute: 'Compute is produced by your hardware (and taps). It is the bottleneck: spend it to start training the next model generation.',
     tip_share: 'Your slice of the AI market. Climbs each time you ship a new model generation. Reach #1, then race rivals to AGI.',
-    tip_valuation: 'What investors think the company is worth (revenue run-rate × market). Funding rounds unlock as it grows.',
+    tip_valuation: 'What the company is worth: your cash + compute assets + goodwill from lifetime earnings, boosted by market share. A scoreboard — it is never spent.',
     // model generation names (generic, no trademarks)
     g_v1: 'Model v1', g_v2: 'Model v2', g_v3: 'Model v3', g_v4: 'Model v4', g_v5: 'Model v5', g_v6: 'Model v6',
     g_front1: 'Frontier v7', g_front2: 'Frontier v8', g_front3: 'Frontier v9', g_proto: 'Proto-AGI', g_agi: 'AGI',
@@ -516,7 +516,7 @@
     tip_models: 'Выпускай поколения моделей (v1→AGI). Каждое требует компьюта и времени обучения, затем навсегда повышает выручку и долю рынка — без сбросов; инфраструктура остаётся навсегда.',
     tip_compute: 'Компьют производит твоё железо (и тапы). Это боттлнек: трать его, чтобы начать обучение следующего поколения модели.',
     tip_share: 'Твоя доля рынка ИИ. Растёт с каждым новым поколением модели. Стань #1 и обгони конкурентов к AGI.',
-    tip_valuation: 'Сколько инвесторы считают компанию стоящей (run-rate выручки × рынок). С её ростом открываются раунды.',
+    tip_valuation: 'Сколько стоит компания: деньги + вычислительные активы + гудвилл от заработка за всё время, с бонусом за долю рынка. Это табло — не тратится.',
     g_v1: 'Модель v1', g_v2: 'Модель v2', g_v3: 'Модель v3', g_v4: 'Модель v4', g_v5: 'Модель v5', g_v6: 'Модель v6',
     g_front1: 'Передовая v7', g_front2: 'Передовая v8', g_front3: 'Передовая v9', g_proto: 'Прото-AGI', g_agi: 'AGI',
     fund_seed: 'Seed', fund_a: 'Раунд A', fund_b: 'Раунд B', fund_c: 'Раунд C', fund_ipo: 'IPO',

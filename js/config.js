@@ -527,11 +527,7 @@
   };
 
   // ---- Finance: funding rounds (replaces twitchy market) --------------
-  // Each round: one-time cash = fraction of current valuation; gated by valuation
-  // milestone; raises a permanent revenue/credibility multiplier. Seed→A→B→C→IPO.
-  // Funding rounds gate by MODEL GENERATION (genReq) — valuation grows too
-  // explosively to gate on, so generations are the reliable progressive trigger;
-  // valuation is still the shown scoreboard, and each round pays cashFrac × valuation.
+  // Gated by MODEL GENERATION (genReq) — valuation grows too explosively to gate on.
   // Funding = a MEANINGFUL HEAD-START, never a game-skip. Cash injected = a few minutes
   // of your CURRENT income (self-scaling, so it can never trivialise the next stage —
   // you'd earn it in those minutes anyway). The real long-term value is `mult`: a

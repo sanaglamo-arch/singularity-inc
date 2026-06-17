@@ -347,8 +347,6 @@
     var trust = worldUnlocked() ? trustMult() : 1; // reputation moves product revenue (±10%)
     return computeRate() * C.CORE.REV_PER_COMPUTE * genRevenueMult() * (1 + state.marketShare / 100) * trust;
   }
-  // company valuation (derived scoreboard): annual revenue run-rate × multiple,
-  // floored by tangible assets (cash + infra) so a pre-revenue garage isn't $0.
   // Company worth in the SAME universe as the player's cash: liquid cash + physical
   // compute assets + goodwill from proven lifetime earnings, × a market-dominance premium.
   // Grows impressively but plausibly (~tens× cash), never the old millions× ARR explosion.
@@ -1526,11 +1524,20 @@
     emit('change');
   }
 
+  // On load, mark already-satisfied achievements & valuation milestones as earned
+  // WITHOUT toasting, so a returning/migrated/loaded player isn't flooded re-announcing
+  // past progress. Only genuinely NEW unlocks during active play toast afterward.
+  function syncProgressSilently() {
+    C.ACHIEVEMENTS.forEach(function (a) { if (!state.achievements[a.id] && condMet(a.cond)) state.achievements[a.id] = true; });
+    if (state.modelGen >= 1 && valuation() >= 1e9) state.unicorn = true;
+    if (valuation() >= 1e10) { state.unicorn = true; state.decacorn = true; }
+  }
   function init() {
     var loaded = load();
     var offline = null;
     if (loaded) {
       state = loaded;
+      syncProgressSilently();   // BUG 2: no re-toast of already-earned on load
       if (state.lang) window.GAME_I18N.setLang(state.lang);
       var elapsed = Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000);
       if (elapsed > 30) offline = computeOffline(elapsed, false);
