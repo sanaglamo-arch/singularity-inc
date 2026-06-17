@@ -1391,6 +1391,14 @@
   // ---------- events ----------
   function bind() {
     document.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-tip]') : null; if (b) { e.preventDefault(); e.stopPropagation(); showTip(b); } else hideTip(); }, true);
+    // keyboard: Escape closes an open tooltip or modal (desktop/keyboard a11y)
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' && e.keyCode !== 27) return;
+      var tip = document.getElementById('tooltip');
+      if (tip && !tip.classList.contains('hidden')) { hideTip(); return; }
+      var m = $('modalRoot');
+      if (m && !m.classList.contains('hidden')) { hideModal(); }
+    });
     // tap
     var tapBtn = $('tapBtn');
     function doTap(clientX, clientY) {
