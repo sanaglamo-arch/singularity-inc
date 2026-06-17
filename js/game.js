@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], rivallife: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], rivallife: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [], lucky: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -2055,6 +2055,38 @@
     emit('decision', { kind: 'interrupt', id: ev.id, incident: true });
     checkAchievements(); emit('change');
   }
+  // SUB-PART D — LUCKY BREAKS (fortune the GOOD way). Mirrors updateIncidents but
+  // beneficial and with NO risk floor (luck can strike anytime). Cooldowned so it
+  // never spams; each fires a headline + a beneficial effect via applyEffect. Frequency
+  // (shorter cooldown + higher chance) AND eligibility scale with varianceMult so
+  // Impossible is swingier in BOTH directions (Sub-part E). Balanced against the incident
+  // cadence so fortune cuts both ways — you can get lucky and dominate, not only get hurt.
+  function luckyEligible(ev) {
+    if (!ev) return false;
+    if (Array.isArray(ev.act) && ev.act.indexOf(currentAct()) < 0) return false;
+    return true;
+  }
+  function updateLucky() {
+    var LK = C.LUCKY_CFG, now = Date.now(), vm = varMult();
+    if (now < (state.nextLuckyCheckAt || 0)) return;
+    state.nextLuckyCheckAt = now + LK.CHECK_EVERY_SEC * 1000;
+    // first-fire grace anchor (so a fresh game isn't lucky in the first seconds).
+    if (!state.lastLuckyAt) { state.lastLuckyAt = now - (LK.COOLDOWN_SEC - LK.FIRST_DELAY_SEC) * 1000; return; }
+    // cooldown shrinks with varianceMult (swingier = luck strikes more often), floored.
+    var cdMs = Math.max(LK.COOLDOWN_MIN, LK.COOLDOWN_SEC / (vm > 0 ? vm : 1)) * 1000;
+    if (now - state.lastLuckyAt < cdMs) return;
+    var chance = LK.CHANCE * vm;               // per-cycle chance scales with variance
+    if (Math.random() > chance) return;
+    var pool = (C.LUCKY || []).filter(luckyEligible);
+    if (!pool.length) return;
+    var ev = pool[Math.floor(Math.random() * pool.length)];
+    state.lastLuckyAt = now;
+    state.luckyTotal = (state.luckyTotal || 0) + 1;
+    applyEffect(ev.eff);
+    emitNews('milestone', [ev.id + '_news']);
+    emit('lucky', { id: ev.id });
+    checkAchievements(); emit('change');
+  }
   function updateCards() {
     var now = Date.now(), changed = false;
     for (var i = state.cards.length - 1; i >= 0; i--) {
@@ -2700,6 +2732,7 @@
     }
 
     updateIncidents();   // PHASE 5: teach-by-scandal + named incidents rolled vs Incident Risk
+    updateLucky();       // PHASE 7: lucky breaks — fortune the GOOD way (cooldowned, × varianceMult)
     if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
@@ -3342,6 +3375,7 @@
     climateState: function () { return state.climate; },
     climateFundMult: climateFundMult, climateComputeMult: climateComputeMult,
     climateRevenueMult: climateRevenueMult, climateAggroMult: climateAggroMult, updateClimate: updateClimate,
+    updateLucky: updateLucky,
     rivalName: rivalName, activeRivals: activeRivals, rivalById: rivalById,
     updateRivalLifecycle: updateRivalLifecycle, spawnEntrant: spawnEntrant,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,

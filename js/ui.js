@@ -2129,6 +2129,14 @@
         if (d.outcome.news) toast(t(d.outcome.news), d.outcome.good ? 'good' : 'bad');
       }
     });
+    // PHASE 7 — LUCKY BREAK: a celebratory flash + toast (the headline ticks via newsline).
+    G.on('lucky', function (d) {
+      if (!d) return;
+      window.GAME_FX.flash('rgba(52,211,153,0.20)');
+      window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); buzz(12);
+      toast(t(d.id + '_news', { co: G.state.companyName || t('game_title') }), 'good');
+      updateWorld();
+    });
     // a new real headline jumps to the front of the ticker AND refreshes an open feed/World.
     G.on('newsline', function (d) {
       if (d && d.line) setTickerText(d.line);
