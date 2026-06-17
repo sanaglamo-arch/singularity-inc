@@ -1051,9 +1051,8 @@
     if ((state.gameOver && state.won) || state.modelGen >= 9) return 4; // AGI / endgame
     if (state.modelGen >= 6) return 3;   // race to AGI
     if (state.modelGen >= 3) return 2;   // frontier lab
-    if (state.modelGen >= 1) return 1;   // startup (shipped v1)
-    var owned = 0; GEN.forEach(function (g) { owned += state.gens[g.id]; });
-    return owned > 0 ? 1 : 0;            // garage (act intro 1 once you buy a generator)
+    if (state.modelGen >= 1) return 1;   // startup — only AFTER shipping v1 (not on first hardware buy)
+    return 0;                            // garage: tap → buy hardware → work toward v1
   }
   function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
   function ensureRivals() { C.RIVALS.forEach(function (r) { if (typeof state.rivalAgi[r.id] !== 'number') state.rivalAgi[r.id] = 0; }); }
@@ -1124,7 +1123,7 @@
     var heat = Math.max(agiProgress(), maxRivalAgi()) / 100 * C.RACE.HEAT;
     var reckless = state.align < 2 ? C.RACE.RECKLESS_RIVAL_BONUS : 0;
     C.RIVALS.forEach(function (r) { state.rivalAgi[r.id] = Math.min(100, state.rivalAgi[r.id] + r.speed * (1 + heat + reckless) * dt); });
-    if (maxRivalAgi() >= 100 && agiProgress() < 100 && !state._endingFired) { doSingularity('beaten'); }
+    if (maxRivalAgi() >= 100 && agiProgress() < 100 && !state.gameOver) { triggerFinale('beaten', false); } // a rival reached AGI first (backup path; doSingularity was a dead no-op)
   }
   function avgVec() { var s = 0; C.RISK.VECTORS.forEach(function (v) { s += state.vec[v]; }); return s / C.RISK.VECTORS.length; }
   // GDD v3: the ending you WIN AGI with, decided by your play style at the finale.

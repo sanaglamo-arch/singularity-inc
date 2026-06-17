@@ -1041,6 +1041,13 @@
     var prog = a >= 2 ? G.agiProgress() : (a * 20);
     setStyleP($('actFill'), 'width', prog.toFixed(1) + '%');
   }
+  // Don't clobber an open modal — so the model-ship SUMMARY shows first, then the act
+  // intro chains after it (they can fire in the same tick when v1 ships).
+  function showActIntroDeferred(a) {
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden')) { setTimeout(function () { showActIntroDeferred(a); }, 700); return; }
+    showActIntro(a);
+  }
   function showActIntro(a) {
     var id = actId(a);
     var body = '<div class="act-intro"><div class="act-num">' + t('act_label', { n: a + 1 }) + '</div>' +
@@ -1077,6 +1084,7 @@
     var g = C.MODELGEN[genCount - 1]; if (!g) return;
     var next = C.MODELGEN[genCount], unlockKey = GEN_UNLOCK[genCount];
     var html = '<h3>' + t('gen_summary_title', { name: t(g.id) }) + '</h3>' +
+      '<div class="gs-kept">✓ ' + t('gen_summary_kept') + '</div>' +
       '<p>' + t('gen_summary_sub') + '</p>' +
       '<div class="gensum">' +
         '<div class="gs-row gs-up">▲ ' + t('gen_summary_output', { p: Math.round((g.revMult - 1) * 100), tot: fmtMult(G.genRevenueMult()) }) + '</div>' +
@@ -1416,7 +1424,7 @@
     var steps = [
       { icon: ic('ic_brain'), title: 'ob_1_title', body: 'ob_1_body' },
       { icon: ic('gen_laptop'), title: 'ob_2_title', body: 'ob_2_body' },
-      { icon: ic('nav_alignment'), title: 'ob_3_title', body: 'ob_3_body' }
+      { icon: ic('ic_market'), title: 'ob_3_title', body: 'ob_3_body' }
     ];
     var i = 0;
     function finish() { G.setOnboarded(true); hideModal(); }
@@ -1511,7 +1519,7 @@
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
     });
     // R9: act intros + ending cinematics
-    G.on('act', function (d) { showActIntro(d.act); });
+    G.on('act', function (d) { showActIntroDeferred(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
     if ($('raceOpenBtn')) $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); toast(t('race_opensource_done'), 'good'); updateStandings(); } });
 
