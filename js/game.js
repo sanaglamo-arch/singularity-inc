@@ -1103,6 +1103,7 @@
     var E = C.ENDINGS, av = avgVec();
     if (state.trust < E.NATIONALIZED_TRUST || state.vec.reg > E.NATIONALIZED_AVGVEC || state.crisesEscalated >= E.NATIONALIZED_ESC) return 'nationalized';
     if (state.align < E.FOOM_ALIGN || state.vec.cap > E.FOOM_CAP || av > 50) return 'foom'; // reckless
+    if (state.trust >= E.QUIET_TRUST && av <= E.QUIET_AVGVEC) return 'quiet'; // pristine: max trust, minimal risk
     return 'aligned';
   }
   // fire the AGI finale exactly once (win = you reached AGI; beaten = a rival did)
