@@ -1464,6 +1464,33 @@
     if (typeof s.unicorn !== 'boolean') s.unicorn = false;
     if (typeof s.decacorn !== 'boolean') s.decacorn = false;
     if (!s.acquired || typeof s.acquired !== 'object') s.acquired = {}; // v9
+    // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
+    // tampered save can never produce negative cash, NaN compute, or string maths.
+    function clean(v, def, min, max) {
+      var n = typeof v === 'number' ? v : parseFloat(v);
+      if (!isFinite(n)) n = def;
+      if (typeof min === 'number' && n < min) n = min;
+      if (typeof max === 'number' && n > max) n = max;
+      return n;
+    }
+    s.cash = clean(s.cash, 0, 0);
+    s.compute = clean(s.compute, 0, 0);
+    s.totalEarnedAllTime = clean(s.totalEarnedAllTime, 0, 0);
+    s.totalEarnedThisRun = clean(s.totalEarnedThisRun, 0, 0);
+    s.marketShare = clean(s.marketShare, 0, 0, 100);
+    s.researchers = clean(s.researchers, 0, 0);
+    s.datacenters = clean(s.datacenters, 0, 0);
+    s.researchLevel = clean(s.researchLevel, 0, 0);
+    s.modelGen = Math.floor(clean(s.modelGen, 0, 0, C.MODELGEN.length));
+    s.trust = clean(s.trust, C.TRUST ? C.TRUST.START : 50, 0, 100);
+    s.legacyMult = clean(s.legacyMult, 1, 0);
+    s.taps = Math.floor(clean(s.taps, 0, 0));
+    if (s.gens && typeof s.gens === 'object') {
+      GEN.forEach(function (g) { s.gens[g.id] = Math.floor(clean(s.gens[g.id], 0, 0)); });
+    }
+    if (s.vec && typeof s.vec === 'object') {
+      C.RISK.VECTORS.forEach(function (v) { s.vec[v] = clean(s.vec[v], 0, 0, C.RISK.MAX); });
+    }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
