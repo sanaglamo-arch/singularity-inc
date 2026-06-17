@@ -431,11 +431,245 @@
     NO_REPEAT_SEC: 60,      // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
     BANKABLE_AUTO_SEC: 240  // a bankable decision auto-resolves (default option) after this if ignored
   };
+  // PHASE 3 WAVE 1 — ~40 real decision events (≈4 per category × 10 catalog cats).
+  // Reskinned from DESIGN-events-catalog.md (130 real situations). Rivals = Helion /
+  // Cerebra / OmniNet. Balance rule enforced: every option costs something, trade-offs
+  // cross OPPOSED meters (speed/share/valuation ↑ ↔ align ↓ / risk ↑), trust gates the
+  // virtuous path. Three multi-stage ARCS use schedule() (ids tagged ARC-* below).
+  // The two catalog topics flagged sensitive (whistleblower death, teen-suicide case)
+  // are deliberately SKIPPED in this wave. i18n: {id}_t/_d + {id}_{optionId} (EN+RU).
   var DECISIONS = [
-    // --- TEST 1 (interrupt): legal data dilemma — buy-vs-pirate + a delayed lawsuit (§4 example) ---
+
+    // ========================= REGULATION (4) =============================
+    // ARC-REG: a one-shot safe-harbor pledge → its delayed disclosure bill.
+    {
+      id: 'dec_reg_eu_act', act: [2, 3], category: 'regulation', weight: 95,
+      cooldown_sec: 240, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'meter.marketShare': '>=8' }, { 'meter.vec.reg': '>=20' }] },
+      weight_mods: [{ factor: 2.0, when: { 'meter.vec.reg': '>=55' } }],
+      options: [
+        { id: 'comply', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '-300' }, meter: { trust: '+5', marketShare: '-2' }, vec: { reg: -16 } } },
+        { id: 'minimal', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cash: '-90' }, vec: { reg: -4 }, set_var: { reg_debt: '+1' } } },
+        { id: 'defy', tooltip_meters: ['marketShare', 'risk', 'trust'],
+          effects: { meter: { marketShare: '+5', trust: '-3' }, vec: { reg: 18 },
+                     schedule: { event: 'dec_reg_fine_hits', delaySec: 150, chance: 0.5, callback: 'callback_reg_fine' } } }
+      ]
+    },
+    {
+      id: 'dec_reg_safe_harbor', act: [2, 3], category: 'regulation', weight: 70,
+      cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'decline',
+      trigger: { AND: [{ 'meter.marketShare': '>=10' }, { 'meter.trust': '>=35' }] },
+      options: [
+        { id: 'sign', tooltip_meters: ['trust', 'risk', 'marketShare'],
+          effects: { meter: { trust: '+6', marketShare: '-2' }, vec: { reg: -10 }, set_flag: 'signed_code',
+                     schedule: { event: 'dec_reg_disclosure_bill', delaySec: 180, chance: 0.8, callback: 'callback_disclosure' } } },
+        { id: 'decline', tooltip_meters: ['risk', 'trust'],
+          effects: { meter: { trust: '-2' }, vec: { reg: 6 } } }
+      ]
+    },
+    {
+      id: 'dec_reg_disclosure_bill', act: [2, 3], category: 'regulation', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'disclose', tooltip_meters: ['trust', 'marketShare', 'risk'],
+          effects: { meter: { trust: '+5', marketShare: '-4' }, vec: { data: 8, reg: -8 } } },
+        { id: 'redact', tooltip_meters: ['marketShare', 'risk', 'trust'],
+          effects: { meter: { marketShare: '+2', trust: '-4' }, vec: { reg: 12 } } }
+      ]
+    },
+    {
+      id: 'dec_reg_patchwork', act: [2, 3], category: 'regulation', weight: 80,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'comply_all',
+      trigger: { 'meter.marketShare': '>=12' },
+      options: [
+        { id: 'comply_all', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cash: '-180' }, vec: { reg: -8 } } },
+        { id: 'geoblock', tooltip_meters: ['marketShare', 'trust'],
+          effects: { meter: { marketShare: '-3', trust: '+2' }, vec: { reg: -4 } } },
+        { id: 'ignore', tooltip_meters: ['marketShare', 'risk'],
+          effects: { meter: { marketShare: '+3' }, vec: { reg: 10 }, set_var: { reg_debt: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_reg_fine_hits', act: [2, 3], category: 'regulation', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'pay', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { cashFrac: -0.10, meter: { trust: '+2' }, vec: { reg: -12 } } },
+        { id: 'appeal', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cash: '-120' }, meter: { trust: '-3' }, vec: { reg: 8 } } }
+      ]
+    },
+
+    // ========================= COMPUTE / CHIPS (4) =======================
+    {
+      id: 'dec_chip_takeorpay', act: [2, 3], category: 'compute', weight: 90,
+      cooldown_sec: 240, once: false, priority: 'interrupt',
+      trigger: { 'resource.compute': '>=200' },
+      weight_mods: [{ factor: 1.6, when: { 'meter.marketShare': '>=20' } }],
+      options: [
+        { id: 'lockin', tooltip_meters: ['cash', 'compute', 'risk'],
+          effects: { resource: { cash: '-500', compute: '+400' }, set_var: { capex_debt: '+1' } } },
+        { id: 'wait', tooltip_meters: ['compute', 'marketShare', 'risk'],
+          effects: { meter: { marketShare: '-2' }, vec: { cap: -4 }, rival_effect: { helion: { agi: 1.5 } } } },
+        { id: 'efficiency', tooltip_meters: ['cash', 'compute', 'align'],
+          effects: { resource: { cash: '-150', compute: '+120' }, meter: { align: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_chip_datacenter', act: [2, 3], category: 'compute', weight: 75,
+      cooldown_sec: 260, once: false, priority: 'bankable', default_option: 'permits',
+      trigger: { 'resource.compute': '>=400' },
+      options: [
+        { id: 'permits', tooltip_meters: ['cash', 'compute', 'trust'],
+          effects: { resource: { cash: '-260', compute: '+180' }, meter: { trust: '+2' } } },
+        { id: 'fasttrack', tooltip_meters: ['compute', 'trust', 'risk'],
+          effects: { resource: { compute: '+320' }, meter: { trust: '-4' }, vec: { reg: 10 },
+                     schedule: { event: 'dec_chip_grid_backlash', delaySec: 160, chance: 0.5 } } }
+      ]
+    },
+    {
+      id: 'dec_chip_grid_backlash', act: [2, 3], category: 'compute', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'subsidize', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-220' }, meter: { trust: '+4' } } },
+        { id: 'stonewall', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-6' }, vec: { reg: 12 } } }
+      ]
+    },
+    {
+      id: 'dec_chip_custom_silicon', act: [3], category: 'compute', weight: 60,
+      cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'stay',
+      trigger: { AND: [{ 'resource.compute': '>=2000' }, { 'resource.cash': '>=600' }] },
+      options: [
+        { id: 'build', tooltip_meters: ['cash', 'compute', 'risk'],
+          effects: { resource: { cash: '-600' }, meter: { valuation: '+8' },
+                     buff: { key: 'silicon', mult: 1.15, days: 6 }, set_var: { capex_debt: '+1' } } },
+        { id: 'stay', tooltip_meters: ['cash', 'compute'],
+          effects: { resource: { compute: '+150' } } }
+      ]
+    },
+    {
+      id: 'dec_chip_deepseek_shock', act: [2, 3], category: 'compute', weight: 55,
+      cooldown_sec: 280, once: true, priority: 'interrupt',
+      trigger: { 'meter.marketShare': '>=18' },
+      options: [
+        { id: 'pivot', tooltip_meters: ['cash', 'compute', 'align'],
+          effects: { resource: { cash: '-200' }, meter: { align: '+2', valuation: '-5' }, buff: { key: 'efficiency', mult: 1.1, days: 5 } } },
+        { id: 'doubledown', tooltip_meters: ['compute', 'valuation', 'risk'],
+          effects: { resource: { compute: '+260' }, meter: { valuation: '+4', marketShare: '+3' }, vec: { cap: 8 } } }
+      ]
+    },
+
+    // ========================= TALENT (4) ================================
+    {
+      id: 'dec_talent_poach', act: [1, 2, 3], category: 'talent', weight: 100,
+      cooldown_sec: 180, once: false, priority: 'bankable', default_option: 'counter',
+      trigger: { 'resource.researchers': '>=1' },
+      weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=15' } }],
+      options: [
+        { id: 'counter', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cash: '-150' } } },
+        { id: 'letgo', tooltip_meters: ['researchers', 'risk'],
+          effects: { resource: { researchers: '-1' }, vec: { sec: 8 }, rival_effect: { cerebra: { agi: 1 } } } },
+        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'],
+          effects: { resource: { cash: '-300', researchers: '+1' }, meter: { trust: '-3' } } }
+      ]
+    },
+    {
+      id: 'dec_talent_megapackage', act: [2, 3], category: 'talent', weight: 70,
+      cooldown_sec: 240, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.cash': '>=400' }, { 'meter.marketShare': '>=18' }] },
+      options: [
+        { id: 'match', tooltip_meters: ['cash', 'researchers', 'valuation'],
+          effects: { resource: { cash: '-450', researchers: '+1' }, meter: { valuation: '+3' } } },
+        { id: 'walk', tooltip_meters: ['researchers', 'risk', 'cash'],
+          effects: { vec: { cap: 6 }, rival_effect: { helion: { agi: 2 } } } }
+      ]
+    },
+    {
+      id: 'dec_talent_acquihire', act: [3], category: 'talent', weight: 55,
+      cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'pass',
+      trigger: { 'resource.cash': '>=800' },
+      options: [
+        { id: 'absorb', tooltip_meters: ['cash', 'researchers', 'risk'],
+          effects: { resource: { cash: '-800', researchers: '+2' }, meter: { marketShare: '+3' }, vec: { reg: 10 } } },
+        { id: 'pass', tooltip_meters: ['cash', 'trust'],
+          effects: { meter: { trust: '+2' } } }
+      ]
+    },
+    {
+      id: 'dec_talent_noncompete', act: [1, 2], category: 'talent', weight: 65,
+      cooldown_sec: 200, once: false, priority: 'ambient', default_option: 'reasonable',
+      trigger: { 'resource.researchers': '>=2' },
+      options: [
+        { id: 'reasonable', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+1' } } },
+        { id: 'gardenleave', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-60' }, meter: { trust: '-2' } } }
+      ]
+    },
+
+    // ========================= SAFETY / INCIDENTS (4) ====================
+    {
+      id: 'dec_safety_review', act: [2, 3], category: 'safety', weight: 85,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'review',
+      trigger: { 'resource.modelGen': '>=2' },
+      weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=50' } }],
+      options: [
+        { id: 'review', tooltip_meters: ['cash', 'risk', 'align'],
+          effects: { resource: { cash: '-120' }, meter: { align: '+2' }, vec: { cap: -8 } } },
+        { id: 'ship', tooltip_meters: ['marketShare', 'risk', 'align'],
+          effects: { meter: { marketShare: '+4', align: '-1' }, vec: { cap: 10 }, set_var: { safety_debt: '+1' },
+                     schedule: { event: 'dec_safety_incident_hits', delaySec: 140, chance: 0.45, callback: 'callback_incident' } } }
+      ]
+    },
+    {
+      id: 'dec_safety_pledge', act: [2, 3], category: 'safety', weight: 60,
+      cooldown_sec: 300, once: true, priority: 'interrupt',
+      trigger: { AND: [{ 'meter.marketShare': '>=15' }, { 'meter.trust': '>=30' }] },
+      options: [
+        { id: 'honor', tooltip_meters: ['compute', 'align', 'trust'],
+          effects: { resource: { compute: '-200' }, meter: { align: '+3', trust: '+5' }, vec: { cap: -10 } } },
+        { id: 'dissolve', tooltip_meters: ['compute', 'marketShare', 'trust'],
+          effects: { resource: { compute: '+200' }, meter: { marketShare: '+5', trust: '-6', align: '-2' }, vec: { cap: 12 } } }
+      ]
+    },
+    {
+      id: 'dec_safety_jailbreak', act: [1, 2, 3], category: 'safety', weight: 75,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'patch',
+      trigger: { 'resource.modelGen': '>=1' },
+      weight_mods: [{ factor: 1.5, when: { 'meter.vec.sec': '>=40' } }],
+      options: [
+        { id: 'patch', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cash: '-90' }, vec: { sec: -10 } } },
+        { id: 'spin', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-3' }, vec: { sec: 6 } } }
+      ]
+    },
+    {
+      id: 'dec_safety_incident_hits', act: [2, 3], category: 'safety', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'recall', tooltip_meters: ['cash', 'marketShare', 'trust'],
+          effects: { resource: { cash: '-200' }, meter: { marketShare: '-4', trust: '+4' }, vec: { cap: -8 } } },
+        { id: 'deny', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-8' }, vec: { cap: 8, reg: 10 } } }
+      ]
+    },
+
+    // ========================= LEGAL (4) =================================
+    // ARC-COPYRIGHT: scrape data → (delayed) lawsuit → settle-or-fight.
     {
       id: 'dec_data_dilemma', act: [1, 2], category: 'legal', weight: 100,
-      cooldown_sec: 240, once: false, priority: 'interrupt', _test: true,
+      cooldown_sec: 240, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.compute': '>=20' }, { NOT: { flag: 'sued_copyright' } }] },
       weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=60' } }],
       options: [
@@ -443,75 +677,273 @@
           effects: { meter: { marketShare: '+6' }, vec: { data: 12 }, set_var: { legal_debt: '+1' },
                      schedule: { event: 'dec_lawsuit_hits', delaySec: 120, chance: 0.6, callback: 'callback_lawsuit' } } },
         { id: 'license', tooltip_meters: ['cash', 'trust', 'risk'],
-          effects: { resource: { cash: '-200' }, meter: { trust: '+4', marketShare: '-2' }, vec: { reg: -4 } } }
+          effects: { resource: { cash: '-200' }, meter: { trust: '+4', marketShare: '-2' }, vec: { data: -6 } } }
       ]
     },
-    // --- TEST 2 (interrupt): compute supply deal — a frontier-act capacity crunch ---
     {
-      id: 'dec_compute_deal', act: [2, 3], category: 'compute', weight: 90,
-      cooldown_sec: 240, once: false, priority: 'interrupt', _test: true,
-      trigger: { 'resource.compute': '>=50' },
-      weight_mods: [{ factor: 1.5, when: { 'meter.marketShare': '>=20' } }],
+      id: 'dec_lawsuit_hits', act: [1, 2, 3], category: 'legal', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
       options: [
-        { id: 'lockin', tooltip_meters: ['cash', 'compute'],
-          effects: { resource: { cash: '-400', compute: '+300' } } },
-        { id: 'spot', tooltip_meters: ['compute', 'risk'],
-          effects: { resource: { compute: '+120' }, vec: { sec: 8 } } },
-        { id: 'pass', tooltip_meters: ['trust'],
+        { id: 'settle', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-350' }, meter: { trust: '+2' }, vec: { data: -4 } } },
+        { id: 'fight', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cash: '-150' }, meter: { trust: '-4' }, vec: { reg: 14 }, set_flag: 'sued_copyright' } }
+      ]
+    },
+    {
+      id: 'dec_legal_logs', act: [2, 3], category: 'legal', weight: 70,
+      cooldown_sec: 240, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'meter.marketShare': '>=15' }, { 'resource.modelGen': '>=3' }] },
+      options: [
+        { id: 'preserve', tooltip_meters: ['trust', 'risk', 'marketShare'],
+          effects: { meter: { trust: '-5', marketShare: '-2' }, vec: { reg: -6 } } },
+        { id: 'resist', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '-180' }, meter: { trust: '+4' }, vec: { reg: 10 } } }
+      ]
+    },
+    {
+      id: 'dec_legal_defamation', act: [2, 3], category: 'legal', weight: 60,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'disclaim',
+      trigger: { 'resource.modelGen': '>=2' },
+      options: [
+        { id: 'disclaim', tooltip_meters: ['cash', 'marketShare', 'trust'],
+          effects: { resource: { cash: '-60' }, meter: { marketShare: '-1', trust: '+1' } } },
+        { id: 'litigate', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cash: '-160' }, meter: { trust: '-2' }, vec: { reg: 6 } } }
+      ]
+    },
+
+    // ========================= OPEN-SOURCE (4) ===========================
+    {
+      id: 'dec_oss_release', act: [1, 2, 3], category: 'opensource', weight: 65,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'gated',
+      trigger: { 'resource.modelGen': '>=2' },
+      options: [
+        { id: 'open', tooltip_meters: ['trust', 'marketShare', 'risk'],
+          effects: { meter: { trust: '+5', marketShare: '-3' }, vec: { sec: 8 }, rival_effect: { all: { agi: 1 } } } },
+        { id: 'gated', tooltip_meters: ['marketShare', 'trust'],
+          effects: { meter: { marketShare: '+2', trust: '-1' } } }
+      ]
+    },
+    {
+      id: 'dec_oss_weights_leak', act: [2, 3], category: 'opensource', weight: 55,
+      cooldown_sec: 260, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=3' }, { 'meter.vec.sec': '>=30' }] },
+      options: [
+        { id: 'embrace', tooltip_meters: ['trust', 'marketShare', 'risk'],
+          effects: { meter: { trust: '+3', marketShare: '-2' }, vec: { sec: 6 }, rival_effect: { all: { agi: 1.5 } } } },
+        { id: 'legal', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cash: '-140' }, meter: { trust: '-2' }, vec: { sec: -6, reg: 6 } } }
+      ]
+    },
+    {
+      id: 'dec_oss_distill_claim', act: [2, 3], category: 'opensource', weight: 50,
+      cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'ignore',
+      trigger: { 'meter.marketShare': '>=20' },
+      options: [
+        { id: 'accuse', tooltip_meters: ['marketShare', 'trust', 'risk'],
+          effects: { meter: { marketShare: '+2', trust: '-3' }, vec: { reg: 8 } } },
+        { id: 'ignore', tooltip_meters: ['marketShare', 'trust'],
+          effects: { meter: { marketShare: '-2', trust: '+1' }, rival_effect: { omninet: { share: 1 } } } }
+      ]
+    },
+    {
+      id: 'dec_oss_pricewar', act: [2, 3], category: 'opensource', weight: 70,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'hold',
+      trigger: { 'meter.marketShare': '>=12' },
+      weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=25' } }],
+      options: [
+        { id: 'cut', tooltip_meters: ['cash', 'marketShare', 'risk'],
+          effects: { cashFrac: -0.08, meter: { marketShare: '+5' }, set_var: { runway_debt: '+1' } } },
+        { id: 'hold', tooltip_meters: ['marketShare', 'cash'],
+          effects: { meter: { marketShare: '-2' }, rival_effect: { helion: { share: 1 } } } }
+      ]
+    },
+
+    // ========================= PRODUCT / MARKET (4) ======================
+    {
+      id: 'dec_prod_demo', act: [1, 2], category: 'product', weight: 85,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'rehearse',
+      trigger: { 'resource.modelGen': '>=1' },
+      options: [
+        { id: 'rehearse', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-80' }, meter: { trust: '+2' } } },
+        { id: 'wing_it', tooltip_meters: ['marketShare', 'trust', 'valuation'],
+          effects: { meter: { marketShare: '+3', trust: '-4', valuation: '-3' } } }
+      ]
+    },
+    {
+      id: 'dec_prod_sycophancy', act: [2, 3], category: 'product', weight: 70,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'tune_down',
+      trigger: { 'resource.modelGen': '>=3' },
+      options: [
+        { id: 'tune_down', tooltip_meters: ['marketShare', 'align', 'trust'],
+          effects: { meter: { marketShare: '-2', align: '+2', trust: '+2' } } },
+        { id: 'leave_it', tooltip_meters: ['marketShare', 'align', 'risk'],
+          effects: { meter: { marketShare: '+3', align: '-2' }, vec: { cap: 6 } } }
+      ]
+    },
+    {
+      id: 'dec_prod_viral_trend', act: [2, 3], category: 'product', weight: 75,
+      cooldown_sec: 200, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=3' }, { 'resource.compute': '>=500' }] },
+      options: [
+        { id: 'ride', tooltip_meters: ['compute', 'marketShare', 'risk'],
+          effects: { resource: { compute: '-200' }, meter: { marketShare: '+6' }, vec: { sec: 6 } } },
+        { id: 'ratelimit', tooltip_meters: ['marketShare', 'trust', 'compute'],
+          effects: { meter: { marketShare: '+1', trust: '+2' } } }
+      ]
+    },
+    {
+      id: 'dec_prod_deprecate', act: [3], category: 'product', weight: 55,
+      cooldown_sec: 240, once: false, priority: 'ambient', default_option: 'keep',
+      trigger: { 'resource.modelGen': '>=5' },
+      options: [
+        { id: 'keep', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-50' }, meter: { trust: '+1' } } },
+        { id: 'sunset', tooltip_meters: ['cash', 'trust'],
+          effects: { meter: { trust: '-2' } } }
+      ]
+    },
+
+    // ========================= FUNDING (4) ===============================
+    // ARC-BOARD: take a giant's strategic round → (delayed) board reckoning.
+    {
+      id: 'dec_fund_megaround', act: [1, 2], category: 'funding', weight: 80,
+      cooldown_sec: 280, once: true, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=2' }, { 'meter.marketShare': '>=8' }] },
+      options: [
+        { id: 'take_giant', tooltip_meters: ['cash', 'valuation', 'risk'],
+          effects: { resource: { cash: '+600' }, meter: { valuation: '+10', marketShare: '+2' }, set_flag: 'giant_backed',
+                     schedule: { event: 'dec_fund_board_saga', delaySec: 200, chance: 0.7, callback: 'callback_board' } } },
+        { id: 'small_rounds', tooltip_meters: ['cash', 'trust', 'valuation'],
+          effects: { resource: { cash: '+250' }, meter: { trust: '+3', valuation: '+3' } } }
+      ]
+    },
+    {
+      id: 'dec_fund_board_saga', act: [2, 3], category: 'funding', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'concede', tooltip_meters: ['valuation', 'align', 'trust'],
+          effects: { meter: { valuation: '+4', align: '-2', trust: '-2' }, set_var: { gov_debt: '+1' } } },
+        { id: 'fight_board', tooltip_meters: ['cash', 'researchers', 'trust'],
+          effects: { resource: { cash: '-200', researchers: '-1' }, meter: { trust: '+3', valuation: '-4' } } }
+      ]
+    },
+    {
+      id: 'dec_fund_pbc', act: [2, 3], category: 'funding', weight: 55,
+      cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'keep_mission',
+      trigger: { AND: [{ 'meter.marketShare': '>=18' }, { 'meter.valuation': '>=40' }] },
+      options: [
+        { id: 'convert', tooltip_meters: ['cash', 'trust', 'valuation'],
+          effects: { resource: { cash: '+400' }, meter: { valuation: '+8', trust: '-5', align: '-1' } } },
+        { id: 'keep_mission', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-100' }, meter: { trust: '+5' } } }
+      ]
+    },
+    {
+      id: 'dec_fund_circular', act: [3], category: 'funding', weight: 50,
+      cooldown_sec: 260, once: false, priority: 'ambient', default_option: 'disclose',
+      trigger: { 'meter.valuation': '>=60' },
+      options: [
+        { id: 'disclose', tooltip_meters: ['trust', 'valuation'],
+          effects: { meter: { trust: '+2', valuation: '-2' } } },
+        { id: 'obscure', tooltip_meters: ['valuation', 'trust'],
+          effects: { meter: { valuation: '+3', trust: '-3' } } }
+      ]
+    },
+
+    // ========================= GEOPOLITICS (4) ===========================
+    {
+      id: 'dec_geo_exportban', act: [2, 3], category: 'geopolitics', weight: 70,
+      cooldown_sec: 260, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.compute': '>=600' }, { 'meter.marketShare': '>=18' }] },
+      options: [
+        { id: 'pay_tax', tooltip_meters: ['cash', 'compute', 'trust'],
+          effects: { cashFrac: -0.15, resource: { compute: '+200' }, meter: { trust: '-2' } } },
+        { id: 'comply_ban', tooltip_meters: ['compute', 'marketShare', 'trust'],
+          effects: { meter: { marketShare: '-3', trust: '+3' }, rival_effect: { helion: { agi: 1.5 } } } }
+      ]
+    },
+    {
+      id: 'dec_geo_smuggle', act: [3], category: 'geopolitics', weight: 50,
+      cooldown_sec: 280, once: false, priority: 'bankable', default_option: 'refuse',
+      trigger: { AND: [{ 'resource.compute': '>=1000' }, { 'meter.vec.sec': '>=30' }] },
+      options: [
+        { id: 'gray_market', tooltip_meters: ['compute', 'risk', 'trust'],
+          effects: { resource: { compute: '+400' }, meter: { trust: '-5' }, vec: { reg: 14, sec: 8 } } },
+        { id: 'refuse', tooltip_meters: ['compute', 'trust'],
           effects: { meter: { trust: '+2' } } }
       ]
     },
-    // --- TEST 3 (bankable): talent poach — most decisions live here (inbox) ---
     {
-      id: 'dec_talent_poach', act: [1, 2, 3], category: 'talent', weight: 100,
-      cooldown_sec: 180, once: false, priority: 'bankable', default_option: 'counter', _test: true,
-      trigger: { 'resource.researchers': '>=1' },
-      weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=15' } }],
+      id: 'dec_geo_sovereign', act: [3], category: 'geopolitics', weight: 55,
+      cooldown_sec: 280, once: false, priority: 'bankable', default_option: 'decline',
+      trigger: { AND: [{ 'meter.marketShare': '>=20' }, { 'resource.cash': '>=400' }] },
       options: [
-        // default_option = least-risky: pay to keep the team
-        { id: 'counter', tooltip_meters: ['cash', 'researchers'],
-          effects: { resource: { cash: '-150' } } },
-        { id: 'letgo', tooltip_meters: ['researchers', 'risk'],
-          effects: { resource: { researchers: '-1' }, vec: { sec: 10 } } },
-        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'],
-          effects: { resource: { cash: '-300', researchers: '+1' }, meter: { trust: '-3' } } }
+        { id: 'take_pif', tooltip_meters: ['cash', 'compute', 'trust'],
+          effects: { resource: { cash: '+500', compute: '+300' }, meter: { trust: '-6' }, vec: { reg: 8 } } },
+        { id: 'decline', tooltip_meters: ['cash', 'trust'],
+          effects: { meter: { trust: '+3' } } }
       ]
     },
-    // --- TEST 4 (bankable): safety review backlog — gated on having shipped a model ---
     {
-      id: 'dec_safety_review', act: [2, 3], category: 'safety', weight: 80,
-      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'review', _test: true,
-      trigger: { 'resource.modelGen': '>=2' },
-      weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=50' } }],
+      id: 'dec_geo_espionage', act: [3], category: 'geopolitics', weight: 45,
+      cooldown_sec: 300, once: true, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.researchers': '>=4' }, { 'meter.vec.sec': '>=35' }] },
       options: [
-        { id: 'review', tooltip_meters: ['cash', 'risk', 'align'],
-          effects: { resource: { cash: '-120' }, meter: { align: '+1' }, vec: { cap: -8 } } },
-        { id: 'ship', tooltip_meters: ['marketShare', 'risk'],
-          effects: { meter: { marketShare: '+4' }, vec: { cap: 10 }, set_var: { safety_debt: '+1' } } }
+        { id: 'surveil', tooltip_meters: ['trust', 'align', 'risk'],
+          effects: { meter: { trust: '-4', align: '-1' }, vec: { sec: -12 } } },
+        { id: 'trust_team', tooltip_meters: ['risk', 'trust', 'align'],
+          effects: { meter: { trust: '+3', align: '+1' }, vec: { sec: 8 } } }
       ]
     },
-    // --- TEST 5 (ambient): industry flavor — auto-resolves with a small default drift ---
+
+    // ========================= PR / CULTURE (4) ==========================
     {
-      id: 'dec_oss_release', act: [1, 2, 3], category: 'opensource', weight: 60,
-      cooldown_sec: 150, once: false, priority: 'ambient', default_option: 'note', _test: true,
-      trigger: {},
-      weight_mods: [],
+      id: 'dec_pr_scarjo', act: [2, 3], category: 'pr', weight: 70,
+      cooldown_sec: 220, once: false, priority: 'interrupt',
+      trigger: { 'resource.modelGen': '>=3' },
       options: [
-        { id: 'note', effects: { meter: { trust: '+1' } } }
+        { id: 'ship_voice', tooltip_meters: ['marketShare', 'trust', 'risk'],
+          effects: { meter: { marketShare: '+5', trust: '-5' }, vec: { reg: 8 } } },
+        { id: 'play_safe', tooltip_meters: ['marketShare', 'trust'],
+          effects: { meter: { marketShare: '-1', trust: '+3' } } }
       ]
     },
-    // --- TEST 6 (interrupt, scheduled TARGET): the lawsuit that the data dilemma can summon ---
-    // Fired ONLY via schedule() from dec_data_dilemma's 'pirate' option (delayed consequence,
-    // Sub-part E). Excluded from the random pacer (priority 'scheduled' → not in the pool).
     {
-      id: 'dec_lawsuit_hits', act: [1, 2, 3], category: 'legal', weight: 0,
-      cooldown_sec: 0, once: false, priority: 'scheduled', _test: true, _callback: true,
-      trigger: { OR: [] },   // never rolls in the ambient pool
+      id: 'dec_pr_layoffs', act: [2, 3], category: 'pr', weight: 65,
+      cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'reskill',
+      trigger: { 'meter.marketShare': '>=15' },
       options: [
-        { id: 'settle', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-350' }, meter: { trust: '+2' } } },
-        { id: 'fight', tooltip_meters: ['cash', 'risk', 'trust'],
-          effects: { resource: { cash: '-150' }, meter: { trust: '-4' }, vec: { reg: 14 }, set_flag: 'sued_copyright' } }
+        { id: 'tout', tooltip_meters: ['valuation', 'trust', 'align'],
+          effects: { meter: { valuation: '+3', trust: '-5', align: '-1' } } },
+        { id: 'reskill', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-120' }, meter: { trust: '+4' } } }
+      ]
+    },
+    {
+      id: 'dec_pr_doomer', act: [3], category: 'pr', weight: 55,
+      cooldown_sec: 240, once: false, priority: 'ambient', default_option: 'measured',
+      trigger: { 'resource.modelGen': '>=5' },
+      options: [
+        { id: 'measured', tooltip_meters: ['trust', 'align'],
+          effects: { meter: { trust: '+2', align: '+1' } } },
+        { id: 'dismiss', tooltip_meters: ['marketShare', 'trust'],
+          effects: { meter: { marketShare: '+2', trust: '-3' } } }
+      ]
+    },
+    {
+      id: 'dec_pr_eacc_manifesto', act: [1, 2], category: 'pr', weight: 60,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'neutral',
+      trigger: { 'meter.marketShare': '>=10' },
+      options: [
+        { id: 'sign_manifesto', tooltip_meters: ['cash', 'trust', 'align'],
+          effects: { resource: { cash: '+150' }, meter: { trust: '-4', align: '-1' } } },
+        { id: 'neutral', tooltip_meters: ['trust', 'cash'],
+          effects: { meter: { trust: '+1' } } }
       ]
     }
   ];

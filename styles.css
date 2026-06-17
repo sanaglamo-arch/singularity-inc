@@ -201,7 +201,7 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 .nc-desc { font-size: 12.5px; color: var(--fg-dim); margin: 4px 0 6px; line-height: 1.4; }
 .nc-timer { margin-bottom: 9px; }
 .nc-choices { display: flex; flex-direction: column; gap: 8px; }
-.cardchoice { width: 100%; text-align: left; border: 1px solid var(--glass-border); background: var(--surface); color: var(--fg); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 48px; transition: transform 0.08s var(--ease-spring), background 0.2s, border-color 0.2s; }
+.cardchoice { width: 100%; text-align: left; border: 1px solid var(--glass-border); background: var(--surface); color: var(--fg); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 48px; transition: transform 0.08s var(--ease-spring), background 0.2s, border-color 0.2s; white-space: normal; overflow-wrap: break-word; word-break: break-word; line-height: 1.3; }
 .cardchoice:active { transform: scale(0.98); }
 .cardchoice:hover { border-color: var(--cyan); background: var(--surface-2); }
 .crisis-modal .newscard { margin: 0; }
