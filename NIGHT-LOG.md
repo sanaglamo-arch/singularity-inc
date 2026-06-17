@@ -229,3 +229,72 @@ the code lacked (electricity was a continuous burn share; no taxes). Commits: c1
 - The new metrics (gov loyalty / industry / morale) from DESIGN-bills-meters §4 are NOT part of this
   build — that's a separate larger feature. This build covers electricity/taxes/accountant only.
 - dist zip rebuild intentionally deferred (per prompt) — live tree on :8080 is current.
+
+---
+
+## NIGHT — AGI-RACE TELEGRAPH HUD + LATE-GAME RACE AGENCY (audit §B.2 + §E)
+
+Fixed the two late-game audit holes: the invisible AGI-race clock (fairness)
+and the empty endgame waiting (the slog). Two logical commits.
+
+### 1. AGI-race GAP telegraph HUD (audit §B.2 — "Beaten = a clock you can't see")
+- Reworked `raceStatus()` (game.js) from a market-share badge into a true AGI-GAP
+  telegraph: it now compares YOUR `agiProgress()` to the LEADING rival's `agi`
+  (`gap = you − leader`) and returns `{state:'lead'|'amber'|'red', you, lead, gap, id}`.
+  - green/`lead`  = you lead by ≥ `RACE.GAP_SAFE` (5%)
+  - amber/`amber` = a rival is within ±5% (closing in)
+  - red/`threat`  = a rival is AHEAD (gap < 0) → you are LOSING the race
+- Topbar `raceBadge` (ui.js) now renders the gap with a colorblind-safe STATE GLYPH
+  (✓ / ▲ / ⚠) prefix + green/amber/red gradient. Visible from `RACE.GAP_HUD_FROM_GEN`
+  (gen ≥ 1 — i.e. once v1 ships), so it's testable mid-game, not just at the actual
+  endgame. The player SEES the race tightening BEFORE committing to a multi-day final
+  train — the audit's exact fix.
+- New i18n: `race_gap_lead` / `race_gap_close` / `race_gap_behind` (RU+EN). New
+  `#raceBadge.amber` style. New config: `RACE.GAP_SAFE`, `RACE.GAP_HUD_FROM_GEN`.
+
+### 2. Late-game race agency decisions (audit §E — "empty waiting")
+Four new race-category decisions hooked to the existing decision engine + live rival
+`agi` data (`rival_effect`) + the R3 relationship meters, weighted UP in the endgame
+via `weight_mods` (act ≥ 3/4, or when you're behind/closing). All telegraphed in the
+news feed:
+- **SPRINT** (`dec_race_sprint`): spend cash+compute to crash-accelerate YOUR current
+  training. New `train_boost` effect verb pulls the active run's `endsAt` forward by a
+  fraction of time-remaining (capped at 95%; no-op if not training). The real lever to
+  close the gap. Three options (crash / measured / steady).
+- **SABOTAGE / counter-intel** (`dec_race_sabotage`): slow the LEADING rival's AGI
+  (`rival_effect:{leader:{agi:-10}}`) at a cash + industry/gov cost + `vec.sec` risk +
+  a scheduled `dec_race_sabotage_leak` blowback (40% chance) that bites trust/gov.
+- **ALLIANCE / open-source gambit** (`dec_race_alliance`): slow ALL rivals
+  (`rival_effect:{all:{agi:-6}}`) but surrender your edge (share −4, approval/industry up),
+  or a private pact with the leader.
+- **DEFEND** (`dec_race_defend`): harden / litigate / absorb when a rival presses its
+  advantage. Counter-nudges the leader on harden; absorb lets them gain.
+- New `decisionMetric` gates: `meter.raceGap`, `meter.rivalLeadAgi`, `meter.training`.
+
+### Quality gates
+- `node --check` clean on config/game/ui/i18n per commit.
+- Headless smoke (real engine, navigator/localStorage stubbed): **0 console errors**.
+  - raceStatus returns correct lead/amber/red + gap across forced rival states.
+  - All options of all 5 new decisions resolve with no errors.
+  - `train_boost` SPRINT verified: 3600s run → 2340s (−35% of remaining).
+  - alliance coalition slows the whole rival field.
+- **i18n parity:** 42 new keys × 2 locales, all present & non-empty (EN+RU script check).
+- **Migration:** no new PERSISTED state added (only config constants + transient vars that
+  default via the existing `state.vars[k]||0` path) → old saves load unchanged. Sparse/legacy
+  state (missing rivals/training/vars) re-seeds rivals safely; raceStatus doesn't crash.
+- **No overflow at 360/390/414:** measured `scrollWidth == clientWidth` (over=no) at all three
+  widths with the race HUD live. Screenshots read at 360 for lead (green "You lead by N%"),
+  amber ("{rival} closing +N%"), red ("{rival} ahead by N%") — badge ellipsizes gracefully,
+  no horizontal overflow.
+
+### Honest notes
+- **Wired vs stubbed:** everything is WIRED, nothing stubbed. The HUD reads live `state.rivals`
+  agi; the four decisions go through the real `applyEffect`/`resolveDecision` pipeline; the new
+  `train_boost` verb mutates the live training timer; the sabotage leak uses the existing
+  `state.scheduled` callback path.
+- The race decisions are gated `act:[2/3/4]` + modelGen + (for sabotage/alliance/defend) a
+  `rivalLeadAgi` threshold, so they surface in the actual endgame; their `weight_mods` make
+  them more frequent when act ≥ 3/4 or you're behind — the "fill the slog with active race".
+- SPRINT's `train_boost` is intentionally capped at 95% of remaining time (never instant-finish)
+  so it's a meaningful lever, not a skip button.
+- dist zip rebuilt this session (22-file flat bundle, current tree).
