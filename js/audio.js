@@ -8,6 +8,8 @@
   var ctx = null, enabled = false;
   var master = null, limiter = null, lp = null;
   var voices = 0, MAX_VOICES = 14;   // hard cap so a tap storm can't pile up
+  var MASTER_BASE = 0.85;            // baseline master gain (the "100%" reference)
+  var vol = 1;                       // user SFX volume 0..1 (scales MASTER_BASE)
 
   function ensure() {
     if (ctx) return ctx;
@@ -17,7 +19,7 @@
       ctx = new AC();
       // master chain: [voices] -> lowpass -> master gain -> limiter -> out
       lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7200; lp.Q.value = 0.5;
-      master = ctx.createGain(); master.gain.value = 0.85;
+      master = ctx.createGain(); master.gain.value = MASTER_BASE * vol;
       limiter = ctx.createDynamicsCompressor();
       limiter.threshold.value = -10; limiter.knee.value = 14; limiter.ratio.value = 6;
       limiter.attack.value = 0.003; limiter.release.value = 0.18;
@@ -53,6 +55,13 @@
   window.GAME_AUDIO = {
     setEnabled: function (b) { enabled = !!b; if (enabled) ensure(); },
     isEnabled: function () { return enabled; },
+    // SFX volume 0..1, scales the master gain. Applied live if the graph exists.
+    setVolume: function (v) {
+      vol = Math.max(0, Math.min(1, Number(v)));
+      if (isNaN(vol)) vol = 1;
+      if (master) { try { master.gain.value = MASTER_BASE * vol; } catch (e) {} }
+    },
+    getVolume: function () { return vol; },
     // soft, slightly detuned click — pleasant on rapid taps, never piercing.
     // heat (0..1, the overclock combo) RAISES the pitch so a hot streak literally
     // climbs in tone — the slot-machine "almost there" feel (hook, first 90s).

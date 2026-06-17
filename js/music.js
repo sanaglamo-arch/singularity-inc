@@ -19,7 +19,9 @@ window.GAME_MUSIC = (function () {
       isEnabled:  function () { return false; },
       start:      function () {},
       stop:       function () {},
-      setIntensity: function () {}
+      setIntensity: function () {},
+      setVolume:  function () {},
+      getVolume:  function () { return 1; }
     };
   }
 
@@ -375,7 +377,9 @@ window.GAME_MUSIC = (function () {
   }
 
   // ── Master fade in/out (click-safe) ───────────────────────────────────────
-  var MASTER_GAIN_TARGET = 0.12;
+  var MASTER_GAIN_BASE = 0.12;       // baseline music level (the "100%" reference)
+  var musicVol = 1;                  // user music volume 0..1 (scales MASTER_GAIN_BASE)
+  function masterTarget() { return MASTER_GAIN_BASE * musicVol; }
 
   function fadeIn() {
     if (!ctx || !masterGain) return;
@@ -383,7 +387,7 @@ window.GAME_MUSIC = (function () {
       var now = ctx.currentTime;
       masterGain.gain.cancelScheduledValues(now);
       masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-      masterGain.gain.linearRampToValueAtTime(MASTER_GAIN_TARGET, now + 3.5);
+      masterGain.gain.linearRampToValueAtTime(masterTarget(), now + 3.5);
     } catch (e) {}
   }
 
@@ -470,6 +474,21 @@ window.GAME_MUSIC = (function () {
     stop: function () {
       stopPlayback();
     },
+
+    // Music volume 0..1, scales the master target. Applied live (smooth ramp) while playing.
+    setVolume: function (v) {
+      musicVol = Math.max(0, Math.min(1, Number(v)));
+      if (isNaN(musicVol)) musicVol = 1;
+      if (ctx && masterGain && playing) {
+        try {
+          var now = ctx.currentTime;
+          masterGain.gain.cancelScheduledValues(now);
+          masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+          masterGain.gain.linearRampToValueAtTime(masterTarget(), now + 0.3);
+        } catch (e) {}
+      }
+    },
+    getVolume: function () { return musicVol; },
 
     setIntensity: function (n) {
       // Clamp to 0..1
