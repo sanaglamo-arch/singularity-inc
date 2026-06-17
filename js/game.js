@@ -1394,6 +1394,9 @@
   }
 
   function migrate(s) {
+    // capture the ORIGINAL save version BEFORE we backfill defaults — version-gated
+    // derivations below must read pre-rewrite fields, not the zeros the backfill seeds.
+    var fromVer = (typeof s.version === 'number') ? s.version : 0;
     // ensure all keys exist (forward-compatible)
     var base = newState();
     for (var k in base) if (!(k in s)) s[k] = base[k];
@@ -1428,14 +1431,14 @@
     // Convert old prestige progress into the forward-only ladder; never rob the player.
     if (typeof s.compute !== 'number') s.compute = 0;
     if (typeof s.researchers !== 'number') s.researchers = 0;
-    if (typeof s.modelGen !== 'number') {
+    // pre-rewrite saves (fromVer < 4) carry no modelGen/marketShare — derive from old
+    // prestige progress so a returning player keeps an equal-or-better standing.
+    if (fromVer < 4) {
       // each old "prestige" (model release) ≈ one generation already shipped
-      s.modelGen = Math.max(0, Math.min(C.MODELGEN.length, s.prestiges || 0));
-    }
-    if (typeof s.marketShare !== 'number') {
+      s.modelGen = Math.max(s.modelGen || 0, Math.min(C.MODELGEN.length, s.prestiges || 0));
       // seed a sensible standing from how far they'd progressed
       var seedShare = 0; for (var mg = 0; mg < s.modelGen; mg++) seedShare += (C.MODELGEN[mg] ? C.MODELGEN[mg].share : 0);
-      s.marketShare = Math.min(60, seedShare);
+      s.marketShare = Math.max(s.marketShare || 0, Math.min(60, seedShare));
     }
     if (!s.training || typeof s.training !== 'object') s.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     if (!s.funding || typeof s.funding !== 'object') s.funding = {};
