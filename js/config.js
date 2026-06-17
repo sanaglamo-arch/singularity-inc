@@ -2021,6 +2021,33 @@
     RED_INTEREST_MULT: 1.10
   };
 
+  // ---- DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant) -----
+  // Electricity is PULLED OUT of the continuous burn (above) and turned into a periodic,
+  // accruing BILL: state.powerOwed += elecRatePerSec × dt, settled every ELEC_PERIOD_DAYS.
+  // Taxes accrue as a % of revenue over TAX_PERIOD_DAYS and settle monthly. While ONLINE the
+  // player pays in the Bills view (NO fee); OFFLINE the ACCOUNTANT auto-pays from cash and
+  // charges a SERVICE FEE per settled bill (bites early, trivial late). The same continuous
+  // electricity FORMULA is preserved (ELEC_PER_CPS in BURN) so the long-run economy is
+  // unchanged — it's just retimed from a constant drip into discrete shocks.
+  var BILLS = {
+    ELEC_PERIOD_DAYS: 7,      // electricity settles every 7 in-game days (= 35 real min @ DAY_SEC 300)
+    TAX_PERIOD_DAYS: 30,      // taxes settle every 30 in-game days (= 2.5 real hours)
+    TAX_RATE: 0.12,           // 12% of revenue accrued over the period (before first profit = $0)
+    // accountant auto-hires once playtime crosses this (≈2 real minutes of play).
+    ACCOUNTANT_PLAYTIME_SEC: 120,
+    // SERVICE FEE per OFFLINE-settled bill: fee = FEE_BASE + FEE_LOG × log10(bill).
+    // Tuned so a ~$70 first bill costs ~$25 (~35% — bites), a $5M bill costs ~$0 (~0%).
+    // (log10(70)≈1.85 → 25 + 8×1.85≈40 capped to ≤40% of the bill ⇒ ~$25-28; log10(5e6)≈6.7 →
+    //  25 + 8×6.7≈79 but capped at FEE_MAX_FRAC of the bill ⇒ trivial.)
+    FEE_BASE: 12,
+    FEE_LOG: 7,
+    FEE_MAX_FRAC: 0.40,       // a single fee never exceeds 40% of its bill (early-game floor of pain)
+    FEE_MIN: 0,
+    // unpaid bills (cash can't cover) roll into DEBT and trigger a PARTIAL generator throttle —
+    // the death-spiral FLOOR from the audit (−30% output, NOT a full shutoff). Cleared on payment.
+    SHUTOFF_OUTPUT_MULT: 0.70 // generators produce 70% while a bill is unpaid (−30%)
+  };
+
   // ---- FAILURE STATES (Phase 3, DESIGN-depth-redesign §2) --------------
   // The game is LOSABLE — but FAIRLY: every brink is telegraphed, every crisis ships a
   // recovery lever, and the worst outcomes are ULTIMATUMS (a countdown you can fight) rather
@@ -2078,7 +2105,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 16,         // Phase 7: variance layers (worldSeed/scenario/climate; safe migrate)
+    SAVE_VERSION: 17,         // v17: discrete electricity bills + taxes + accountant (safe migrate)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -2098,6 +2125,7 @@
     TALENT: TALENT,
     FUNDING: FUNDING,
     BURN: BURN,
+    BILLS: BILLS,
     CRISIS: CRISIS,
     UNLOCKS: UNLOCKS,
     RISK: RISK,
