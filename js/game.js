@@ -980,6 +980,113 @@
     for (var i = 0; i < state.buffs.length; i++) if (state.buffs[i].endsAt > now) m *= (state.buffs[i].mult || 1);
     return m;
   }
+
+  // ===== DECISION ENGINE — Phase 2 =====================================
+  // Sub-part A: the trigger-DSL evaluator. Events are DATA; their `trigger`/option
+  // `trigger` is a tiny declarative condition tree read by evalCond(). It maps the
+  // schema's logical metric names (meter.* / resource.*) to the REAL state fields.
+
+  // resolve a metric/resource path to a live numeric value, or undefined if unknown.
+  function decisionMetric(path) {
+    switch (path) {
+      // meters (derived scoreboards)
+      case 'meter.marketShare': return state.marketShare || 0;
+      case 'meter.valuation':   return valuation();
+      case 'meter.trust':       return state.trust || 0;
+      case 'meter.align':       return state.align || 0;
+      case 'meter.risk':        return highestVector().val;       // aggregate risk = worst vector
+      case 'meter.act':         return currentAct();
+      // raw risk vectors (so events can gate on a specific pressure)
+      case 'meter.vec.cap':     return state.vec ? (state.vec.cap || 0) : 0;
+      case 'meter.vec.data':    return state.vec ? (state.vec.data || 0) : 0;
+      case 'meter.vec.reg':     return state.vec ? (state.vec.reg || 0) : 0;
+      case 'meter.vec.sec':     return state.vec ? (state.vec.sec || 0) : 0;
+      // resources (stocks)
+      case 'resource.cash':        return state.cash || 0;
+      case 'resource.compute':     return state.compute || 0;
+      case 'resource.researchers': return state.researchers || 0;
+      case 'resource.modelGen':    return state.modelGen || 0;
+      default: return undefined;
+    }
+  }
+  // numeric comparison given an operator-string like ">=40" / "==2" / "!=0".
+  function cmpOp(actual, expr) {
+    if (typeof actual !== 'number' || !isFinite(actual)) return false;
+    var m = /^\s*(>=|<=|==|!=|>|<)?\s*(-?\d+(?:\.\d+)?)\s*$/.exec(String(expr));
+    if (!m) return false;
+    var op = m[1] || '==', rhs = parseFloat(m[2]);
+    switch (op) {
+      case '>=': return actual >= rhs;
+      case '<=': return actual <= rhs;
+      case '>':  return actual > rhs;
+      case '<':  return actual < rhs;
+      case '==': return actual === rhs;
+      case '!=': return actual !== rhs;
+      default:   return false;
+    }
+  }
+  // evalCond(cond, st) — recursively evaluate a trigger tree. `st` defaults to live state.
+  // Leaves: {"meter.risk":">=40"}, {"resource.compute":">=500"}, {"flag":"x"},
+  //         {"var.y":">=2"}, {"act_in":[1,2]}. Combinators: AND / OR / NOT.
+  // An empty/undefined condition is treated as always-true (no gate).
+  function evalCond(cond, st) {
+    st = st || state;
+    if (cond === undefined || cond === null) return true;
+    if (typeof cond !== 'object') return !!cond;
+    var keys = Object.keys(cond);
+    if (!keys.length) return true;
+    // combinators take precedence and are evaluated as a unit
+    if ('AND' in cond) { var a = cond.AND || []; for (var i = 0; i < a.length; i++) if (!evalCond(a[i], st)) return false; return true; }
+    if ('OR' in cond)  { var o = cond.OR || [];  for (var j = 0; j < o.length; j++) if (evalCond(o[j], st)) return true; return o.length === 0; }
+    if ('NOT' in cond) { return !evalCond(cond.NOT, st); }
+    // a leaf object may carry several conditions — ALL must hold (implicit AND)
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k], val = cond[key];
+      if (key === 'flag') { if (!(st.flags && st.flags[val])) return false; continue; }
+      if (key === 'act_in') { var arr = Array.isArray(val) ? val : [val]; if (arr.indexOf(currentAct()) < 0) return false; continue; }
+      if (key.indexOf('var.') === 0) { var vv = (st.vars && st.vars[key.slice(4)]) || 0; if (!cmpOp(vv, val)) return false; continue; }
+      if (key.indexOf('meter.') === 0 || key.indexOf('resource.') === 0) {
+        var mv = decisionMetric(key);
+        if (mv === undefined || !cmpOp(mv, val)) return false;
+        continue;
+      }
+      return false; // unknown leaf key → fail closed (never silently pass a bad gate)
+    }
+    return true;
+  }
+
+  // Lightweight self-test (Sub-part A). Runs once on load in non-production; the
+  // results are surfaced via window.GAME._evalCondTest() so the build can verify
+  // the DSL without a test runner. Pure (no side effects on real state).
+  function _evalCondTest() {
+    var st = { flags: { sued: true }, vars: { legal_debt: 2 }, cash: 600, compute: 500, marketShare: 40, trust: 80, align: 1, vec: { cap: 70, data: 0, reg: 10, sec: 0 } };
+    // patch decisionMetric/currentAct to read `st` via a temporary swap of `state`
+    var saved = state; state = st;
+    var pass = 0, fail = 0, log = [];
+    function ok(name, got, want) { if (got === want) pass++; else { fail++; log.push(name + ' got=' + got + ' want=' + want); } }
+    try {
+      ok('meter.compute>=500', evalCond({ 'resource.compute': '>=500' }), true);
+      ok('meter.compute>500', evalCond({ 'resource.compute': '>500' }), false);
+      ok('meter.risk>=40 (worst vec=70)', evalCond({ 'meter.risk': '>=40' }), true);
+      ok('flag present', evalCond({ flag: 'sued' }), true);
+      ok('flag absent', evalCond({ flag: 'nope' }), false);
+      ok('var>=2', evalCond({ 'var.legal_debt': '>=2' }), true);
+      ok('var==3', evalCond({ 'var.legal_debt': '==3' }), false);
+      ok('var!=0', evalCond({ 'var.legal_debt': '!=0' }), true);
+      ok('AND true', evalCond({ AND: [{ 'resource.cash': '>=500' }, { 'meter.trust': '>=50' }] }), true);
+      ok('AND false', evalCond({ AND: [{ 'resource.cash': '>=500' }, { 'meter.trust': '>=99' }] }), false);
+      ok('OR true', evalCond({ OR: [{ 'meter.trust': '>=99' }, { flag: 'sued' }] }), true);
+      ok('OR false', evalCond({ OR: [{ 'meter.trust': '>=99' }, { flag: 'nope' }] }), false);
+      ok('NOT flag', evalCond({ NOT: { flag: 'sued' } }), false);
+      ok('NOT(AND)', evalCond({ NOT: { AND: [{ flag: 'sued' }, { 'meter.trust': '>=99' }] } }), true);
+      ok('empty cond = true', evalCond({}), true);
+      ok('undefined cond = true', evalCond(undefined), true);
+      ok('multi-leaf implicit AND', evalCond({ 'resource.cash': '>=500', 'meter.trust': '>=50' }), true);
+      ok('unknown key fails', evalCond({ 'meter.bogus': '>=1' }), false);
+    } finally { state = saved; }
+    return { pass: pass, fail: fail, log: log };
+  }
+
   function cardTemplate(card) {
     var arr = card.kind === 'crisis' ? C.CARDS.crises : C.CARDS.news;
     for (var i = 0; i < arr.length; i++) if (arr[i].id === card.id) return arr[i];
@@ -1742,6 +1849,8 @@
     determineEnding: determineEnding, isGameOver: isGameOver, startLegacy: startLegacy, legacyNextBonus: legacyNextBonus,
     raceOpenSource: raceOpenSource, raceOpenReady: raceOpenReady,
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
+    // decision engine (Phase 2)
+    evalCond: evalCond, _evalCondTest: _evalCondTest,
     newState: newState
   };
 })();
