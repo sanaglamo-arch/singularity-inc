@@ -153,6 +153,16 @@
         redSince: 0          // in-game playtime (sec) when cash first went NEGATIVE this stretch (0 = not in the red)
       },
       debt: { owed: 0, perMonth: 0, monthsLeft: 0 }, // venture-debt drag added to monthly burn
+      // ===== v17 — DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant) =====
+      // Electricity is no longer a continuous drip; it ACCRUES here and settles periodically.
+      powerOwed: 0,          // ⚡ accrued electricity $ since the last settled electricity bill
+      lastElecDay: 0,        // in-game day index the last electricity bill settled (period anchor)
+      taxOwed: 0,            // 🧾 accrued tax $ since the last settled tax bill (% of revenue)
+      lastTaxDay: 0,         // in-game day index the last tax bill settled (period anchor)
+      accountant: false,     // has the accountant auto-hired yet (~2 real min of play)
+      accountantSeen: false, // has the accountant intro toast been shown (no re-toast on reload)
+      firstElecBillSeen: false, // has the first-electricity-bill TEACH popup been shown
+      powerShutoff: false,   // PARTIAL throttle: a bill couldn't be paid → generators at −30% until cleared
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -527,10 +537,13 @@
     if (cl === 'high') classM *= artifactMult('genHighMult');
     return g.baseOut * count * milestoneMult(count) * perGenUpgradeMult(id) * managerMult(id) * classM;
   }
+  // v17: PARTIAL generator throttle (death-spiral FLOOR) — when a bill couldn't be paid,
+  // generators run at SHUTOFF_OUTPUT_MULT (−30%), never a full shutoff. Cleared on payment.
+  function billShutoffMult() { return state.powerShutoff ? (C.BILLS ? C.BILLS.SHUTOFF_OUTPUT_MULT : 0.7) : 1; }
   function cps() {
     var sum = 0;
     for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
-    return sum * globalMult();
+    return sum * globalMult() * billShutoffMult();
   }
   // product of TRANSIENT output multipliers currently active (boost/event/frenzy/
   // breakthrough/incident). baseCps strips these so "X seconds of production"
@@ -577,7 +590,7 @@
   function computeRate() {
     var sum = 0;
     for (var i = 0; i < GEN.length; i++) sum += genOutput(GEN[i].id);
-    return sum * C.CORE.COMPUTE_PER_OUT * genericMult() * datacenterMult() * researchEfficiencyMult();
+    return sum * C.CORE.COMPUTE_PER_OUT * genericMult() * datacenterMult() * researchEfficiencyMult() * billShutoffMult();
   }
   // combined speed multiplier for ALL timed processes (researchers + research perks + boost)
   function processSpeed() {
@@ -685,13 +698,17 @@
   function computeCapacity() { return cps(); }
   // ---- monthly burn breakdown (for the HUD + Stats) ----
   // returns { compute, electricity, salaries, upkeep, overhead, total } — all $/MONTH.
+  // v17: ELECTRICITY IS NO LONGER IN `total`. It's pulled out into a discrete accruing BILL
+  // (electricityMonthly() / accrual in tick), so the CONTINUOUS net/sec = salaries + compute +
+  // upkeep + overhead + debt only. The `electricity` field is still returned (as the monthly
+  // RATE) for the Bills view + the finance breakdown tip, but it does NOT drain cash per-second.
   function burnBreakdown() {
     var B = C.BURN;
     var cap = computeCapacity();
     var cpm = diffComputePriceMult();
     var dm = diffBurnMult();
     var compute     = cap * B.COMPUTE_PER_CPS * cpm;        // ~55% — the monster
-    var electricity = cap * B.ELEC_PER_CPS * cpm;           // ~12% — visible but minor
+    var electricity = cap * B.ELEC_PER_CPS * cpm;           // discrete BILL now (NOT in total)
     var salaryPerHead = B.SALARY_PER_RESEARCHER * (1 + (state.modelGen || 0) * B.SALARY_GEN_STEP); // seniority
     var salaries    = (state.researchers || 0) * salaryPerHead;           // ~30%
     var upkeep      = (state.datacenters || 0) * B.DC_UPKEEP;
@@ -705,9 +722,14 @@
     var debt = (state.debt && state.debt.monthsLeft > 0) ? (state.debt.perMonth || 0) : 0;
     compute = finiteNum(compute); electricity = finiteNum(electricity); salaries = finiteNum(salaries);
     upkeep = finiteNum(upkeep); overhead = finiteNum(overhead); debt = finiteNum(debt);
-    var total = compute + electricity + salaries + upkeep + overhead + debt;
+    // ELECTRICITY EXCLUDED from total (discrete bill) — continuous burn is everything else.
+    var total = compute + salaries + upkeep + overhead + debt;
     return { compute: compute, electricity: electricity, salaries: salaries, upkeep: upkeep, overhead: overhead, debt: debt, total: total };
   }
+  // electricity $/MONTH (the rate that accrues into the discrete bill). Same formula the burn
+  // breakdown reports, isolated so the accrual + Bills view read one source of truth.
+  function electricityMonthly() { return finiteNum(burnBreakdown().electricity); }
+  function electricityPerSec() { return electricityMonthly() / C.BURN.MONTH_SEC; }
   // total MONTHLY burn (the opposing drain to revenue). Excludes debt interest — that's applied
   // in burnPerSec()/netMonthlyBurn() so the breakdown stays the "base" operating costs.
   function monthlyBurn() { return finiteNum(burnBreakdown().total); }
@@ -739,6 +761,105 @@
     return cash / nb;
   }
   function isProfitable() { return netMonthlyBurn() <= 0; }
+
+  // ===================================================================
+  // DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant) -------
+  // Electricity accrues into state.powerOwed; taxes (% of revenue) into state.taxOwed. They
+  // SETTLE on period boundaries: ONLINE the player pays in the Bills view (no fee) or the bill
+  // auto-settles on its boundary (no fee — they could've paid early); OFFLINE/on-return the
+  // ACCOUNTANT auto-pays from cash and charges a per-bill SERVICE FEE. Unpayable bills roll into
+  // DEBT + trigger a PARTIAL generator throttle (−30%, the audit's death-spiral floor).
+  // ===================================================================
+  function dayIndex() { return Math.floor(finiteNum(state.playtime) / (C.DAY_SEC || 60)); }
+  // in-game days until the next electricity / tax settlement (for the Bills view countdown).
+  function elecDaysLeft() { var p = C.BILLS.ELEC_PERIOD_DAYS; return Math.max(0, p - (dayIndex() - (state.lastElecDay || 0))); }
+  function taxDaysLeft()  { var p = C.BILLS.TAX_PERIOD_DAYS;  return Math.max(0, p - (dayIndex() - (state.lastTaxDay  || 0))); }
+  // PROJECTED bills (current owed + what will accrue before the boundary, at the current rate) —
+  // shown as the "~$X settles in N days" forecast.
+  function elecForecast() { return finiteNum((state.powerOwed || 0) + electricityPerSec() * elecDaysLeft() * (C.DAY_SEC || 60)); }
+  function taxForecast()  { return finiteNum((state.taxOwed  || 0) + Math.max(0, revenuePerSec()) * C.BILLS.TAX_RATE * taxDaysLeft() * (C.DAY_SEC || 60)); }
+  // accountant SERVICE FEE for one OFFLINE-settled bill: bites early, trivial late.
+  function accountantFee(billAmount) {
+    var B = C.BILLS, a = finiteNum(billAmount);
+    if (a <= 0) return 0;
+    var fee = B.FEE_BASE + B.FEE_LOG * Math.log(a) / Math.LN10;   // FEE_BASE + FEE_LOG×log10(bill)
+    fee = Math.max(B.FEE_MIN || 0, Math.min(fee, a * B.FEE_MAX_FRAC));  // capped at a % of the bill
+    return finiteNum(fee);
+  }
+  // pay ONE bill from cash. Returns how much was actually paid; the unpaid remainder is the
+  // caller's to roll into debt + throttle. Never throws cash to NaN.
+  function payFromCash(amount) {
+    var a = finiteNum(amount); if (a <= 0) return 0;
+    var have = finiteNum(state.cash);
+    var pay = Math.min(a, Math.max(0, have));
+    state.cash = finiteNum(have - pay);
+    return pay;
+  }
+  // ACCOUNTANT auto-hire: once playtime crosses the threshold. emits a teach toast (once).
+  function maybeHireAccountant() {
+    if (state.accountant) return;
+    if (finiteNum(state.playtime) < (C.BILLS.ACCOUNTANT_PLAYTIME_SEC || 120)) return;
+    state.accountant = true;
+    if (!state.accountantSeen) { state.accountantSeen = true; emit('accountant'); }
+  }
+  // accrue the bills each tick (online sim). dt seconds elapsed.
+  function accrueBills(dt) {
+    if (dt <= 0) return;
+    state.powerOwed = finiteNum((state.powerOwed || 0) + electricityPerSec() * dt);
+    // taxes accrue as a % of POSITIVE revenue (before first profit/revenue = $0).
+    var rev = Math.max(0, revenuePerSec()) * dt;
+    state.taxOwed = finiteNum((state.taxOwed || 0) + rev * C.BILLS.TAX_RATE);
+  }
+  // settle ONE category online (player pressed "pay now" OR a boundary auto-settled). NO fee.
+  // Rolls any shortfall into debt + sets the partial throttle; full payment clears the throttle.
+  function settleOnline(kind) {
+    var owed = kind === 'tax' ? finiteNum(state.taxOwed || 0) : finiteNum(state.powerOwed || 0);
+    if (owed <= 0) return { paid: 0, owed: 0, short: 0 };
+    var paid = payFromCash(owed);
+    var short = finiteNum(owed - paid);
+    if (kind === 'tax') state.taxOwed = 0; else state.powerOwed = 0;
+    if (kind === 'tax') state.lastTaxDay = dayIndex(); else state.lastElecDay = dayIndex();
+    if (short > 0) rollUnpaidIntoDebt(short);
+    else clearShutoffIfClear();
+    emit('change');
+    return { paid: paid, owed: owed, short: short };
+  }
+  // player-facing pay buttons (Bills view). Online only ⇒ no fee.
+  function payElectricity() { return settleOnline('elec'); }
+  function payTaxes() { return settleOnline('tax'); }
+  // a shortfall rolls into the debt principal + trips the partial throttle (death-spiral floor).
+  function rollUnpaidIntoDebt(short) {
+    if (short <= 0) return;
+    if (!state.debt || typeof state.debt !== 'object') state.debt = { owed: 0, perMonth: 0, monthsLeft: 0 };
+    state.debt.owed = finiteNum((state.debt.owed || 0) + short);
+    state.powerShutoff = true;   // −30% output until bills are clear (telegraphed in Bills view + toast)
+  }
+  // clear the partial throttle once nothing is owed and cash is not deeply red from a rolled bill.
+  function clearShutoffIfClear() {
+    if (state.powerShutoff && (state.powerOwed || 0) <= 1e-6 && (state.taxOwed || 0) <= 1e-6 && (state.cash || 0) >= 0) {
+      state.powerShutoff = false;
+    }
+  }
+  // ONLINE period-boundary auto-settle (no fee — the player could've paid early). Called from tick.
+  // Returns the list of settlements that fired (so the UI can teach the FIRST electricity bill).
+  function settlePeriodicOnline() {
+    var fired = [];
+    if (elecDaysLeft() <= 0 && (state.powerOwed || 0) > 0) {
+      // FIRST electricity bill TEACHES via a popup BEFORE auto-settling (what/where/consequences).
+      if (!state.firstElecBillSeen) {
+        state.firstElecBillSeen = true;
+        emit('billTeach', { kind: 'elec', amount: finiteNum(state.powerOwed) });
+        // don't auto-settle on the teach beat — the popup hands off to the Bills view / pay-now.
+      } else {
+        var re = settleOnline('elec'); fired.push({ kind: 'elec', paid: re.paid, short: re.short });
+      }
+    } else if (elecDaysLeft() <= 0) { state.lastElecDay = dayIndex(); }   // nothing owed → just re-anchor
+    if (taxDaysLeft() <= 0) {
+      if ((state.taxOwed || 0) > 0) { var rt = settleOnline('tax'); fired.push({ kind: 'tax', paid: rt.paid, short: rt.short }); }
+      else state.lastTaxDay = dayIndex();
+    }
+    return fired;
+  }
 
   // ---- researchers / talent ----
   function researcherSpeed() { return 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER); }
@@ -2974,6 +3095,12 @@
     addCash(revenuePerSec() * dt);
     var drained = state.cash - burnPerSec() * dt;
     state.cash = isFinite(drained) ? drained : state.cash;
+    // v17 DISCRETE BILLS: electricity + taxes accrue (NOT in the continuous burn above), the
+    // accountant auto-hires at ~2 real min, and bills auto-settle on their period boundary
+    // (online ⇒ no fee). The first electricity bill teaches via a popup instead of settling.
+    accrueBills(dt);
+    maybeHireAccountant();
+    settlePeriodicOnline();
     updateRedDebt();   // DESIGN §B: in-the-red timer / ceiling / interest / recovery, drives bankruptcy
     if (trainingActive()) {
       if (Date.now() >= state.training.endsAt) finishTraining();
@@ -3192,6 +3319,17 @@
     var offBurn = burnPerSec() * eff * C.OFFLINE.RATE * offMult;
     var earned = Math.max(0, grossEarned - offBurn);
     var computeGained = computeRate() * eff * C.OFFLINE.RATE * offMult;
+    // v17 DISCRETE BILLS while away: the accountant settles electricity + taxes. The bill amount =
+    // whatever was already accrued (powerOwed/taxOwed) PLUS what accrues across the offline window
+    // (at the offline rate, matching the earnings window so the report nets sensibly). A SERVICE
+    // FEE is charged per settled bill (bites early, trivial late). NOTE: only computed here —
+    // actual cash settlement + debt/throttle mutation happens in applyOffline (so a player who
+    // declines to collect isn't charged, and catch-up settles exactly once).
+    var elecBill = finiteNum((state.powerOwed || 0) + electricityPerSec() * eff * C.OFFLINE.RATE * offMult);
+    var taxBill  = finiteNum((state.taxOwed  || 0) + Math.max(0, revenuePerSec()) * C.BILLS.TAX_RATE * eff * C.OFFLINE.RATE * offMult);
+    var hasAccountant = !!state.accountant;
+    var elecFee = (hasAccountant && elecBill > 0) ? accountantFee(elecBill) : 0;
+    var taxFee  = (hasAccountant && taxBill  > 0) ? accountantFee(taxBill)  : 0;
     // GDD v3 "while you were away": which parallel timers finished during the gap
     var now = Date.now();
     var trainedGen = (trainingActive() && state.training.endsAt <= now) ? C.MODELGEN[state.training.gen] : null;
@@ -3200,10 +3338,37 @@
       cappedSec: Math.min(elapsedSec, cap), elapsed: elapsedSec, cap: cap,
       trainedGenId: trainedGen ? trainedGen.id : null,
       builtDC: (buildActive() && state.build.endsAt <= now),
-      didResearch: (researchActive() && state.research2.endsAt <= now)
+      didResearch: (researchActive() && state.research2.endsAt <= now),
+      // bills (settled in applyOffline); fee only when an accountant is on staff.
+      elecBill: elecBill, taxBill: taxBill, elecFee: elecFee, taxFee: taxFee,
+      accountant: hasAccountant
     };
   }
-  function applyOffline(earned, computeGained) { addCash(earned); if (computeGained) state.compute += computeGained; emit('change'); }
+  // settle the offline bills computed by computeOffline: the accountant pays electricity + taxes
+  // (+ its service fee) from cash; any shortfall rolls into debt + trips the −30% throttle (the
+  // death-spiral floor). Returns what actually happened so the away report can show real numbers.
+  function settleOfflineBills(off) {
+    var res = { elecPaid: 0, taxPaid: 0, fee: 0, elecShort: 0, taxShort: 0, shutoff: false };
+    if (!off) return res;
+    var elec = finiteNum(off.elecBill || 0), tax = finiteNum(off.taxBill || 0);
+    // zero the live accruals — they're being settled now (whether fully paid or rolled to debt).
+    state.powerOwed = 0; state.taxOwed = 0;
+    state.lastElecDay = dayIndex(); state.lastTaxDay = dayIndex();
+    if (elec > 0) { var ep = payFromCash(elec); res.elecPaid = ep; res.elecShort = finiteNum(elec - ep); }
+    if (tax  > 0) { var tp = payFromCash(tax);  res.taxPaid  = tp; res.taxShort  = finiteNum(tax - tp); }
+    // service fee (charged only with an accountant; what it could cover, after the bills).
+    var fee = finiteNum((off.elecFee || 0) + (off.taxFee || 0));
+    if (fee > 0) res.fee = payFromCash(fee);
+    var short = res.elecShort + res.taxShort;
+    if (short > 0) { rollUnpaidIntoDebt(short); res.shutoff = true; }
+    else clearShutoffIfClear();
+    return res;
+  }
+  function applyOffline(earned, computeGained, off) {
+    addCash(earned); if (computeGained) state.compute += computeGained;
+    if (off) off.billResult = settleOfflineBills(off);   // accountant settles bills on collect
+    emit('change');
+  }
 
   // ---- save / load -----------------------------------------------------
   function save() {
@@ -3399,6 +3564,25 @@
       s.debt.owed = clean(s.debt.owed, 0, 0);
       s.debt.perMonth = clean(s.debt.perMonth, 0, 0);
       s.debt.monthsLeft = clean(s.debt.monthsLeft, 0, 0);
+    }
+    // ---- v17: DISCRETE BILLS + TAXES + ACCOUNTANT. A pre-v17 save paid electricity as a
+    // continuous burn, so it carries no accrued power/tax. Default everything to a CLEAN,
+    // freshly-anchored state so a returning player isn't hit with a giant retroactive bill:
+    // owed = 0, period anchors rebased to the CURRENT day, no shutoff. If the player already
+    // had ≥2 real minutes of playtime, grandfather the accountant as hired (no surprise toast
+    // gap) and mark its intro + the first-bill teach as seen so veterans aren't tutorialized.
+    var dayIdx = Math.floor(clean(s.playtime, 0, 0) / (C.DAY_SEC || 60));
+    s.powerOwed = clean(s.powerOwed, 0, 0);
+    s.taxOwed = clean(s.taxOwed, 0, 0);
+    if (typeof s.lastElecDay !== 'number' || !isFinite(s.lastElecDay)) s.lastElecDay = dayIdx;
+    if (typeof s.lastTaxDay !== 'number' || !isFinite(s.lastTaxDay)) s.lastTaxDay = dayIdx;
+    var hadAccountant = ('accountant' in s);
+    s.accountant = !!s.accountant;
+    s.accountantSeen = !!s.accountantSeen;
+    s.firstElecBillSeen = !!s.firstElecBillSeen;
+    s.powerShutoff = !!s.powerShutoff;
+    if (!hadAccountant && clean(s.playtime, 0, 0) >= (C.BILLS ? C.BILLS.ACCOUNTANT_PLAYTIME_SEC : 120)) {
+      s.accountant = true; s.accountantSeen = true; s.firstElecBillSeen = true;
     }
     // a save that was persisted AFTER a finale keeps gameOver — that's correct (post-finale
     // banner). But a pre-v13 save can't have a Phase-3 ending mid-run, so nothing to undo here.
@@ -3656,6 +3840,10 @@
     burnBreakdown: burnBreakdown, monthlyBurn: monthlyBurn, monthlyRevenue: monthlyRevenue,
     revenuePerSec: revenuePerSec, burnPerSec: burnPerSec, netCashRate: netCashRate,
     netMonthlyBurn: netMonthlyBurn, runwayMonths: runwayMonths, isProfitable: isProfitable,
+    // v17 DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant): Bills view + pay buttons.
+    electricityMonthly: electricityMonthly, electricityPerSec: electricityPerSec,
+    elecForecast: elecForecast, taxForecast: taxForecast, elecDaysLeft: elecDaysLeft, taxDaysLeft: taxDaysLeft,
+    payElectricity: payElectricity, payTaxes: payTaxes, accountantFee: accountantFee,
     // in-the-red debt model (DESIGN-debt-bankruptcy §B): UI reads these for the banner + Day N.
     inRed: inRed, redDaysElapsed: redDaysElapsed, redGraceDays: redGraceDays, redBankruptDay: redBankruptDay,
     debtCeiling: debtCeiling, debtCeilingK: debtCeilingK, dayNow: dayNow, updateRedDebt: updateRedDebt,
