@@ -365,7 +365,41 @@ the arc length is set by the trainSec ladder ÷ processSpeed.
 - **No exploits** — market/trading removed (funding rounds instead); windfalls were
   retired with the prestige meta; rivals creep but you overtake by shipping.
 - **Funding** rounds gate by generation (Seed g1 → A g2 → B g4 → C g6 → IPO g8),
-  unlocking progressively; each pays cashFrac × valuation + a permanent revenue mult.
+  unlocking progressively; each pays a **head-start cash lump = a few minutes of your
+  CURRENT income** + a **permanent revenue mult** (the lasting value).
+
+### Funding & valuation rework (2026-06 — fixed a game-breaking payout)
+**Bug:** `valuation()` annualised per-second `moneyRate` (× `SECONDS_YEAR` ≈ 31.5M) ×
+`VAL_REV_MULT` 20, so valuation ran ~1e6–1e8× the player's real cash ($164T at $1.4M
+cash). `takeFunding()` paid `valuation × cashFrac` → every round dumped ~3.5 YEARS of
+income (Seed handed $771M to a player holding $2K). That was the "free money from nowhere".
+
+**Funding payout — now self-scaling, never a skip.** `fundingPayout = moneyRate × secs`,
+floored to `GEN[0].baseCost × 40` so a barely-bootstrapped gen-1 lab still gets a usable
+seed. `secs` per round: **Seed 180s · A 240s · B 300s · C 420s · IPO 600s** (~3→10 min of
+*current* income). Because it's minutes-of-income it can never trivialise the next stage
+(you'd earn it in those minutes anyway). The permanent `mult` (1.10/1.15/1.20/1.25/1.40)
+is unchanged — that's funding's real long-term value. Measured payouts:
+early Seed ≈ $1.1K @ $2K cash (3 min, a real head-start) · mid A ≈ $239K @ $1.42M cash
+(~4 min) — meaningful, not game-breaking.
+
+**Valuation — now believable, in-scale with cash.** `valuation = (cash + compute ×
+VAL_COMPUTE_ASSET(1) + lifetimeEarnings × VAL_GOODWILL_MULT(3)) × (1 + share% ×
+VAL_SHARE_PREMIUM(2)/100)`. Company-worth model: liquid cash + physical compute assets +
+goodwill from PROVEN lifetime earnings, boosted by market dominance. Cumulative-earnings
+basis is **monotonic** — right for a pride metric (a revenue basis would *drop* during big
+training runs when compute is consumed). Measured: mid $1.42M cash → **$40M valuation**
+(was $164T); val/cash ≈ 9× early → 28× mid → 66× late — grows impressively but plausibly.
+Funding no longer reads valuation at all, so valuation is now a pure display/pride metric
+with zero economic leverage.
+
+**Money-scenario audit (all sources sane, no printer):** every `addCash` is one of —
+core income `moneyRate×dt` (infra-bounded); tiny tap value; funding (above); or a windfall
+(daily / ad-burst / events / news cashGift) routed through `windfallCash = min(baseCps ×
+seconds, bestRunEarned × frac)` — income-scaled by construction AND capped at 4–8% of your
+best proven run. `moneyRate` itself is bounded (share ≤100, genMult by gen count, funding
+mults ≤1.4⁵). Arc re-simmed after the fix: **AGI @18d22h, 0% dead, all 5 rounds taken** —
+the old giant injections were never load-bearing.
 
 ### Levers
 - `MODELGEN[].trainSec` — the raw real-time ladder (1 min → 20 d). The primary month lever.
