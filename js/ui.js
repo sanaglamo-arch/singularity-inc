@@ -924,7 +924,7 @@
     // Phase 2 burn→runway readouts (only meaningful once a product exists)
     var runwayStr = s.modelGen >= 1
       ? (G.isProfitable() ? t('runway_profitable')
-         : t('runway_months', { n: G.runwayMonths() >= 100 ? '99+' : (G.runwayMonths() >= 10 ? Math.round(G.runwayMonths()) : G.runwayMonths().toFixed(1)) }))
+         : t('runway_days', { n: G.runwayDays() >= 9999 ? '999+' : Math.round(G.runwayDays()) }))
       : '—';
     var rows = [
       [t('stat_modelgen'), genLabel],
@@ -1261,8 +1261,10 @@
       var months = G.runwayMonths();
       if (profitable) { setText($('runwayVal'), t('runway_profitable')); state = 'profit'; }
       else {
-        var disp = months >= 100 ? '99+' : (months >= 10 ? Math.round(months) : months.toFixed(1));
-        setText($('runwayVal'), t('runway_months', { n: disp }));
+        // plain-language relabel: runway shown in DAYS (locked glossary)
+        var days = G.runwayDays();
+        var dispD = days >= 9999 ? '999+' : Math.round(days);
+        setText($('runwayVal'), t('runway_days', { n: dispD }));
         state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
       }
     }
@@ -1303,7 +1305,7 @@
     var runwayTxt;
     if (G.isProfitable()) runwayTxt = t('finance_runway_profit');
     else if (G.inRed()) runwayTxt = t('finance_runway_red');
-    else { var m = G.runwayMonths(); var disp = m >= 100 ? '99+' : (m >= 10 ? Math.round(m) : m.toFixed(1)); runwayTxt = t('finance_runway', { n: disp }); }
+    else { var dd = G.runwayDays(); var disp = dd >= 9999 ? '999+' : Math.round(dd); runwayTxt = t('finance_runway', { n: disp }); }
     var html =
       '<span class="fin-in">' + t('finance_income', { y: fmt(rev) }) + '</span>' + dc +
       '<span class="fin-out">' + t('finance_costs', { x: fmt(bd.total) }) +

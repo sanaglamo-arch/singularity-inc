@@ -769,6 +769,9 @@
     return cash / nb;
   }
   function isProfitable() { return netMonthlyBurn() <= 0; }
+  // Plain-language HUD (locked glossary): runway expressed in DAYS (a month = 30 in-game days).
+  // Months stay the internal economy unit; this is a display conversion only.
+  function runwayDays() { var m = runwayMonths(); return m === Infinity ? Infinity : m * 30; }
 
   // ===================================================================
   // DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant) -------
@@ -3924,7 +3927,7 @@
     // Phase 2 burn → runway economy
     burnBreakdown: burnBreakdown, monthlyBurn: monthlyBurn, monthlyRevenue: monthlyRevenue,
     revenuePerSec: revenuePerSec, burnPerSec: burnPerSec, netCashRate: netCashRate,
-    netMonthlyBurn: netMonthlyBurn, runwayMonths: runwayMonths, isProfitable: isProfitable,
+    netMonthlyBurn: netMonthlyBurn, runwayMonths: runwayMonths, runwayDays: runwayDays, isProfitable: isProfitable,
     // v17 DISCRETE BILLS + TAXES + ACCOUNTANT (DESIGN-time-accountant): Bills view + pay buttons.
     electricityMonthly: electricityMonthly, electricityPerSec: electricityPerSec,
     elecForecast: elecForecast, taxForecast: taxForecast, elecDaysLeft: elecDaysLeft, taxDaysLeft: taxDaysLeft,
