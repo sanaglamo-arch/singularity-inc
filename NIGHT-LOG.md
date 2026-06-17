@@ -4,6 +4,61 @@
 
 ---
 
+## 2026-06-17 — NIGHT BUILD: decision-cadence verify · finish plain-language · audit §E polish
+
+Commits: `5cdd605` (RU jargon) · `<audio>` · `<save>` · `<ui>` (volume/export/colorblind).
+
+### 1. Decision cadence — VERDICT: already REAL-TIME, no retune needed
+- The pacer (`updateDecisions`/`decisionInterval` in game.js) is driven by `Date.now()` epoch-ms
+  via `state.nextDecisionAt`; `INTERVAL_MIN/MAX = 120/240s` are REAL seconds. The only `playtime`
+  coupling is `FIRST_DELAY` (25s active). **DAY_SEC=300 does NOT affect cadence** — game-days are
+  not in the loop. `NO_REPEAT_SEC`/`CATEGORY_COOLDOWN` are small fixed real-seconds (anti-cluster).
+- **Simulated active play (real engine, 30 virtual minutes, 1s ticks):** 15 decisions fired →
+  **1 per ~2.0 min** (mix: ~3 interrupt modals, ~6 bankable inbox, ~5 ambient auto-resolve, ~1
+  ticker). Matches the design target "~1 meaningful decision per few minutes". Not 0, not a flood.
+  No change made — verification only.
+
+### 2. Plain-language relabel finished — 0 RU jargon leaks
+- Scan method: flag RU strings still saying "компьют/Компьют" **only where the parity EN string
+  uses the relabeled term "Power"** (so we don't touch the deliberately-unchanged EN flavor that
+  still says lowercase "compute"). Exactly **2 leaks** found & fixed:
+  - `finance_tip` (HUD burn breakdown): "Компьют −$…/мес" → **"Мощность −$…/мес"**.
+  - `train_need`: "Нужно {v} компьюта…" → **"Нужно {v} Мощности…"**.
+- Re-scan after: **0 leaks** vs every relabeled-EN label. EN left as-is; cool buyable names untouched.
+
+### 3. Polish (audit §E)
+- **Volume sliders** (SFX + Music) in Settings: 0-100% range inputs scaling the audio/music master
+  gain live. `GAME_AUDIO.setVolume`/`GAME_MUSIC.setVolume` added (clamped, NaN-safe; music ramps
+  smoothly while playing). State `sfxVol`/`musicVol` (default 0.7), persisted + migration-backfilled,
+  disabled when the channel is off.
+- **Save export/import**: `exportSave()` → `SINGv1:`+base64(JSON), shown in a copyable box + Copy
+  button; `importSave()` decodes (base64 or raw JSON, prefix optional), migrates, replaces state,
+  re-renders the whole UI. Malformed input rejected without touching the live save.
+- **Colorblind-safe meters**: runway HUD + the 4 relationship meters now prefix a **STATE GLYPH**
+  (✓ ok / ▲ caution / ⚠ critical) so the green/amber/red channel no longer relies on hue alone
+  (deutan/protan/tritan safe). Red runway also keeps its motion cue (pulse).
+
+### Quality gates
+- `node --check` clean on all 12 page scripts per commit.
+- Headless smoke (real engine, eval-shim): volume setters clamp/NaN-safe; export→mutate→import
+  round-trip restores cash/compute/volume; garbage/empty import rejected; raw-JSON import tolerated.
+- Glyph coverage: every `meterBand()` output (0..100) + every runway state maps to a distinct glyph.
+- **i18n EN/RU parity: 1071 keys each, 0 orphans.** Cache-buster bumped v=13 → v=14 (JS+CSS changed).
+- :8080 serves the updated v=14 bundle (verified via curl).
+
+### Honest notes
+- "0 console errors headless" is proxied by `node --check` + the eval-shim engine harness (no
+  puppeteer/jsdom in this env). A full DOM-stub init runs deep into the render pipeline; the only
+  stop is stub-DOM gaps (style.setProperty / cosmetic-swatch dataset), not game code.
+- Music `setVolume` is a no-op in the headless harness (no WebAudio `AudioContext`); the real-browser
+  branch scales the master ramp. Verified by code path, not audible playback.
+- Many lower-tier RU flavor strings still say "компьют" (upgrades, onboarding, breakthroughs) — but
+  their EN counterparts ALSO still say lowercase "compute", so changing them would BREAK parity with
+  the intentionally-unchanged EN. Left as-is per "keep EN as-is" + the "2 leaks" scope.
+- dist zip rebuild deferred (per standing instruction) — live tree on :8080 is current.
+
+---
+
 ## 2026-06-17 — NIGHT BUILD: 4 RELATIONSHIP METERS (owner ask + audit §C fix)
 
 **What:** Implemented the 4 relationship meters from DESIGN-bills-meters §4-5, with the
