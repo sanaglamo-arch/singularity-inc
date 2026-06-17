@@ -1150,6 +1150,12 @@
     go_title_win: 'AGI ACHIEVED', go_title_lose: 'GAME OVER',
     go_new_game: 'New Game', go_view_stats: 'View Stats',
     go_record: '★ New record on {diff}!',
+    // shareable ending card: a punchy stat line + a "screenshot & brag" nudge
+    go_punch: '{co} → {outcome} · Year {year} · {share}% market · {diff}',
+    go_brag: '📸 Screenshot and brag.',
+    go_outcome_win: 'AGI', go_outcome_lose: 'shut down',
+    // tiny verdict words appended after difficulty, by outcome (flavor)
+    go_verdict_win: 'Legend.', go_verdict_lose: 'Respectable run.',
     go_sum_share: 'Final share', go_sum_days: 'Days survived', go_sum_val: 'Company value', go_sum_gen: 'Model gen', go_sum_ending: 'Outcome',
     legacy_note: 'Optional: start a new company keeping a permanent bonus. Your current company stays otherwise.',
     legacy_title: "Founder's Legacy", legacy_confirm: 'Start a NEW company? You keep a permanent +{p}% bonus (and your endings & achievements), but your current run resets. This is optional — you can keep playing your current company instead.',
@@ -2317,6 +2323,11 @@
     go_title_win: 'AGI ДОСТИГНУТ', go_title_lose: 'ИГРА ОКОНЧЕНА',
     go_new_game: 'Начать заново', go_view_stats: 'Статистика',
     go_record: '★ Новый рекорд на «{diff}»!',
+    // шеримая карточка концовки: панчлайн-стата + призыв «скриншоть и хвастайся»
+    go_punch: '{co} → {outcome} · Год {year} · {share}% рынка · {diff}',
+    go_brag: '📸 Скриншоть и хвастайся.',
+    go_outcome_win: 'AGI', go_outcome_lose: 'закрылась',
+    go_verdict_win: 'Легенда.', go_verdict_lose: 'Достойный забег.',
     go_sum_share: 'Итоговая доля', go_sum_days: 'Дней прожито', go_sum_val: 'Стоимость', go_sum_gen: 'Поколение', go_sum_ending: 'Исход',
     legacy_note: 'Необязательно: начни новую компанию, сохранив перманентный бонус. Иначе текущая компания остаётся.',
     legacy_title: 'Наследие основателя', legacy_confirm: 'Начать НОВУЮ компанию? Сохранишь перманентный бонус +{p}% (и концовки с достижениями), но текущий прогон сбросится. Это по желанию — можно продолжить текущую компанию.',

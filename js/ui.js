@@ -1383,6 +1383,18 @@
     var rec = $('goRecord');
     if (s._lastRunRecord) { setClass(rec, 'hidden', false); setText(rec, t('go_record', { diff: t('diff_' + (s.difficulty || 'normal')) })); }
     else setClass(rec, 'hidden', true);
+    // SHAREABLE card: a one-line punchline stat + a "screenshot & brag" nudge.
+    var year = Math.max(1, Math.floor(days / 360) + 1);   // 360 in-game days ≈ 1 year
+    var diffName = t('diff_' + (s.difficulty || 'normal'));
+    var punch = t('go_punch', {
+      co: s.companyName || 'Singularity Inc.',
+      outcome: t(won ? 'go_outcome_win' : 'go_outcome_lose'),
+      year: year,
+      share: Math.round(s.marketShare || 0),
+      diff: diffName
+    }) + ' · ' + t(won ? 'go_verdict_win' : 'go_verdict_lose');
+    setText($('goPunch'), punch);
+    setText($('goBrag'), t('go_brag'));
     setText($('goNewGame'), t('go_new_game'));
     setText($('goStats'), t('go_view_stats'));
   }
