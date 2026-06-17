@@ -12,7 +12,7 @@
 <div id="app">
   <!-- Top bar -->
   <header id="topbar">
-    <div id="brand"><span id="brandIcon"></span><span id="brandName">Singularity Inc.</span></div>
+    <div id="brand"><span id="brandIcon"></span><span id="brandText"><span id="brandName">Singularity Inc.</span><span id="actTag" class="hidden"></span></span></div>
     <div id="trustHud" class="hidden"><span class="thi"></span><span id="trustVal">60</span></div>
     <div id="cashBox">
       <div id="cashVal">0</div>
@@ -73,6 +73,8 @@
             <div id="buildProg" class="hidden"><div class="bar"><div id="buildFill"></div></div><div id="buildTimer" class="muted small"></div></div>
           </div>
         </div>
+        <!-- Discoverable orb cosmetics: a small swatch row right on the Lab (item 6) -->
+        <div id="labOrbRow" class="hidden"><span id="labOrbLabel" class="cos-label"></span><div id="labOrbList" class="cos-list"></div></div>
         <!-- Guided first model-release CTA (appears only when the first prestige is worth it) -->
         <button id="prestigeCta" class="hidden"><span class="cta-title"></span><span class="cta-sub"></span></button>
         <div class="scroll" id="genList"></div>

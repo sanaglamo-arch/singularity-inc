@@ -650,7 +650,7 @@
     return '';
   }
   function buildCosmetics() {
-    [['cosOrbList', C.COSMETICS.orbs, ORB_PREVIEW, 'orb'], ['cosThemeList', C.COSMETICS.themes, THEME_PREVIEW, 'theme']].forEach(function (row) {
+    [['cosOrbList', C.COSMETICS.orbs, ORB_PREVIEW, 'orb'], ['cosThemeList', C.COSMETICS.themes, THEME_PREVIEW, 'theme'], ['labOrbList', C.COSMETICS.orbs, ORB_PREVIEW, 'orb']].forEach(function (row) {
       var list = $(row[0]); if (!list) return; list.innerHTML = '';
       row[1].forEach(function (it) {
         var sw = el('div', 'cos-swatch'); sw.dataset.cid = it.id; sw.dataset.kind = row[3];
@@ -665,20 +665,30 @@
       });
     });
   }
+  function updateSwatchList(listId, items, selId) {
+    var list = $(listId); if (!list) return;
+    for (var i = 0; i < list.children.length; i++) {
+      var sw = list.children[i], it = items[i];
+      var unlocked = G.cosmeticUnlocked(it);
+      sw.classList.toggle('locked', !unlocked);
+      sw.classList.toggle('sel', selId === it.id);
+      var li = sw.querySelector('.lockicon');
+      if (li) { li.classList.toggle('hidden', unlocked); if (!unlocked) li.innerHTML = ic('ic_lock'); }
+      sw.title = unlocked ? t(it.id) : (t(it.id) + ' — ' + lockReq(it.unlock || {}));
+    }
+  }
   function updateCosmetics() {
     var s = G.state;
-    [['cosOrbList', C.COSMETICS.orbs, s.orb], ['cosThemeList', C.COSMETICS.themes, s.theme]].forEach(function (row) {
-      var list = $(row[0]); if (!list) return;
-      for (var i = 0; i < list.children.length; i++) {
-        var sw = list.children[i], it = row[1][i];
-        var unlocked = G.cosmeticUnlocked(it);
-        sw.classList.toggle('locked', !unlocked);
-        sw.classList.toggle('sel', row[2] === it.id);
-        var li = sw.querySelector('.lockicon');
-        if (li) { li.classList.toggle('hidden', unlocked); if (!unlocked) li.innerHTML = ic('ic_lock'); }
-        sw.title = unlocked ? t(it.id) : (t(it.id) + ' — ' + lockReq(it.unlock || {}));
-      }
-    });
+    updateSwatchList('cosOrbList', C.COSMETICS.orbs, s.orb);
+    updateSwatchList('cosThemeList', C.COSMETICS.themes, s.theme);
+  }
+  // the Lab-tab orb swatch row: shown once the player owns >=1 cosmetic option worth
+  // surfacing (i.e. once there's something to discover). Reuses the orb swatch list (item 6).
+  function updateLabOrbs() {
+    var row = $('labOrbRow'); if (!row) return;
+    setClass(row, 'hidden', false);
+    setText($('labOrbLabel'), t('cosmetics_orb'));
+    updateSwatchList('labOrbList', C.COSMETICS.orbs, G.state.orb);
   }
   function applyCosmetics() {
     var s = G.state, de = document.documentElement;
@@ -1052,6 +1062,12 @@
   function actId(i) { return C.ACTS[Math.max(0, Math.min(C.ACTS.length - 1, i))].id; }
   function updateActBar() {
     var a = G.state.act, bar = $('actBar');
+    // always-visible current-act tag on the topbar so the narrative arc is legible (item 6)
+    var tag = $('actTag');
+    if (tag) {
+      if (a < 1) setClass(tag, 'hidden', true);
+      else { setClass(tag, 'hidden', false); setText(tag, t('act_topbar', { n: a + 1, name: t('act_' + actId(a) + '_short') })); }
+    }
     if (a < 1) { setClass(bar, 'hidden', true); return; }
     setClass(bar, 'hidden', false);
     setText($('actLabel'), t('act_' + actId(a) + '_t'));
@@ -1197,7 +1213,7 @@
     frameCompute = G.computeRate();
     frameMoney = G.moneyRate();
     updateTop();
-    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); }
+    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); }
     else if (currentTab === 'world') updateWorld();

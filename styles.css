@@ -119,10 +119,13 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
   border-bottom: 1px solid var(--glass-border);
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
 }
-#brand { display: flex; align-items: center; gap: 9px; }
-#brandIcon { width: 26px; height: 26px; color: var(--violet-2); display: inline-flex; filter: drop-shadow(0 0 8px var(--glow-violet)); }
+#brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+#brandText { display: flex; flex-direction: column; min-width: 0; line-height: 1.1; }
+#brandIcon { width: 26px; height: 26px; color: var(--violet-2); display: inline-flex; filter: drop-shadow(0 0 8px var(--glow-violet)); flex: 0 0 auto; }
 #brandIcon svg { width: 26px; height: 26px; }
-#brandName { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
+#brandName { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* always-visible current-act tag under the brand (item 6) */
+#actTag { font-family: var(--font-display); font-weight: 700; font-size: 8.5px; letter-spacing: 0.8px; color: var(--cyan); opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 #cashBox { text-align: right; }
 #cashVal {
   font-family: var(--font-display); font-weight: 800; font-size: 27px; line-height: 1;
@@ -233,6 +236,10 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 .cos-swatch.locked { cursor: not-allowed; filter: grayscale(0.7) brightness(0.5); }
 .cos-swatch.locked::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
 .cos-swatch .lockicon { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 14px; z-index: 2; }
+/* compact Lab-tab orb swatch row (item 6) — smaller swatches, no divider */
+#labOrbRow { display: flex; align-items: center; gap: 10px; margin: 4px 2px 2px; }
+#labOrbRow .cos-label { flex: 0 0 auto; font-size: 12px; }
+#labOrbRow .cos-swatch { width: 34px; height: 34px; border-radius: 9px; }
 .cos-hint { font-size: 11px; color: var(--fg-muted); flex-basis: 100%; }
 
 /* orb skins */

@@ -230,6 +230,9 @@
     act_frontier_t: 'Act III · Frontier Lab', act_frontier_intro: 'You are a real lab now — and you are not alone. Rivals are training too.', act_frontier_goal: 'Keep scaling; mind the risk vectors.',
     act_race_t: 'Act IV · The Race', act_race_intro: 'The Race to AGI is on. Rival labs are climbing. Out-build them — or be left behind.', act_race_goal: 'Reach AGI before the rivals.',
     act_singularity_t: 'Act V · Singularity', act_singularity_intro: 'The frontier is in sight. Your final models will decide how the Singularity arrives — and who you become.', act_singularity_goal: 'Reach AGI. Your choices shape the ending.',
+    // short act names for the always-visible topbar tag (item 6)
+    act_garage_short: 'GARAGE', act_startup_short: 'STARTUP', act_frontier_short: 'FRONTIER', act_race_short: 'THE RACE', act_singularity_short: 'SINGULARITY',
+    act_topbar: 'ACT {n} · {name}',
     act_continue: 'Continue',
     // --- rivals ---
     rv_helion: 'Helion Labs', rv_helion_d: 'Reckless front-runner. Ships first, apologizes never.',
@@ -718,6 +721,9 @@
     act_frontier_t: 'Акт III · Передовая лаба', act_frontier_intro: 'Теперь вы настоящая лаборатория — и вы не одни. Конкуренты тоже учат модели.', act_frontier_goal: 'Масштабируйся; следи за векторами риска.',
     act_race_t: 'Акт IV · Гонка', act_race_intro: 'Гонка к AGI началась. Конкуренты растут. Обгони их — или останься позади.', act_race_goal: 'Достигни AGI раньше конкурентов.',
     act_singularity_t: 'Акт V · Сингулярность', act_singularity_intro: 'Фронтир уже виден. Твои последние модели решат, какой будет Сингулярность — и кем станешь ты.', act_singularity_goal: 'Достигни AGI. Твой выбор определит концовку.',
+    // короткие имена актов для постоянного тега в топбаре (item 6)
+    act_garage_short: 'ГАРАЖ', act_startup_short: 'СТАРТАП', act_frontier_short: 'ФРОНТИР', act_race_short: 'ГОНКА', act_singularity_short: 'СИНГУЛЯРНОСТЬ',
+    act_topbar: 'АКТ {n} · {name}',
     act_continue: 'Продолжить',
     rv_helion: 'Helion Labs', rv_helion_d: 'Безрассудный лидер. Релизит первым, не извиняется.',
     rv_cerebra: 'Cerebra', rv_cerebra_d: 'Стабильные, хорошо профинансированные, неумолимо компетентные.',
