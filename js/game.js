@@ -1884,6 +1884,17 @@
     if (state.modelGen >= 1) return 1;   // startup — only AFTER shipping v1 (not on first hardware buy)
     return 0;                            // garage: tap → buy hardware → work toward v1
   }
+  // PHASE 5 — Safety meter tier-rename as the stakes rise (DESIGN §4):
+  // Safety → Trust & Safety → Containment, gated by act (size proxy).
+  function safetyTier() {
+    var a = currentAct();
+    if (a >= 3) return 3;   // frontier / race to AGI — "Containment"
+    if (a >= 2) return 2;   // scale-up — "Trust & Safety"
+    return 1;               // garage / startup — "Safety"
+  }
+  function safetyLabel() {
+    try { return window.GAME_I18N.t('safety_t' + safetyTier()); } catch (e) { return 'Safety'; }
+  }
   function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
   // legacy no-ops kept as guards: rival progress now lives on state.rivals objects. If a
   // save somehow loaded without a roster (corruption), seed a default one so nothing crashes.
@@ -2871,6 +2882,7 @@
     perGenUpgradeMult: perGenUpgradeMult, managerMult: managerMult,
     globalMult: globalMult, tapMult: tapMult, rpMult: rpMult,
     alignCost: alignCost, alignSuppress: alignSuppress,
+    safetyTier: safetyTier, safetyLabel: safetyLabel,
     vectorGross: vectorGross, vectorNet: vectorNet, highestVector: highestVector, riskLevel: riskLevel,
     auditReady: auditReady, auditCooldownLeft: auditCooldownLeft, auditCost: auditCost, doAudit: doAudit,
     boostActive: boostActive, incidentActive: incidentActive,

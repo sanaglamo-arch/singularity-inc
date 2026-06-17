@@ -199,10 +199,11 @@
       mseg[0].textContent = t('mandate_growth'); mseg[1].textContent = t('mandate_balance');
       mseg[2].textContent = t('mandate_safety'); mseg[3].textContent = t('mandate_share');
     }
-    // alignment
-    $('alignTitle').innerHTML = t('alignment_title') + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
-    $('alignIntro').textContent = t('alignment_intro');
-    $('alignLabel').textContent = t('alignment_label');
+    // alignment → Safety (label tier scales with act; updateAlignment() refreshes it live)
+    var sfx = { s: G.safetyLabel() };
+    $('alignTitle').innerHTML = t('alignment_title', sfx) + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
+    $('alignIntro').textContent = t('alignment_intro', sfx);
+    $('alignLabel').textContent = t('alignment_label', sfx);
     if ($('alignTip')) $('alignTip').innerHTML = '<span class="ticon">' + ic('ic_insight') + '</span><span>' + t('tip_insight') + '</span>';
     if ($('researchTip')) $('researchTip').innerHTML = '<span class="ticon">' + ic('ic_bolt') + '</span><span>' + t('tip_overclock') + '</span>';
     // stats
@@ -942,11 +943,16 @@
         '</div>';
     });
     $('vectorBars').innerHTML = html;
+    // refresh the Safety-tier label live (it renames Safety→Trust & Safety→Containment by act)
+    var sfx = { s: G.safetyLabel() };
+    $('alignTitle').innerHTML = t('alignment_title', sfx) + infoBtn('tip_align');
+    $('alignIntro').textContent = t('alignment_intro', sfx);
+    $('alignLabel').textContent = t('alignment_label', sfx);
     $('alignOwned').textContent = s.align;
     $('alignSuppressTxt').textContent = t('align_suppress', { v: G.alignSuppress().toFixed(2) });
     var ac = G.alignCost();
     var btn = $('buyAlignBtn');
-    btn.textContent = t('buy_alignment') + ' (' + fmt(ac) + ')';
+    btn.textContent = t('buy_alignment', sfx) + ' (' + fmt(ac) + ')';
     btn.disabled = s.cash < ac;
     // reactive audit (cooldown, not an instant crisis-clear)
     var ab = $('auditBtn');
@@ -959,7 +965,7 @@
       var remain = Math.max(0, (s.incidentEndsAt - Date.now()) / 1000);
       ib.innerHTML =
         '<div class="ititle">' + t('incident_active', { p: C.RISK.INCIDENT_PENALTY }) + '</div>' +
-        '<div class="idesc">' + t('crisis_penalty_desc', { t: FMT.fmtTime(remain) }) + '</div>';
+        '<div class="idesc">' + t('crisis_penalty_desc', { t: FMT.fmtTime(remain), s: G.safetyLabel() }) + '</div>';
     } else { ib.classList.add('hidden'); }
     // mini-stats
     function mini(label, val) { return '<div class="minicard"><div class="mlabel">' + label + '</div><div class="mval">' + val + '</div></div>'; }
