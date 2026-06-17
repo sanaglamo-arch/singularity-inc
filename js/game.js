@@ -1368,7 +1368,21 @@
     // resource: flat deltas. cash clamps at 0 unless allowDebt; compute/researchers clamp at 0.
     if (eff.resource) {
       var r = eff.resource;
+      // PHASE 4 — %-OF-SCALE magnitudes (DESIGN §3): an effect can express a cost as a
+      // FRACTION of the player's own scale instead of a flat number, so it auto-scales from
+      // garage to frontier (a "$50B lab" finally feels a "$50B problem"). Three forms, all
+      // CASH deltas that fold into the same dCash path as flat r.cash:
+      //   cashPctVal:   fraction of valuation()      e.g. -0.08 → "8% of company value"
+      //   cashMonthsBurn: months of current burn     e.g. -2    → "costs 2 months of runway"
+      //   (flat r.cash still works for tiny early events.) The harmful direction (a NEGATIVE
+      //   cash delta) is scaled by eventSeverityMult via the shared dCash path below.
+      var pctCash = 0, hasPctCash = false;
+      var fPctVal = numDelta(r.cashPctVal);
+      if (fPctVal !== undefined) { pctCash += fPctVal * valuation(); hasPctCash = true; }
+      var fMonths = numDelta(r.cashMonthsBurn);
+      if (fMonths !== undefined) { pctCash += fMonths * monthlyBurn(); hasPctCash = true; }
       var dCash = numDelta(r.cash);
+      if (hasPctCash) dCash = (dCash === undefined ? 0 : dCash) + pctCash;   // %-of-scale + any flat part
       if (dCash !== undefined) {
         dCash = scaleHarm(dCash, -1);                                 // HOOK: losses scale with severity
         var nc = state.cash + dCash;
@@ -1376,7 +1390,15 @@
         else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
       }
       var dCompute = numDelta(r.compute); if (dCompute !== undefined) state.compute = Math.max(0, state.compute + dCompute);
-      var dRes = numDelta(r.researchers); if (dRes !== undefined) state.researchers = Math.max(0, Math.floor(state.researchers + dRes));
+      // researchersPct: lose/gain a FRACTION of current headcount (a "talent raid" auto-scales
+      // with the size of your team). Folds into the same flat dRes path. Harmful = NEGATIVE.
+      var dRes = numDelta(r.researchers);
+      var fResPct = numDelta(r.researchersPct);
+      if (fResPct !== undefined) dRes = (dRes === undefined ? 0 : dRes) + fResPct * (state.researchers || 0);
+      if (dRes !== undefined) {
+        dRes = scaleHarm(dRes, -1);                                   // a talent raid scales with severity too
+        state.researchers = Math.max(0, Math.floor(state.researchers + dRes));
+      }
     }
     // meter: clamped deltas to derived scoreboards. marketShare/trust 0..100; align via state.align.
     if (eff.meter) {
@@ -1386,7 +1408,13 @@
       var dAlign = numDelta(m.align); if (dAlign !== undefined) state.align = Math.max(0, state.align + dAlign);
       // valuation is a DERIVED figure (no stored field) — record the adjustment as an
       // accumulator now; later phases may fold it into valuation().
-      var dVal = numDelta(m.valuation); if (dVal !== undefined) state.vars.valuation_adj = (state.vars.valuation_adj || 0) + dVal;
+      // PHASE 4: valPct expresses a valuation HIT as a fraction of current valuation() (an
+      // antitrust/divestiture that wipes "X% off the company"). Stored on the same accumulator
+      // in absolute $ (negative). Harmful direction (negative) scaled by severity.
+      var dVal = numDelta(m.valuation);
+      var fValPct = numDelta(m.valPct);
+      if (fValPct !== undefined) dVal = (dVal === undefined ? 0 : dVal) + scaleHarm(fValPct * valuation(), -1);
+      if (dVal !== undefined) state.vars.valuation_adj = (state.vars.valuation_adj || 0) + dVal;
     }
     // flags: boolean store
     if (eff.set_flag) state.flags[eff.set_flag] = true;
