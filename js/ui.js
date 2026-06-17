@@ -1096,6 +1096,26 @@
     showModal(html);
     if ($('gsOk')) $('gsOk').onclick = hideModal;
   }
+  // One-time teaching beat the first time a training run crosses ~1h (the v4→v5 momentum
+  // cliff). Light + skippable; surfaces the researcher/build CTAs so the player learns to
+  // work in parallel instead of just waiting (item 2).
+  function showLongTrainTeach() {
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden')) { setTimeout(showLongTrainTeach, 800); return; }
+    var teamUnlocked = G.researchUnlocked && G.researchUnlocked();
+    var html = '<div class="ob-icon" style="color:var(--cyan)">' + ic('ic_brain') + '</div>' +
+      '<h3>' + t('longtrain_title') + '</h3>' +
+      '<p>' + t('longtrain_body') + '</p>' +
+      '<div class="row">' +
+        (teamUnlocked ? '<button class="secondary" id="ltHire">' + t('longtrain_cta_hire') + '</button>' : '') +
+        '<button class="secondary" id="ltBuild">' + t('longtrain_cta_build') + '</button>' +
+      '</div>' +
+      '<div class="row"><button class="primary" id="ltOk">' + t('longtrain_got_it') + '</button></div>';
+    showModal(html);
+    if ($('ltOk')) $('ltOk').onclick = hideModal;
+    if ($('ltHire')) $('ltHire').onclick = function () { window.GAME_AUDIO.buy(); hideModal(); switchTab('research'); };
+    if ($('ltBuild')) $('ltBuild').onclick = function () { window.GAME_AUDIO.buy(); hideModal(); switchTab('company'); var bb = $('buildBtn'); if (bb) { bb.classList.remove('pulse'); void bb.offsetWidth; bb.classList.add('pulse'); } };
+  }
   // Don't clobber an open modal (offline/daily on return): wait until it's dismissed.
   function showGenSummaryDeferred(genCount) {
     var mr = $('modalRoot');
@@ -1569,6 +1589,12 @@
       if (d.kind === 'build') toast(t('build_done_toast', { n: d.n }), 'gold');
       else if (d.kind === 'research') toast(t('research_done_toast', { n: d.n }), 'gold');
     });
+    // subtle 25/50/75% training-progress pings on long runs (item 2)
+    G.on('trainprogress', function (d) {
+      toast(t('train_prog_toast', { gen: d.gen, pct: d.pct, left: FMT.fmtTime(d.left) }));
+    });
+    // one-time teaching beat the first time a run crosses ~1h (the v4→v5 cliff) (item 2)
+    G.on('longtrain', function () { showLongTrainTeach(); });
     // GDD v3: hire a researcher (speeds up training/research/builds)
     var hireBtn = $('hireBtn');
     if (hireBtn) hireBtn.addEventListener('click', function () {

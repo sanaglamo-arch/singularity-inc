@@ -9,7 +9,8 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [] };
+  var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
 
@@ -99,6 +100,8 @@
       modelGen: 0,           // # of model generations COMPLETED (0 = none yet); next = MODELGEN[modelGen]
       marketShare: 0,        // your market share % (derived scoreboard, climbs on generation advance)
       training: { active: false, gen: -1, startedAt: 0, endsAt: 0 }, // active timed training process
+      trainToastPct: 0,      // highest 25/50/75 milestone toasted for the CURRENT run (resets on start)
+      seenLongTrain: false,  // one-time teaching beat shown the first time a run exceeds ~1h
       datacenters: 0,        // completed datacenter builds (each = +compute multiplier)
       build: { active: false, startedAt: 0, endsAt: 0 },             // active datacenter-build timer
       researchLevel: 0,      // completed research projects (efficiency)
@@ -388,6 +391,11 @@
     state.compute -= g.computeReq;                // spend compute stock to kick off the run
     var dur = trainDuration();
     state.training = { active: true, gen: state.modelGen, startedAt: Date.now(), endsAt: Date.now() + dur * 1000 };
+    state.trainToastPct = 0;                       // fresh progress-toast tracker for this run
+    // first time a run crosses ~1h (the v4→v5 momentum cliff), surface a one-time teaching
+    // beat: long trains are the pacing gate — work in parallel (researchers/datacenters) to
+    // shorten them, never just wait.
+    if (!state.seenLongTrain && dur >= LONG_TRAIN_SEC) { state.seenLongTrain = true; emit('longtrain', { secs: dur }); }
     emit('change');
     return true;
   }
@@ -398,6 +406,18 @@
     return Math.max(0, Math.min(1, (Date.now() - tr.startedAt) / total));
   }
   function trainingTimeLeft() { return trainingActive() ? Math.max(0, (state.training.endsAt - Date.now()) / 1000) : 0; }
+  // Subtle 25/50/75% progress pings — ONLY on runs long enough to feel a wait (so the
+  // ~1min early generations don't spam). Each milestone fires at most once per run.
+  function emitTrainProgress() {
+    var tr = state.training, total = (tr.endsAt - tr.startedAt) / 1000;
+    if (total < 600) return;   // < 10 min: short enough that progress pings would be noise
+    var pct = Math.floor(trainingProgress() * 100);
+    var next = state.trainToastPct < 25 ? 25 : state.trainToastPct < 50 ? 50 : state.trainToastPct < 75 ? 75 : 100;
+    if (next <= 75 && pct >= next) {
+      state.trainToastPct = next;
+      emit('trainprogress', { pct: next, left: trainingTimeLeft(), gen: tr.gen + 1 });
+    }
+  }
   // complete the current training: PERMANENT leap, KEEP all infrastructure (no reset)
   function finishTraining() {
     if (!trainingActive()) return false;
@@ -1340,7 +1360,10 @@
     // produces MONEY (∝ infra × generation × share). No more cash-from-generators.
     state.compute += computeRate() * dt;
     addCash(moneyRate() * dt);
-    if (trainingActive() && Date.now() >= state.training.endsAt) finishTraining();
+    if (trainingActive()) {
+      if (Date.now() >= state.training.endsAt) finishTraining();
+      else emitTrainProgress();   // subtle 25/50/75% progress pings on long runs
+    }
     if (buildActive() && Date.now() >= state.build.endsAt) finishBuild();        // parallel timers
     if (researchActive() && Date.now() >= state.research2.endsAt) finishResearch();
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
@@ -1480,6 +1503,8 @@
     if (typeof s.researchLevel !== 'number') s.researchLevel = 0;
     if (!s.research2 || typeof s.research2 !== 'object') s.research2 = { active: false, startedAt: 0, endsAt: 0 };
     // ---- v7: earned-boost economy + daily login ----
+    if (typeof s.trainToastPct !== 'number') s.trainToastPct = 0;
+    if (typeof s.seenLongTrain !== 'boolean') s.seenLongTrain = false;
     if (typeof s.boostTokens !== 'number') s.boostTokens = 0;
     if (typeof s.lastDailyDay !== 'number') s.lastDailyDay = 0;
     if (typeof s.dailyStreak !== 'number') s.dailyStreak = 0;

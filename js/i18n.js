@@ -142,6 +142,21 @@
     build_btn: 'Build datacenter · {v} (+{p}% compute)', build_active: 'Building datacenter… {t}', build_done_toast: 'Datacenter #{n} online — compute capacity up!',
     rnd_title: 'Research', research_done: 'Projects', research_eff: 'Efficiency',
     research_btn: 'Run research · {v}', research_active: 'Researching… {t}', research_done_toast: 'Research #{n} complete — efficiency up!',
+    // long-training feedback (item 2)
+    train_prog_toast: 'Model v{gen} training · {pct}% · ~{left} left',
+    longtrain_title: 'Models take longer now',
+    longtrain_body: 'Training runs grow from minutes to hours. Hire researchers and build datacenters to speed every timer up — work in parallel, never just wait.',
+    longtrain_cta_hire: 'Hire researchers',
+    longtrain_cta_build: 'Build datacenter',
+    longtrain_got_it: 'Got it →',
+    // parallel-timer completion toasts (item 4)
+    build_done_full: 'Datacenter #{n} built — +{p}% compute capacity',
+    research_done_full: 'Research #{n} done — +{p}% efficiency',
+    hire_done_toast: 'Researcher hired — timers +{p}% faster',
+    // late-game AGI race drama (item 3)
+    rival_agi_toast: '{name} hit {p}% AGI — they\'re catching up!',
+    race_lead_badge: '#1 market share',
+    race_threat_badge: '{name} {p}% AGI',
     tip_research2: 'Run research projects (money + time) for permanent efficiency: more compute per unit and faster processes. Runs in parallel with training and builds — there is always something progressing.',
     world_news_title: 'Newsroom', world_market_title: 'AI Market',
     world_locked: 'Releases & investing unlock after your first model.',
@@ -617,6 +632,21 @@
     build_btn: 'Построить датацентр · {v} (+{p}% компьюта)', build_active: 'Стройка датацентра… {t}', build_done_toast: 'Датацентр #{n} запущен — мощность компьюта выросла!',
     rnd_title: 'Исследования', research_done: 'Проекты', research_eff: 'Эффективность',
     research_btn: 'Запустить исследование · {v}', research_active: 'Исследование… {t}', research_done_toast: 'Исследование #{n} завершено — эффективность выросла!',
+    // обратная связь по долгому обучению (item 2)
+    train_prog_toast: 'Модель v{gen} обучается · {pct}% · ~{left} осталось',
+    longtrain_title: 'Обучение теперь дольше',
+    longtrain_body: 'Тренировки растут от минут к часам. Нанимай исследователей и строй датацентры, чтобы ускорить все таймеры — работай параллельно, не жди просто так.',
+    longtrain_cta_hire: 'Нанять исследователей',
+    longtrain_cta_build: 'Построить датацентр',
+    longtrain_got_it: 'Понятно →',
+    // тосты завершения параллельных таймеров (item 4)
+    build_done_full: 'Датацентр #{n} построен — +{p}% мощности компьюта',
+    research_done_full: 'Исследование #{n} готово — +{p}% эффективности',
+    hire_done_toast: 'Исследователь нанят — таймеры быстрее на +{p}%',
+    // драма гонки к AGI (item 3)
+    rival_agi_toast: '{name} достиг {p}% AGI — они догоняют!',
+    race_lead_badge: '#1 по доле рынка',
+    race_threat_badge: '{name} {p}% AGI',
     tip_research2: 'Запускай исследовательские проекты (деньги + время) ради перманентной эффективности: больше компьюта на единицу и быстрее процессы. Идёт параллельно с обучением и стройкой — всегда что-то прогрессирует.',
     world_news_title: 'Ньюсрум', world_market_title: 'ИИ-рынок',
     world_locked: 'Релизы и инвестиции откроются после первой модели.',

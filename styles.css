@@ -556,6 +556,10 @@ h2:first-child { margin-top: 4px; }
 .card.ms3 .iconwrap { color: #fff; box-shadow: 0 0 20px var(--glow-violet); background: radial-gradient(circle at 50% 30%, rgba(167,139,250,0.5), rgba(139,92,246,0.12)); }
 .card.flash { animation: cardFlash 0.5s var(--ease); }
 @keyframes cardFlash { 0% { box-shadow: 0 0 0 0 rgba(34,211,238,0.85), var(--inset-hi); border-color: var(--cyan); } 100% { box-shadow: 0 0 0 16px rgba(34,211,238,0), var(--inset-hi); } }
+/* brief attention pulse used to point the player at a CTA (e.g. the long-train teach beat) */
+.pulse { animation: ctaAttn 0.9s var(--ease) 2; }
+@keyframes ctaAttn { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 3px rgba(34,211,238,0.55), 0 0 22px -4px var(--glow-cyan); } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 
 /* ---------- buttons ---------- */
 button { font-family: var(--font-ui); color: var(--fg); }
