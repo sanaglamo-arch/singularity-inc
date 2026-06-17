@@ -1,9 +1,10 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#111;color:#0f0;font:13px monospace}#o{white-space:pre-wrap;padding:8px}</style></head>
 <body><pre id="o">…</pre><iframe id="f" style="position:absolute;left:-9999px"></iframe><script>
-var p=new URLSearchParams(location.search), tab=p.get('tab')||'company', stage=p.get('stage')||'mid', W=+p.get('w')||360;
+var p=new URLSearchParams(location.search), tab=p.get('tab')||'company', stage=p.get('stage')||'mid', W=+p.get('w')||360, lang=p.get('lang')||'';
 var f=document.getElementById('f'); f.width=W; f.height=800;
 f.onload=function(){setTimeout(function(){var w=f.contentWindow,d=f.contentDocument,out=[];try{
   var s=w.GAME.state; s.act=9; s.seen=s.seen||{};
+  if(lang){ try{ w.GAME_I18N.setLang(lang); w.GAME_UI.renderStatic(); }catch(e){} }
   if(stage==='mid'){s.modelGen=3;s.cash=2e6;s.compute=8e5;s.marketShare=12;s.boostTokens=2;s.researchers=4;s.researchLevel=3;s.datacenters=2;s.gens.laptop=40;s.gens.gpuRig=18;s.gens.serverRack=6;s.funding={seed:true};s.align=4;s.trust=62;}
   else if(stage==='late'){s.modelGen=8;s.cash=1e15;s.compute=1e12;s.marketShare=57;s.boostTokens=3;s.researchers=200;s.researchLevel=16;s.datacenters=14;['laptop','gpuRig','serverRack','gpuCluster','dataCenter','superComp','neuroArray'].forEach((id,i)=>s.gens[id]=200-i*10);s.funding={seed:true,a:true,b:true,c:true};s.align=10;s.trust=70;}
   try{w.location.hash='#'+tab;}catch(e){}
