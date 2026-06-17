@@ -74,9 +74,9 @@
     // rivals + market-share race (the central goal)
     standings_title: 'Market share', standings_sub: 'race to AGI',
     rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'You',
-    standings_leader: "#1 — reach AGI first!", standings_behind: '#{n}/{total} — ship to climb',
+    standings_leader: "{co} is #1 — reach AGI first!", standings_behind: '{co}: #{n}/{total} — ship to climb',
     acquire_btn: 'Acquire {name} · {v}', acquire_done: 'Acquired {name} — their market share is yours.', tip_acquire: 'Buy out a rival lab to take a big slice of its market share and remove it from the AGI race. Optional, one-time per rival.',
-    agi_race_you: 'You {p}%', agi_race_lead: 'top rival {p}%',
+    agi_race_you: '{co} {p}%', agi_race_lead: 'top rival {p}%',
     tip_rivals: 'Rival labs compete for market share and race you to AGI. Ship model generations to climb the ranking — become #1, then reach AGI before they do.',
 
     upgrades_title: 'Global Upgrades',
@@ -904,9 +904,9 @@
     tip_funding: 'Каждое выпущенное поколение модели открывает следующий раунд (Seed → A → B → C → IPO). Инвесторы покупают долю: разовая прибавка денег размером в несколько минут твоего текущего дохода плюс ПЕРМАНЕНТНЫЙ рост выручки. Это фора, а не чит — главная ценность в бусте выручки.',
     standings_title: 'Доля рынка', standings_sub: 'гонка к AGI',
     rival_helion: 'Helion AI', rival_cerebra: 'Cerebra Labs', rival_omninet: 'OmniNet', you_label: 'Ты',
-    standings_leader: 'Ты #1 — достигни AGI!', standings_behind: '#{n}/{total} — выпускай модели',
+    standings_leader: '{co} — #1, достигни AGI первым!', standings_behind: '{co}: #{n}/{total} — выпускай модели',
     acquire_btn: 'Поглотить {name} · {v}', acquire_done: 'Поглощён {name} — их доля рынка твоя.', tip_acquire: 'Выкупи лабораторию-конкурента, чтобы забрать большую часть её доли рынка и убрать её из гонки к AGI. Необязательно, один раз на конкурента.',
-    agi_race_you: 'Ты {p}%', agi_race_lead: 'лидер-конкурент {p}%',
+    agi_race_you: '{co} {p}%', agi_race_lead: 'лидер-конкурент {p}%',
     tip_rivals: 'Лаборатории-конкуренты борются за долю рынка и гонятся к AGI. Выпускай поколения моделей, чтобы подняться в рейтинге — стань #1 и достигни AGI раньше них.',
 
     upgrades_title: 'Глобальные апгрейды',

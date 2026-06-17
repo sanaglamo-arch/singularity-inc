@@ -564,7 +564,7 @@
       setClass(ref.row, 'lead', i === 0);
     }
     var rank = G.playerRank(), total = rows.length;
-    setText($('standingsStatus'), rank === 1 ? t('standings_leader') : t('standings_behind', { n: rank, total: total }));
+    setText($('standingsStatus'), rank === 1 ? t('standings_leader', { co: coName() }) : t('standings_behind', { n: rank, total: total, co: coName() }));
     // §5 acquisition: buy out the strongest rival (post mid-game)
     var ab = $('acquireBtn'), tgt = G.acquireTarget();
     if (tgt && G.acquireUnlocked() && G.canAcquire()) {
@@ -580,7 +580,7 @@
         else { ob.disabled = true; setText(ob, t('race_opensource_cd', { t: FMT.fmtTime(Math.max(0, 90 - (Date.now() - G.state.raceOpenAt) / 1000)) })); }
       } else setClass(ob, 'hidden', true);
     }
-    setText($('agiRace'), t('agi_rank', { n: G.agiRank(), total: G.agiFieldSize() }) + ' · ' + t('agi_race_you', { p: Math.round(G.agiProgress()) }) + ' · ' + t('agi_race_lead', { p: Math.round(G.leadingRivalAgi()) }));
+    setText($('agiRace'), t('agi_rank', { n: G.agiRank(), total: G.agiFieldSize() }) + ' · ' + t('agi_race_you', { p: Math.round(G.agiProgress()), co: coName() }) + ' · ' + t('agi_race_lead', { p: Math.round(G.leadingRivalAgi()) }));
   }
 
   // ---------- upgrades ----------
