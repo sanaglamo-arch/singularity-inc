@@ -1149,9 +1149,15 @@
     for (var i = 0; i < pool.length; i++) { acc += weights[i]; if (roll <= acc) return pool[i]; }
     return pool[pool.length - 1];
   }
-  // Act-scaled interval: later acts shorten the gap (busier endgame).
+  // has ANY decision fired yet this save? (the eventCooldowns map records every fire)
+  function anyDecisionFired() { for (var k in state.eventCooldowns) return true; return false; }
+  // Act-scaled interval: later acts shorten the gap (busier endgame). The very FIRST
+  // decision uses a short onboarding window so a fresh game surfaces one in ~60–90s.
   function decisionInterval() {
     var P = C.DECISIONS_PACING;
+    if (!anyDecisionFired() && typeof P.FIRST_INTERVAL_MIN === 'number') {
+      return P.FIRST_INTERVAL_MIN + Math.random() * ((P.FIRST_INTERVAL_MAX || P.FIRST_INTERVAL_MIN) - P.FIRST_INTERVAL_MIN);
+    }
     var base = P.INTERVAL_MIN + Math.random() * (P.INTERVAL_MAX - P.INTERVAL_MIN);
     var speed = Math.max(0.4, 1 - currentAct() * (P.ACT_SPEEDUP || 0));   // never below 40% of base
     return Math.max(P.QUIET_FLOOR, base * speed);

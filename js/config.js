@@ -422,7 +422,9 @@
   // ⚠ PHASE 2 = ~6 TEST events to exercise the engine. Phase 3 expands to 70–90
   //   real events from DESIGN-events-catalog.md. Each test row is marked TEST.
   var DECISIONS_PACING = {
-    FIRST_DELAY: 90,        // no decision before this much ACTIVE playtime (sec)
+    FIRST_DELAY: 25,        // no decision before this much ACTIVE playtime (sec)
+    FIRST_INTERVAL_MIN: 35, // onboarding: the FIRST decision lands ~25+35..25+65s = 60–90s in
+    FIRST_INTERVAL_MAX: 65, // (settles to the normal cadence below once one has fired)
     INTERVAL_MIN: 120,      // ~one decision per 2–4 min of active play (Act-scaled below)
     INTERVAL_MAX: 240,
     ACT_SPEEDUP: 0.12,      // each act shortens the interval by this fraction (later acts = busier)
@@ -439,6 +441,160 @@
   // The two catalog topics flagged sensitive (whistleblower death, teen-suicide case)
   // are deliberately SKIPPED in this wave. i18n: {id}_t/_d + {id}_{optionId} (EN+RU).
   var DECISIONS = [
+
+    // ===================== EARLY GAME — ACT 0/1 (garage & startup) =====================
+    // Onboarding-grade dilemmas with LOW or no gates so the FIRST decision surfaces fast
+    // on a fresh game (act 0 = garage). Mostly bankable, a couple interrupt, a couple
+    // ambient. Effects stay modest (garage economy is tiny). i18n: {id}_t/_d + per-option.
+    {
+      id: 'dec_eq_split', act: [0, 1], category: 'funding', weight: 130,
+      cooldown_sec: 0, once: true, priority: 'interrupt',
+      trigger: { 'meter.act': '<=1' },
+      options: [
+        { id: 'equal', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+4' }, set_var: { founder_goodwill: '+1' } } },
+        { id: 'control', tooltip_meters: ['trust', 'cash'],
+          effects: { resource: { cash: '+40' }, meter: { trust: '-3' }, set_var: { founder_friction: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_first_hire', act: [0, 1], category: 'talent', weight: 120,
+      cooldown_sec: 200, once: true, priority: 'bankable', default_option: 'generalist',
+      trigger: { 'resource.compute': '>=10' },
+      options: [
+        { id: 'generalist', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cash: '-40', researchers: '+1' } } },
+        { id: 'specialist', tooltip_meters: ['cash', 'researchers', 'trust'],
+          effects: { resource: { cash: '-90', researchers: '+1' }, meter: { trust: '+2' } } },
+        { id: 'solo', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cash: '+20' }, set_var: { burnout_debt: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_ramen_or_raise', act: [0, 1], category: 'funding', weight: 110,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'ramen',
+      trigger: { 'resource.compute': '>=15' },
+      options: [
+        { id: 'ramen', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+2' }, set_var: { indie_cred: '+1' } } },
+        { id: 'raise', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '+120' }, meter: { trust: '-2' }, set_var: { dilution: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_first_customer', act: [0, 1], category: 'product', weight: 105,
+      cooldown_sec: 220, once: true, priority: 'interrupt',
+      trigger: { 'resource.compute': '>=25' },
+      options: [
+        { id: 'build_it', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '+150' }, meter: { trust: '-2' }, vec: { sec: 6 }, set_var: { tech_debt: '+1' } } },
+        { id: 'say_no', tooltip_meters: ['cash', 'trust'],
+          effects: { meter: { trust: '+3' } } }
+      ]
+    },
+    {
+      id: 'dec_vanity_metric', act: [0, 1, 2], category: 'funding', weight: 95,
+      cooldown_sec: 220, once: false, priority: 'bankable', default_option: 'honest',
+      trigger: { 'resource.compute': '>=20' },
+      options: [
+        { id: 'juice', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '+80' }, meter: { trust: '-4' }, set_var: { vanity_debt: '+1' } } },
+        { id: 'honest', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+2' } } }
+      ]
+    },
+    {
+      id: 'dec_name_model', act: [0, 1], category: 'pr', weight: 100,
+      cooldown_sec: 0, once: true, priority: 'ambient', default_option: 'sensible',
+      trigger: { 'resource.compute': '>=12' },
+      options: [
+        { id: 'sensible', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+1' } } },
+        { id: 'edgy', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-1' }, vec: { sec: 3 } } }
+      ]
+    },
+    {
+      id: 'dec_viral_demo', act: [0, 1], category: 'pr', weight: 100,
+      cooldown_sec: 200, once: false, priority: 'interrupt',
+      trigger: { 'resource.compute': '>=30' },
+      options: [
+        { id: 'overpromise', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '+90' }, meter: { trust: '-3' }, set_var: { hype_debt: '+1' },
+                     schedule: { event: 'dec_demo_backlash', delaySec: 110, chance: 0.5, callback: 'callback_hype' } } },
+        { id: 'caveat', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '+25' }, meter: { trust: '+2' } } }
+      ]
+    },
+    {
+      id: 'dec_demo_backlash', act: [0, 1, 2, 3], category: 'pr', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _callback: true,
+      trigger: { OR: [] },
+      options: [
+        { id: 'apologize', tooltip_meters: ['trust', 'cash'],
+          effects: { resource: { cash: '-30' }, meter: { trust: '+3' } } },
+        { id: 'double_down', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-4' }, vec: { sec: 6 } } }
+      ]
+    },
+    {
+      id: 'dec_open_or_closed', act: [0, 1], category: 'opensource', weight: 95,
+      cooldown_sec: 220, once: true, priority: 'bankable', default_option: 'closed',
+      trigger: { 'resource.compute': '>=18' },
+      options: [
+        { id: 'open', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '+5' }, vec: { sec: 4 }, set_flag: 'oss_lab' } },
+        { id: 'closed', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '+30' }, meter: { trust: '-1' } } }
+      ]
+    },
+    {
+      id: 'dec_journalist', act: [0, 1, 2], category: 'pr', weight: 90,
+      cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'decline',
+      trigger: { 'resource.compute': '>=22' },
+      options: [
+        { id: 'interview', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '+4' }, vec: { reg: 3 } } },
+        { id: 'decline', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '-1' } } }
+      ]
+    },
+    {
+      id: 'dec_gpu_spike', act: [0, 1, 2], category: 'compute', weight: 100,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'absorb',
+      trigger: { 'resource.compute': '>=14' },
+      weight_mods: [{ factor: 1.4, when: { 'resource.compute': '>=200' } }],
+      options: [
+        { id: 'absorb', tooltip_meters: ['cash', 'compute'],
+          effects: { resource: { cash: '-60', compute: '+30' } } },
+        { id: 'pause', tooltip_meters: ['compute', 'trust'],
+          effects: { meter: { trust: '-1' }, set_var: { compute_debt: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_poach_engineer', act: [0, 1], category: 'talent', weight: 110,
+      cooldown_sec: 180, once: false, priority: 'interrupt',
+      trigger: { 'resource.researchers': '>=1' },
+      options: [
+        { id: 'match_offer', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cash: '-110' } } },
+        { id: 'let_walk', tooltip_meters: ['researchers', 'risk'],
+          effects: { resource: { researchers: '-1' }, vec: { sec: 5 } } },
+        { id: 'equity_plea', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+1' }, set_var: { dilution: '+1' } } }
+      ]
+    },
+    {
+      id: 'dec_cloud_credits', act: [0, 1], category: 'compute', weight: 95,
+      cooldown_sec: 240, once: true, priority: 'bankable', default_option: 'decline',
+      trigger: { 'resource.compute': '>=16' },
+      options: [
+        { id: 'accept', tooltip_meters: ['cash', 'compute', 'trust'],
+          effects: { resource: { cash: '+40', compute: '+60' }, meter: { trust: '-2' }, set_flag: 'cloud_locked' } },
+        { id: 'decline', tooltip_meters: ['compute', 'trust'],
+          effects: { meter: { trust: '+1' } } }
+      ]
+    },
 
     // ========================= REGULATION (4) =============================
     // ARC-REG: a one-shot safe-harbor pledge → its delayed disclosure bill.
