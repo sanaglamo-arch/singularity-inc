@@ -1065,6 +1065,23 @@
         setText($('finaleTitle'), won ? t('agi_title') : t('finale_beaten'));
         setClass($('finaleTitle'), 'beaten', !won);
         setText($('finaleDesc'), t('ending_' + eid + '_t') + ' — ' + t('ending_' + eid + '_d'));
+        // endings collection: progress + the +%/ending perk + a badge per ending
+        var nEnd = G.endingsUnlocked(), mEnd = C.ENDINGS.list.length;
+        setText($('finaleEndingsProgress'),
+          t('endings_progress', { n: nEnd, m: mEnd }) + ' · ' + t('ending_perk_note', { p: Math.round(C.ENDINGS.PERK_PER * 100) }));
+        var grid = $('finaleEndingsGrid');
+        if (grid) {
+          var gsig = 'fe' + nEnd;
+          if (grid.dataset.sig !== gsig) {
+            grid.dataset.sig = gsig;
+            grid.innerHTML = C.ENDINGS.list.map(function (id) {
+              var got = !!G.state.endings[id];
+              return '<span class="end-badge' + (got ? ' got' : '') + '" data-tip="' +
+                (got ? t('ending_' + id + '_d') : t('ending_locked')) + '">' +
+                (got ? t('ending_' + id + '_t') : '???') + '</span>';
+            }).join('');
+          }
+        }
         setText($('legacyBtn'), t('legacy_btn', { p: Math.round(G.legacyNextBonus() * 100) }));
         setText($('legacyNote'), t('legacy_note'));
       } else setClass(fb, 'hidden', true);
