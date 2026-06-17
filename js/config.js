@@ -606,6 +606,38 @@
   // High Trust unlocks premium contracts; low Trust adds regulatory pressure.
   var TRUST = { START: 60, MAX: 100, MIN: 0, OUTPUT_LO: 0.90, OUTPUT_HI: 1.10, LOW_REG_PRESSURE: 0.04 };
 
+  // ---- RELATIONSHIP METERS (4 soft meters the player watches) ----------------
+  // The owner-requested 4-meter model. trust == "Public Approval" (relabeled in UI).
+  // govLoyalty / industryRel / morale are NEW fields (default ~55, safe-migrated).
+  // Each 0..100 with green/amber/red bands. DRIVERS move them (decisions, taxes,
+  // layoffs, releases); CONSEQUENCES bite at LOW values; HIGH values OPEN DOORS.
+  var METERS = {
+    START_GOV: 55, START_IND: 55, START_MORALE: 55,
+    MIN: 0, MAX: 100,
+    LOW: 35, HIGH: 70,            // color bands: <LOW red, <HIGH amber, else green
+    // --- consequence thresholds (where low meters bite) ---
+    GOV_NAT: 30,                  // govLoyalty below this feeds the nationalization gate
+    GOV_TAX_PRESSURE: 35,         // below this, tax pressure (forecast multiplier) rises
+    GOV_TAX_PENALTY: 0.25,        // up to +25% tax accrual at govLoyalty 0
+    MORALE_RESEARCH_LO: 0.80,     // research speed multiplier at morale 0 (slower)
+    MORALE_RESEARCH_HI: 1.05,     // research speed multiplier at morale 100 (faster)
+    MORALE_MOLE_LO: 35,           // below this, mole/leak chance rises on poach rolls
+    MORALE_MOLE_BONUS: 0.5,       // up to +50% extra poach at morale 0
+    IND_ACQ: 35,                  // below this, hostile-takeover signal is easier to trip
+    APPROVAL_REV_LO: 0.94,        // approval(trust) revenue drag at 0 (was folded into trustMult; this is an ADDED small drag at very low approval)
+    // --- positive pulls / open doors (high meters) ---
+    SAFETY_CONTRACT_VEC: 40,      // avg risk at/under this + worldUnlocked → "trusted release" speed + contract revenue
+    SAFETY_CONTRACT_BONUS: 0.08,  // +8% product revenue when running clean & trusted
+    // --- driver step sizes (engine hooks) ---
+    TAX_PAID_GOV: 4,             // paying taxes in full raises govLoyalty
+    TAX_SHORT_GOV: -6,           // shortfall / evasion dings govLoyalty
+    LAYOFF_MORALE: -12,          // layoffs tank morale
+    LAYOFF_APPROVAL_EXTRA: 0,    // (approval already dinged via LAYOFF_TRUST)
+    HIRE_MORALE: 1,              // hiring nudges morale up (team growing)
+    RELEASE_APPROVAL: 2,         // shipping a new generation pleases the public
+    RELEASE_MORALE: 3            // shipping is a morale win for the team
+  };
+
   // ---- Unified card system: crises + news decisions + opportunities -----
   // effect keys: cashFrac (-fraction of cash), trust (+/-), vec {id:delta},
   // penaltySec (output crisis penalty), allMult (one-time permanent x), cashGift (x seconds of cps)
@@ -2105,7 +2137,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 17,         // v17: discrete electricity bills + taxes + accountant (safe migrate)
+    SAVE_VERSION: 18,         // v18: 4 relationship meters (govLoyalty/industryRel/morale) — safe migrate
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -2151,6 +2183,7 @@
     RACE: RACE,
     ENDINGS: ENDINGS,
     TRUST: TRUST,
+    METERS: METERS,
     CARDS: CARDS,
     DECISIONS: DECISIONS,
     INCIDENTS: INCIDENTS,

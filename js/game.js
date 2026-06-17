@@ -79,7 +79,11 @@
       orb: 'orb_default',    // cosmetic: TRAIN orb skin
       theme: 'theme_default',// cosmetic: backdrop theme
       // R7 management-sim layer
-      trust: 60,
+      trust: 60,            // == "Public Approval" (Одобрение населения) in the UI
+      // 4 RELATIONSHIP METERS (trust above is meter #1). #2-4 default ~55:
+      govLoyalty: 55,       // 🏛 Лояльность государства — taxes/compliance/lobbying
+      industryRel: 55,      // 🤝 Отношения с компаниями — poach-vs-partner / open-source / M&A
+      morale: 55,           // 🧑‍🔬 Мораль команды — pay/hiring vs layoffs/crunch
       cards: [],             // active actionable cards (crisis / decision / opportunity)
       cardAllMult: 1,        // permanent multiplier from one-time opportunities (chip drops)
       // ===== Decision-engine groundwork (Phase 1) — populated by applyEffect() =====
@@ -1734,6 +1738,39 @@
   function trustMult() { return C.TRUST.OUTPUT_LO + (C.TRUST.OUTPUT_HI - C.TRUST.OUTPUT_LO) * ((state.trust || 0) / 100); }
   function marketUnlocked() { return worldUnlocked(); }
   function clampTrust(v) { return Math.max(C.TRUST.MIN, Math.min(C.TRUST.MAX, v)); }
+  // ---- 4 RELATIONSHIP METERS: shared clamp + named movers --------------------
+  function clampMeter(v) { var M = C.METERS; var n = (typeof v === 'number' && isFinite(v)) ? v : M.START_GOV; return Math.max(M.MIN, Math.min(M.MAX, n)); }
+  function moveGov(d)    { state.govLoyalty  = clampMeter((state.govLoyalty  || 0) + d); }
+  function moveIndustry(d){ state.industryRel = clampMeter((state.industryRel || 0) + d); }
+  function moveMorale(d) { state.morale      = clampMeter((state.morale      || 0) + d); }
+  // band of a 0..100 meter for color: 'low'(red) / 'mid'(amber) / 'high'(green).
+  function meterBand(v) { var M = C.METERS; return v < M.LOW ? 'low' : (v < M.HIGH ? 'mid' : 'high'); }
+  // the 4 meters as a UI-ready descriptor list (icon/color handled in ui.js).
+  function relationshipMeters() {
+    return [
+      { id: 'approval', val: Math.round(state.trust || 0),       band: meterBand(state.trust || 0) },
+      { id: 'gov',      val: Math.round(state.govLoyalty || 0),  band: meterBand(state.govLoyalty || 0) },
+      { id: 'industry', val: Math.round(state.industryRel || 0), band: meterBand(state.industryRel || 0) },
+      { id: 'morale',   val: Math.round(state.morale || 0),      band: meterBand(state.morale || 0) }
+    ];
+  }
+  // ---- CONSEQUENCES (where low meters bite) + POSITIVE PULLS -----------------
+  // morale → research-speed multiplier (low morale = slower research).
+  function moraleResearchMult() { var M = C.METERS; return M.MORALE_RESEARCH_LO + (M.MORALE_RESEARCH_HI - M.MORALE_RESEARCH_LO) * ((state.morale || 0) / 100); }
+  // morale → extra poach/leak fraction when a talent raid fires (low morale = more leaks).
+  function moraleMoleBonus() { var M = C.METERS; var m = state.morale || 0; if (m >= M.MORALE_MOLE_LO) return 0; return M.MORALE_MOLE_BONUS * (1 - m / M.MORALE_MOLE_LO); }
+  // govLoyalty → tax-accrual pressure multiplier (low loyalty = the state taxes you harder).
+  function govTaxPressure() { var M = C.METERS; var g = state.govLoyalty || 0; if (g >= M.GOV_TAX_PRESSURE) return 1; return 1 + M.GOV_TAX_PENALTY * (1 - g / M.GOV_TAX_PRESSURE); }
+  // SAFETY POSITIVE PULL: clean risk + shipped + decent approval → "trusted release" bonus
+  // to product revenue (high Safety has an UPSIDE, not just downside-mitigation).
+  function trustedReleaseActive() {
+    if (!worldUnlocked()) return false;
+    if ((state.modelGen || 0) < 1) return false;
+    return highestVector().val <= C.METERS.SAFETY_CONTRACT_VEC && (state.trust || 0) >= C.TRUST.START;
+  }
+  function trustedReleaseMult() { return trustedReleaseActive() ? (1 + C.METERS.SAFETY_CONTRACT_BONUS) : 1; }
+  // approval → small revenue drag only when public approval is very low (boycotts).
+  function approvalRevMult() { var M = C.METERS; var tr = state.trust || 0; if (tr >= M.LOW) return 1; return M.APPROVAL_REV_LO + (1 - M.APPROVAL_REV_LO) * (tr / M.LOW); }
   function hasCrisisCard() { for (var i = 0; i < state.cards.length; i++) if (state.cards[i].kind === 'crisis') return true; return false; }
   var _uid = 1;
 
@@ -1821,6 +1858,11 @@
       var m = eff.meter;
       var dShare = numDelta(m.marketShare); if (dShare !== undefined) state.marketShare = Math.max(0, Math.min(100, state.marketShare + scaleHarm(dShare, -1)));
       var dTrust = numDelta(m.trust); if (dTrust !== undefined) state.trust = clampTrust(state.trust + scaleHarm(dTrust, -1));
+      // 4 RELATIONSHIP METERS — decisions can move gov/industry/morale just like trust.
+      // Harmful direction (negative) scaled by eventSeverityMult, same as trust.
+      var dGov = numDelta(m.govLoyalty);  if (dGov !== undefined) moveGov(scaleHarm(dGov, -1));
+      var dInd = numDelta(m.industryRel); if (dInd !== undefined) moveIndustry(scaleHarm(dInd, -1));
+      var dMor = numDelta(m.morale);      if (dMor !== undefined) moveMorale(scaleHarm(dMor, -1));
       var dAlign = numDelta(m.align); if (dAlign !== undefined) state.align = Math.max(0, state.align + dAlign);
       // valuation is a DERIVED figure (no stored field) — record the adjustment as an
       // accumulator now; later phases may fold it into valuation().
@@ -1889,6 +1931,9 @@
       case 'meter.marketShare': return state.marketShare || 0;
       case 'meter.valuation':   return valuation();
       case 'meter.trust':       return state.trust || 0;
+      case 'meter.govLoyalty':  return state.govLoyalty || 0;
+      case 'meter.industryRel': return state.industryRel || 0;
+      case 'meter.morale':      return state.morale || 0;
       case 'meter.align':       return state.align || 0;
       case 'meter.risk':        return highestVector().val;       // aggregate risk = worst vector
       case 'meter.act':         return currentAct();
@@ -3607,6 +3652,11 @@
     s.researchLevel = clean(s.researchLevel, 0, 0);
     s.modelGen = Math.floor(clean(s.modelGen, 0, 0, C.MODELGEN.length));
     s.trust = clean(s.trust, C.TRUST ? C.TRUST.START : 50, 0, 100);
+    // v18 — 4 relationship meters: pre-v18 saves have no gov/industry/morale → default ~55.
+    var _M = C.METERS || { START_GOV: 55, START_IND: 55, START_MORALE: 55 };
+    s.govLoyalty  = clean(s.govLoyalty,  _M.START_GOV,    0, 100);
+    s.industryRel = clean(s.industryRel, _M.START_IND,    0, 100);
+    s.morale      = clean(s.morale,      _M.START_MORALE, 0, 100);
     s.legacyMult = clean(s.legacyMult, 1, 0);
     s.taps = Math.floor(clean(s.taps, 0, 0));
     if (s.gens && typeof s.gens === 'object') {
@@ -3919,6 +3969,10 @@
     firstPrestigeReady: firstPrestigeReady, prestigeProjection: prestigeProjection,
     startCashBoost: startCashBoost, keepGenFrac: keepGenFrac,
     crisisCdLeft: crisisCdLeft, trustMult: trustMult,
+    relationshipMeters: relationshipMeters, meterBand: meterBand, clampMeter: clampMeter,
+    moveGov: moveGov, moveIndustry: moveIndustry, moveMorale: moveMorale,
+    moraleResearchMult: moraleResearchMult, govTaxPressure: govTaxPressure,
+    trustedReleaseActive: trustedReleaseActive, trustedReleaseMult: trustedReleaseMult, approvalRevMult: approvalRevMult,
     currentAct: currentAct, rivalsRevealed: rivalsRevealed, agiProgress: agiProgress,
     leadingRival: leadingRival, maxRivalAgi: maxRivalAgi, slowLeadingRival: slowLeadingRival,
     endingPerkMult: endingPerkMult, endingsUnlocked: endingsUnlocked, applyRaceStance: applyRaceStance,
