@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [], decision: [], newsline: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -129,6 +129,18 @@
       legacyMult: 1,         // permanent multiplier kept across Founder's Legacy
       unicorn: false,        // §9 shareable milestone: valuation first crossed $1B
       decacorn: false,       // §9 shareable milestone: valuation first crossed $10B
+      // ===== Phase 3 — FAILURE STATES (DESIGN §2) =====
+      // crisis state machine. warnLevel telegraphs bankruptcy off runway; acq holds a live
+      // hostile-acquisition ultimatum; flags gate one-time beats. Always recoverable.
+      crisis: {
+        warnLevel: 0,        // 0 calm · 1 amber memo · 2 red investor-pressure · 3 final ultimatum
+        ultimatumAt: 0,      // wall-clock when the final ultimatum first surfaced (insolvency grace)
+        acq: null,           // live hostile-takeover offer {rivalId,name,offer,turnsLeft,nextTurnAt,poached,trigVal}
+        acqClearUntil: 0,    // cooldown: no new acquisition offer before this wall-clock time
+        sharePeak: 0,        // highest market share seen (acquisition "share slipping" signal)
+        natAt: 0             // wall-clock when nationalization restructure began (grace before ending)
+      },
+      debt: { owed: 0, perMonth: 0, monthsLeft: 0 }, // venture-debt drag added to monthly burn
       lang: window.GAME_I18N.getLang(),
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
@@ -480,8 +492,11 @@
                     + (state.datacenters || 0) * B.OVERHEAD_PER_DC;
     // the whole burn scales with difficulty's burnMult (Easy 0.8 … Impossible 1.5)
     compute *= dm; electricity *= dm; salaries *= dm; upkeep *= dm; overhead *= dm;
-    var total = compute + electricity + salaries + upkeep + overhead;
-    return { compute: compute, electricity: electricity, salaries: salaries, upkeep: upkeep, overhead: overhead, total: total };
+    // Phase 3: venture-debt repayment is an ADDED operating drain until the term runs out
+    // (the death-spiral lever). NOT scaled by burnMult — it's a fixed contractual repayment.
+    var debt = (state.debt && state.debt.monthsLeft > 0) ? (state.debt.perMonth || 0) : 0;
+    var total = compute + electricity + salaries + upkeep + overhead + debt;
+    return { compute: compute, electricity: electricity, salaries: salaries, upkeep: upkeep, overhead: overhead, debt: debt, total: total };
   }
   // total MONTHLY burn (the opposing drain to revenue).
   function monthlyBurn() { return burnBreakdown().total; }
@@ -608,6 +623,266 @@
     emit('funding', { id: r.id });
     emit('change');
     return true;
+  }
+
+  // ===================================================================
+  // PHASE 3 — FAILURE STATES (DESIGN-depth-redesign §2) ----------------
+  // The game becomes losable, but FAIRLY: bankruptcy and hostile takeover are TELEGRAPHED,
+  // always ship ≥1 recovery lever, and the lethal step is an ULTIMATUM-not-instant-death.
+  // Three failure paths, all routed through the existing finale system as endings:
+  //   bankruptcy  → 'bankrupt'      (insolvent, no lever left)
+  //   acquisition → 'absorbed'      (acqui-hire ultimatum expired unfought)
+  //   nationalize → 'nationalized'  (frontier-tier state seizure)
+  // ===================================================================
+  var C_CR = C.CRISIS;
+
+  // ---- recovery levers (each is also callable from the engine for headless verification) ----
+  // every lever that injects cash uses MONTHS × net burn so it scales with the player's real
+  // scale (a $10B lab's emergency raise dwarfs a garage's), and each carries a real cost so it's
+  // a trade, never free.
+  function netBurnFloor() {
+    // a positive per-month figure even when (barely) profitable, so lever payouts never become 0.
+    var nb = netMonthlyBurn();
+    return nb > 0 ? nb : Math.max(1, monthlyBurn() * 0.25);
+  }
+  function leverAvailable() {
+    // at least one recovery lever is ALWAYS available (anti-silent-death). Returns the set so
+    // the UI can render exactly what's usable right now.
+    return {
+      raise: canTakeFunding(),                         // a fresh round if one remains
+      downround: true,                                 // emergency down-round: always available
+      debt: !(state.debt && state.debt.monthsLeft > 0),// venture debt: only if not already in debt
+      layoffs: (state.researchers || 0) >= 2,          // need heads to cut
+      pivot: (state.compute || 0) > 0 || (state.marketShare || 0) > 0
+    };
+  }
+
+  function doDownround() {
+    // fire-sale raise: cash now, valuation haircut (flavor), dilution (share), small trust ding.
+    var cash = netBurnFloor() * C_CR.DOWNROUND_MONTHS;
+    addCash(cash);
+    state.marketShare = Math.max(0, (state.marketShare || 0) - C_CR.DOWNROUND_SHARE);
+    state.trust = clampTrust((state.trust || 0) + C_CR.DOWNROUND_TRUST);
+    emitNews('crisis', ['nh_downround'], { v: window.GAME_FMT.fmt(cash) });
+    emit('lever', { id: 'downround', cash: cash });
+    emit('change');
+    return cash;
+  }
+  function doVentureDebt() {
+    if (state.debt && state.debt.monthsLeft > 0) return 0;  // already carrying debt
+    var cash = netBurnFloor() * C_CR.DEBT_MONTHS;
+    addCash(cash);
+    var owed = cash * C_CR.DEBT_REPAY_MULT;
+    state.debt = { owed: owed, perMonth: owed / C_CR.DEBT_TERM_MONTHS, monthsLeft: C_CR.DEBT_TERM_MONTHS };
+    emitNews('crisis', ['nh_debt'], { v: window.GAME_FMT.fmt(cash), r: window.GAME_FMT.fmt(owed) });
+    emit('lever', { id: 'debt', cash: cash, owed: owed });
+    emit('change');
+    return cash;
+  }
+  function doLayoffs() {
+    var before = state.researchers || 0;
+    var cut = Math.floor(before * C_CR.LAYOFF_FRAC);
+    state.researchers = Math.max(0, before - cut);
+    state.trust = clampTrust((state.trust || 0) + C_CR.LAYOFF_TRUST);
+    // also frees a small cash cushion (severance avoided / runway reclaimed) sized to NEW burn.
+    var cash = monthlyBurn() * 0 + netBurnFloor() * C_CR.LAYOFF_MIN_CASH_MONTHS;
+    addCash(cash);
+    emitNews('crisis', ['nh_layoffs'], { n: cut });
+    emit('lever', { id: 'layoffs', cut: cut, cash: cash });
+    emit('change');
+    return cut;
+  }
+  function doPivot() {
+    // sell/pivot a product line: shed compute stock + share for cash; lower ceiling, lower burn.
+    var soldCompute = (state.compute || 0) * C_CR.PIVOT_COMPUTE_FRAC;
+    state.compute = Math.max(0, (state.compute || 0) - soldCompute);
+    state.marketShare = Math.max(0, (state.marketShare || 0) + C_CR.PIVOT_SHARE);
+    var cash = netBurnFloor() * C_CR.PIVOT_CASH_MONTHS;
+    addCash(cash);
+    emitNews('crisis', ['nh_pivot'], { v: window.GAME_FMT.fmt(cash) });
+    emit('lever', { id: 'pivot', cash: cash });
+    emit('change');
+    return cash;
+  }
+  // generic dispatcher so the UI + harness share one entry point.
+  function useRecoveryLever(id) {
+    var av = leverAvailable();
+    if (id === 'raise')     return av.raise ? takeFunding() : false;
+    if (id === 'downround') return doDownround() > 0;
+    if (id === 'debt')      return av.debt ? (doVentureDebt() > 0) : false;
+    if (id === 'layoffs')   return av.layoffs ? (doLayoffs() >= 0) : false;
+    if (id === 'pivot')     return av.pivot ? (doPivot() > 0) : false;
+    return false;
+  }
+
+  // ---- bankruptcy telegraph (escalates off runwayMonths) --------------
+  // levels: 0 calm · 1 amber memo (<failWarnMonths) · 2 red investor-pressure (<RED_MONTHS) ·
+  // 3 final ultimatum (≤ ultimatum threshold). Each crossing fires its beat ONCE.
+  function bankruptcyThreshold() { return Math.max(diff('failMonths') || 0, C_CR.ULTIMATUM_FLOOR); }
+  function inBankruptcyDanger() {
+    if (state.gameOver) return false;
+    if (state.modelGen < 1) return false;          // garage has no burn pressure yet
+    if (isProfitable()) return false;
+    return runwayMonths() < (diff('failWarnMonths') || 3);
+  }
+  function updateBankruptcy() {
+    var cr = state.crisis;
+    if (state.gameOver) return;
+    // recovered? (profitable or comfortable runway) — reset the telegraph so it can re-arm later.
+    if (state.modelGen < 1 || isProfitable() || runwayMonths() >= (diff('failWarnMonths') || 3)) {
+      if (cr.warnLevel !== 0) { cr.warnLevel = 0; cr.ultimatumAt = 0; }
+      return;
+    }
+    var m = runwayMonths();
+    var warnM = diff('failWarnMonths') || 3;
+    var redM = Math.min(C_CR.RED_MONTHS, warnM);
+    var ultM = bankruptcyThreshold();
+    var lvl = m <= ultM ? 3 : (m < redM ? 2 : 1);
+    if (lvl > cr.warnLevel) {
+      cr.warnLevel = lvl;
+      if (lvl === 1) emitNews('crisis', ['nh_warn_amber']);
+      else if (lvl === 2) { emitNews('crisis', ['nh_warn_red']); emit('crisis', { kind: 'pressure', level: 2 }); }
+      else if (lvl === 3) { cr.ultimatumAt = Date.now(); emit('crisis', { kind: 'ultimatum', level: 3 }); }
+    } else if (lvl === 3 && cr.warnLevel === 3) {
+      // sustained insolvency: after a grace beat at the brink with cash exhausted → bankruptcy.
+      if (!cr.ultimatumAt) cr.ultimatumAt = Date.now();
+      var graceUp = Date.now() - cr.ultimatumAt >= C_CR.INSOLVENT_GRACE_SEC * 1000;
+      if (graceUp && (state.cash || 0) <= netBurnFloor() * 0.05) {
+        triggerFinale('bankrupt', false);
+      }
+    }
+  }
+
+  // ---- hostile acquisition ultimatum (Sub-part B) ---------------------
+  // fires WEAK-BUT-VALUABLE: high valuation AND (low runway OR share slipping OR trust collapsed).
+  function strongestRival() {
+    var rs = activeRivals(), best = null;
+    for (var i = 0; i < rs.length; i++) if (!best || rs[i].share > best.share) best = rs[i];
+    return best;
+  }
+  function acqWeakSignal() {
+    var cr = state.crisis;
+    var lowRunway = !isProfitable() && runwayMonths() < C_CR.ACQ_RUNWAY_MONTHS;
+    var trustGone = (state.trust || 0) < C_CR.ACQ_TRUST;
+    var shareSlip = (cr.sharePeak || 0) - (state.marketShare || 0) >= C_CR.ACQ_SHARE_DROP;
+    return lowRunway || trustGone || shareSlip;
+  }
+  function acquisitionActive() { return !!(state.crisis && state.crisis.acq); }
+  function maybeTriggerAcquisition() {
+    var cr = state.crisis;
+    if (state.gameOver || acquisitionActive()) return;
+    if ((state.modelGen || 0) < C_CR.ACQ_MIN_GEN) return;
+    if (Date.now() < (cr.acqClearUntil || 0)) return;
+    if (valuation() < C_CR.ACQ_MIN_VALUATION) return;
+    if (!acqWeakSignal()) return;
+    var rival = strongestRival();
+    if (!rival) return;
+    var trigVal = valuation();
+    var offer = trigVal * rnd(C_CR.ACQ_OFFER_MULT[0], C_CR.ACQ_OFFER_MULT[1]);
+    var turns = Math.max(1, Math.round(diff('acqWindow') || 4));
+    cr.acq = {
+      rivalId: rival.id, name: rivalName(rival.id), offer: offer,
+      turnsLeft: turns, totalTurns: turns, nextTurnAt: Date.now() + C_CR.ACQ_TURN_SEC * 1000,
+      poached: 0, trigVal: trigVal
+    };
+    emitNews('crisis', ['nh_acq_offer'], { rival: cr.acq.name, v: window.GAME_FMT.fmt(offer) });
+    emit('crisis', { kind: 'acquisition', rival: cr.acq.name });
+    emit('change');
+  }
+  function updateAcquisition(dt) {
+    var cr = state.crisis;
+    if (!acquisitionActive() || state.gameOver) return;
+    var a = cr.acq;
+    // broke free? regained valuation past the bar OR climbed back to health → predator backs off.
+    if (valuation() >= a.trigVal * C_CR.ACQ_WINOFF_VAL_MULT ||
+        (!acqWeakSignal() && (state.trust || 0) >= C_CR.ACQ_TRUST + 8)) {
+      cr.acq = null; cr.acqClearUntil = Date.now() + C_CR.ACQ_COOLDOWN_SEC * 1000;
+      emitNews('crisis', ['nh_acq_survived'], { rival: a.name });
+      emit('crisis', { kind: 'acq_survived', rival: a.name });
+      emit('change');
+      return;
+    }
+    if (Date.now() >= a.nextTurnAt) {
+      a.turnsLeft--;
+      a.nextTurnAt = Date.now() + C_CR.ACQ_TURN_SEC * 1000;
+      if (a.turnsLeft <= 0) {
+        // unfought countdown expired → acqui-hire goes through. Token investor return = the offer.
+        addCash(a.offer);   // a pittance returned to investors (flavor: lifetime earnings echo)
+        acquireAbsorb(a);
+        return;
+      }
+      // each surviving turn, the predator poaches researchers + licenses your model (share dip).
+      var poach = Math.ceil((state.researchers || 0) * C_CR.ACQ_POACH_FRAC);
+      state.researchers = Math.max(0, (state.researchers || 0) - poach);
+      a.poached += poach;
+      state.marketShare = Math.max(0, (state.marketShare || 0) - 1);
+      emitNews('crisis', ['nh_acq_poach'], { rival: a.name, n: poach, k: a.turnsLeft });
+      emit('crisis', { kind: 'acq_poach', n: poach, turnsLeft: a.turnsLeft });
+      emit('change');
+    }
+  }
+  function acquireAbsorb(a) {
+    state.crisis.acq = null;
+    triggerFinale('absorbed', false);
+  }
+  // FIGHT actions (besides the generic recovery levers, which all help):
+  function acqPoisonPill() {
+    if (!acquisitionActive()) return false;
+    var cost = monthlyBurn() * C_CR.ACQ_PILL_CASH_MONTHS;
+    if ((state.cash || 0) < cost) return false;
+    state.cash -= cost;
+    state.trust = clampTrust((state.trust || 0) + C_CR.ACQ_PILL_TRUST);
+    state.marketShare = (state.marketShare || 0) + C_CR.ACQ_PILL_SHARE;
+    emitNews('crisis', ['nh_acq_pill'], { rival: state.crisis.acq.name });
+    emit('lever', { id: 'pill' });
+    emit('change');
+    return true;
+  }
+  // accept the acqui-hire outright (the player's choice to take the exit).
+  function acqAccept() {
+    if (!acquisitionActive()) return false;
+    var a = state.crisis.acq;
+    addCash(a.offer);
+    acquireAbsorb(a);
+    return true;
+  }
+
+  // ---- nationalization (Sub-part C; frontier-tier, rare, gated late) --
+  function nationalizationEligible() {
+    if (state.gameOver) return false;
+    if ((state.modelGen || 0) < C_CR.NAT_MIN_GEN) return false;
+    if (valuation() < C_CR.NAT_MIN_VALUATION) return false;
+    return (state.trust || 0) < C_CR.NAT_TRUST || (state.vec && state.vec.reg >= C_CR.NAT_REG_VEC);
+  }
+  function updateNationalization() {
+    var cr = state.crisis;
+    if (state.gameOver) return;
+    if (!cr.natAt) {
+      if (nationalizationEligible()) {
+        cr.natAt = Date.now();
+        emitNews('crisis', ['nh_nationalize_warn']);
+        emit('crisis', { kind: 'nationalize' });
+      }
+      return;
+    }
+    // restructure grace period — a chance to rally trust/reg back above the line and cancel it.
+    if (!nationalizationEligible()) { cr.natAt = 0; return; }   // recovered
+    if (Date.now() - cr.natAt >= C_CR.NAT_GRACE_SEC * 1000) triggerFinale('nationalized', false);
+  }
+
+  // master crisis tick — telegraph + the two ultimatum systems + nationalization.
+  function updateCrisis(dt) {
+    var cr = state.crisis; if (!cr) return;
+    if ((state.marketShare || 0) > (cr.sharePeak || 0)) cr.sharePeak = state.marketShare;  // track peak for "slipping" signal
+    // debt amortization: tick down the repayment term in in-game months.
+    if (state.debt && state.debt.monthsLeft > 0) {
+      state.debt.monthsLeft = Math.max(0, state.debt.monthsLeft - dt / C.BURN.MONTH_SEC);
+      if (state.debt.monthsLeft <= 0) { state.debt = { owed: 0, perMonth: 0, monthsLeft: 0 }; emitNews('crisis', ['nh_debt_clear']); }
+    }
+    updateBankruptcy();
+    maybeTriggerAcquisition();
+    updateAcquisition(dt);
+    updateNationalization();
   }
 
   // ---- costs -----------------------------------------------------------
@@ -1690,6 +1965,9 @@
     state.research2 = { active: false, startedAt: 0, endsAt: 0 }; state.researchLevel = 0;
     state.funding = {};
     state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0;
+    // Phase 3: clear any failure-state machinery so the new company starts from a clean slate.
+    state.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0 };
+    state.debt = { owed: 0, perMonth: 0, monthsLeft: 0 };
     seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the legacy run
     state.gameOver = false; state.ending = null; state.won = false;
     state.totalEarnedThisRun = 0;
@@ -1942,6 +2220,7 @@
 
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
     if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
+    updateCrisis(dt);   // Phase 3 FAILURE STATES: bankruptcy telegraph + acquisition + nationalization
     if (!state.unicorn && state.modelGen >= 1 && valuation() >= 1e9) { state.unicorn = true; emit('toast', { key: 'milestone_unicorn' }); } // §9 shareable
     else if (state.unicorn && !state.decacorn && valuation() >= 1e10) { state.decacorn = true; emit('toast', { key: 'milestone_decacorn' }); }
 
@@ -2307,6 +2586,38 @@
       } catch (e) { /* never let a balance calc break loading */ }
       finally { state = _saved; }
     }
+    // ---- v13: FAILURE STATES (Phase 3). Backfill the crisis/debt machinery for old saves.
+    // CRUCIAL: a loaded save must NEVER drop straight into a game-over or an active ultimatum.
+    // We start every loaded save with a CLEAN crisis state (warnLevel 0, no live acquisition,
+    // no nationalization grace), so the telegraph re-arms from scratch off the live runway —
+    // and because the v12 grandfather already guarantees ≥12 months of runway for any pre-burn
+    // save, nobody is bankrupt-on-load. The crisis engine will only escalate during real play.
+    if (!s.crisis || typeof s.crisis !== 'object' || Array.isArray(s.crisis)) {
+      s.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0 };
+    } else {
+      // an in-progress v13 save: keep its fields but defensively coerce + clear any stale lethal timers.
+      s.crisis.warnLevel = Math.floor(clean(s.crisis.warnLevel, 0, 0, 3));
+      s.crisis.ultimatumAt = clean(s.crisis.ultimatumAt, 0, 0);
+      s.crisis.acqClearUntil = clean(s.crisis.acqClearUntil, 0, 0);
+      s.crisis.sharePeak = clean(s.crisis.sharePeak, 0, 0, 100);
+      s.crisis.natAt = clean(s.crisis.natAt, 0, 0);
+      if (s.crisis.acq && typeof s.crisis.acq !== 'object') s.crisis.acq = null;
+      if (s.crisis.acq) {
+        // re-base the countdown clock so a save that sat for days doesn't instantly expire.
+        s.crisis.acq.nextTurnAt = Date.now() + C.CRISIS.ACQ_TURN_SEC * 1000;
+        s.crisis.acq.turnsLeft = Math.max(1, Math.floor(clean(s.crisis.acq.turnsLeft, 1, 1)));
+      }
+      // never resume mid-grace into an instant nationalization: reset the grace clock.
+      if (s.crisis.natAt) s.crisis.natAt = Date.now();
+    }
+    if (!s.debt || typeof s.debt !== 'object' || Array.isArray(s.debt)) s.debt = { owed: 0, perMonth: 0, monthsLeft: 0 };
+    else {
+      s.debt.owed = clean(s.debt.owed, 0, 0);
+      s.debt.perMonth = clean(s.debt.perMonth, 0, 0);
+      s.debt.monthsLeft = clean(s.debt.monthsLeft, 0, 0);
+    }
+    // a save that was persisted AFTER a finale keeps gameOver — that's correct (post-finale
+    // banner). But a pre-v13 save can't have a Phase-3 ending mid-run, so nothing to undo here.
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {
@@ -2490,6 +2801,12 @@
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding, fundingPayout: fundingPayout,
+    // Phase 3 FAILURE STATES: telegraph + recovery levers + ultimatums
+    leverAvailable: leverAvailable, useRecoveryLever: useRecoveryLever,
+    doDownround: doDownround, doVentureDebt: doVentureDebt, doLayoffs: doLayoffs, doPivot: doPivot,
+    inBankruptcyDanger: inBankruptcyDanger, bankruptcyThreshold: bankruptcyThreshold,
+    acquisitionActive: acquisitionActive, acqPoisonPill: acqPoisonPill, acqAccept: acqAccept,
+    nationalizationEligible: nationalizationEligible,
     rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, raceStatus: raceStatus, agiRank: agiRank, agiFieldSize: agiFieldSize,
     acquireTarget: acquireTarget, acquireCost: acquireCost, acquireUnlocked: acquireUnlocked, canAcquire: canAcquire, acquireRival: acquireRival,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,

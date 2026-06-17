@@ -443,7 +443,7 @@
   // ---- Endings (resolve at the AGI climax; each = badge + small meta-perk) ----
   var ENDINGS = {
     PERK_PER: 0.04,         // +4% permanent global output per UNIQUE ending unlocked
-    list: ['aligned', 'foom', 'nationalized', 'beaten', 'quiet'],
+    list: ['aligned', 'foom', 'nationalized', 'beaten', 'quiet', 'bankrupt', 'absorbed'],
     // thresholds evaluated at ascension (avgVec = mean of risk vectors)
     QUIET_TRUST: 85, QUIET_AVGVEC: 18,
     NATIONALIZED_TRUST: 30, NATIONALIZED_AVGVEC: 65, NATIONALIZED_ESC: 3,
@@ -1444,10 +1444,64 @@
     OVERHEAD_PER_DC: 200      // $/month overhead per datacenter (site/admin)
   };
 
+  // ---- FAILURE STATES (Phase 3, DESIGN-depth-redesign §2) --------------
+  // The game is LOSABLE — but FAIRLY: every brink is telegraphed, every crisis ships a
+  // recovery lever, and the worst outcomes are ULTIMATUMS (a countdown you can fight) rather
+  // than instant death. All thresholds read difficulty levers (failWarnMonths/failMonths/
+  // acqWindow) that were dormant until now.
+  var CRISIS = {
+    // ----- bankruptcy telegraph (escalating off runwayMonths) -----
+    RED_MONTHS: 3,            // < this ⇒ red HUD + investor-pressure (level 2)
+    // (amber = < diff('failWarnMonths'); ultimatum = ≤ max(diff('failMonths'), 1))
+    ULTIMATUM_FLOOR: 1,       // ultimatum surfaces at ≤ this many months even if failMonths=0
+    INSOLVENT_GRACE_SEC: 8,   // after the final ultimatum, this long at ~0 runway before the
+                              // bankruptcy ending fires (one last beat; never a silent death)
+    // ----- recovery levers -----
+    // emergency down-round: cash NOW = months × net burn, but valuation×factor + heavy dilution.
+    DOWNROUND_MONTHS: 10,     // months of runway the fire-sale raise buys
+    DOWNROUND_VAL: [0.4, 0.7],// valuation multiplier band (worse the deeper the hole) — flavor
+    DOWNROUND_SHARE: 6,       // market-share % surrendered to new investors (dilution)
+    DOWNROUND_TRUST: -4,      // small trust ding (a fire-sale signals weakness)
+    // venture debt: fast cash, repaid ×factor as an ADDED monthly burn for N months (death-spiral)
+    DEBT_MONTHS: 8,           // months of runway the debt injects
+    DEBT_REPAY_MULT: 1.9,     // total repaid = injected × this (× over the term)
+    DEBT_TERM_MONTHS: 12,     // repayment spread across this many in-game months (adds to burn)
+    // layoffs: cut burn by trimming headcount — lose researchers + morale (trust)
+    LAYOFF_FRAC: 0.35,        // fraction of researchers let go
+    LAYOFF_TRUST: -8,         // morale / public-trust hit
+    LAYOFF_MIN_CASH_MONTHS: 4,// also clears a small cash cushion = this many months of NEW burn
+    // sell / pivot a product line: lower ceiling, lower burn (sheds compute + a generation tier)
+    PIVOT_COMPUTE_FRAC: 0.45, // fraction of compute STOCK sold for cash
+    PIVOT_CASH_MONTHS: 6,     // cash raised = this many months of net burn
+    PIVOT_SHARE: -5,          // market share lost (you exited a segment)
+    // ----- hostile acquisition (ultimatum; the scaled "fair" failure) -----
+    // Triggers WEAK-BUT-VALUABLE: high valuation AND (low runway OR slipping share OR trust collapse).
+    ACQ_MIN_VALUATION: 5e8,   // only a genuinely valuable lab is worth absorbing ($500M+)
+    ACQ_RUNWAY_MONTHS: 4,     // weakness signal: runway under this
+    ACQ_TRUST: 30,            // weakness signal: trust collapsed under this
+    ACQ_SHARE_DROP: 1.5,      // weakness signal: market share fell ≥ this since last peak
+    ACQ_OFFER_MULT: [1.1, 1.5], // acqui-hire payout to investors = valuation × this (a pittance)
+    ACQ_POACH_FRAC: 0.18,     // researchers poached PER unfought turn
+    ACQ_TURN_SEC: 30,         // real seconds per acquisition "turn" (the countdown ticks)
+    ACQ_COOLDOWN_SEC: 240,    // after you fight one off, this long before another can trigger
+    ACQ_MIN_GEN: 2,           // not before you've shipped a couple models (no garage takeovers)
+    // fighting the offer:
+    ACQ_PILL_TRUST: 10,       // poison-pill/retention rally: +trust, costs cash
+    ACQ_PILL_CASH_MONTHS: 3,  // cost of the retention package = this many months of burn
+    ACQ_PILL_SHARE: 2,        // and a small share bump from signaling strength
+    ACQ_WINOFF_VAL_MULT: 1.4, // valuation you must regain (× the trigger valuation) to break free
+    // ----- nationalization (frontier-tier; rare, gated late) -----
+    NAT_MIN_VALUATION: 2e10,  // frontier scale ($20B+) — only the strategically-vital get seized
+    NAT_MIN_GEN: 6,           // and only very late (near the AGI frontier)
+    NAT_TRUST: 25,            // a state moves in when trust has collapsed at frontier scale
+    NAT_REG_VEC: 70,          // …or regulatory-risk vector is maxed out
+    NAT_GRACE_SEC: 12         // restructuring beat before the 'nationalized' ending lands
+  };
+
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 12,         // + burn/runway economy (no new persisted fields; safe migrate)
+    SAVE_VERSION: 13,         // + failure states (crisis machinery; safe migrate, grandfathered)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1467,6 +1521,7 @@
     TALENT: TALENT,
     FUNDING: FUNDING,
     BURN: BURN,
+    CRISIS: CRISIS,
     UNLOCKS: UNLOCKS,
     RISK: RISK,
     TAP: TAP,
