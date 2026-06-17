@@ -149,7 +149,7 @@
     var st = odoState[id] || (odoState[id] = { disp: target, lastLen: -1 });
     var d = st.disp + (target - st.disp) * 0.22;
     if (!isFinite(d)) d = target;
-    if (Math.abs(target - d) < target * 0.0015 + 0.5) d = target;
+    if (Math.abs(target - d) < Math.abs(target) * 0.0015 + 0.5) d = target;
     st.disp = d;
     var str = fmt(d);
     el.textContent = str;
@@ -950,6 +950,31 @@
     if (!anyPlayed) html = '<div class="hofNone muted small">' + t('hof_none') + '</div>' + html;
     $('hofList').innerHTML = html;
   }
+  // standalone Hall-of-Fame modal (used by the game-over screen's "View Stats" button). Reuses
+  // the same per-difficulty record rendering so there's one source of truth.
+  function showHallOfFameModal() {
+    var rec = G.state.records || {};
+    var order = (C.DIFFICULTY && C.DIFFICULTY.ORDER) || ['easy', 'normal', 'hard', 'impossible'];
+    var rows = '';
+    order.forEach(function (d) {
+      var r = rec[d];
+      var played = !!(r && (r.games || 0) > 0);
+      var won = !!(r && r.reachedAGI);
+      var parts = [];
+      if (played) {
+        parts.push(t('hof_share', { p: (r.bestShare || 0).toFixed(0) }));
+        if (won && (r.fastestAGIdays || 0) > 0) { var days = r.fastestAGIdays < 10 ? r.fastestAGIdays.toFixed(1) : Math.round(r.fastestAGIdays); parts.push(t('hof_agi', { n: days })); }
+        if ((r.wins || 0) > 0) parts.push(hofPlural(r.wins, 'hof_wins')); else parts.push(hofPlural(r.games || 0, 'hof_games'));
+      }
+      var detail = parts.length ? parts.join(' · ') : t('hof_empty_cell');
+      rows += '<div class="hofItem' + (played ? '' : ' hofItem--empty') + '">' +
+        '<span class="hofDiff">' + (won ? '🏆 ' : '') + t('diff_' + d) + '</span>' +
+        '<span class="hofRec">' + detail + '</span></div>';
+    });
+    showModal('<div class="ob"><h3>' + t('hof_title') + '</h3><div id="hofModalList">' + rows + '</div>' +
+      '<div class="row"><button class="primary" id="hofModalOk">' + t('ob_done') + '</button></div></div>');
+    if ($('hofModalOk')) $('hofModalOk').onclick = function () { window.GAME_AUDIO.buy(); hideModal(); };
+  }
 
   // ---------- research / prestige ----------
   function updateResearch() {
@@ -1039,7 +1064,16 @@
     var s = G.state;
     var cps = frameCps;                 // computed once per frame in update()
     setOdometer($('cashVal'), s.cash);
-    setText($('cpsVal'), t('per_sec', { v: fmt(frameMoney) }));   // product revenue/sec
+    // DESIGN §1/§2: the topbar shows the TRUE NET cash rate (revenue − burn), WITH its real sign —
+    // not the gross income that used to read "+14/sec" while cash plummeted. Negative = red, the
+    // burn is winning; positive = green, you're profitable. Garage (no product, no burn) reads $0.
+    var net = G.netCashRate();
+    var cv = $('cpsVal');
+    if (!isFinite(net)) net = 0;
+    var sign = net < -1e-9 ? '−' : (net > 1e-9 ? '+' : '');
+    setText(cv, sign + '$' + fmt(Math.abs(net)) + t('per_sec_suffix'));
+    setClass(cv, 'rate-neg', net < -1e-9);
+    setClass(cv, 'rate-pos', net > 1e-9);
     setText($('tapValue'), '+' + fmt(G.tapValue()));
 
     // atmosphere intensity rises with output toward AGI — quantized so we only
@@ -1173,6 +1207,101 @@
       setClass(cta, 'hidden', !danger);
       if (danger) setText(cta, acq ? t('crisis_acq_title') : t('crisis_title'));
     }
+  }
+
+  // ---------- Day counter + always-on finance line + pre-revenue hint + debt banner ----------
+  // DESIGN §2 (owner's #1 complaint: "nowhere written what money is deducted for"): the finance
+  // line is ALWAYS visible. DESIGN §5: "Day N" anchors time (the debt banner references it).
+  // DESIGN §6: a pre-revenue hint explains "0 income" as a stage, not a bug. Tap the line for the
+  // full per-line breakdown.
+  var _financeFlow = null;   // latest breakdown for the tap-to-reveal tip
+  function updateFinanceLine() {
+    var s = G.state;
+    // Day N — always shown.
+    setText($('dayLabel'), t('day_counter', { n: G.dayNow() }));
+
+    var bd = G.burnBreakdown();
+    var rev = G.monthlyRevenue();
+    // net monthly cash = revenue − burn (incl. debt interest). netMonthlyBurn() = burn − revenue,
+    // so net = −netMonthlyBurn(). Negative = bleeding, positive = profitable.
+    var netMonthly = -G.netMonthlyBurn();
+    _financeFlow = { rev: rev, bd: bd, net: netMonthly, inRed: G.inRed() };
+
+    var nsign = netMonthly < -1e-9 ? '−' : (netMonthly > 1e-9 ? '+' : '');
+    // compact, always-on summary: income · costs(parts) · net · runway
+    var dc = t('finance_dot');
+    var runwayTxt;
+    if (G.isProfitable()) runwayTxt = t('finance_runway_profit');
+    else if (G.inRed()) runwayTxt = t('finance_runway_red');
+    else { var m = G.runwayMonths(); var disp = m >= 100 ? '99+' : (m >= 10 ? Math.round(m) : m.toFixed(1)); runwayTxt = t('finance_runway', { n: disp }); }
+    var html =
+      '<span class="fin-in">' + t('finance_income', { y: fmt(rev) }) + '</span>' + dc +
+      '<span class="fin-out">' + t('finance_costs', { x: fmt(bd.total) }) +
+      ' <span class="fin-parts">(' + t('finance_costs_parts') + ')</span></span>' + dc +
+      '<span class="fin-net' + (netMonthly < -1e-9 ? ' neg' : (netMonthly > 1e-9 ? ' pos' : '')) + '">' +
+        t('finance_net', { sign: nsign, z: fmt(Math.abs(netMonthly)) }) + '</span>' + dc +
+      '<span class="fin-rw">' + runwayTxt + '</span>';
+    setHTML($('financeLine'), html);
+
+    // pre-revenue hint (DESIGN §6): before the first model ships, "0 income" is a STAGE.
+    var preRev = (G.state.modelGen || 0) < 1 && rev <= 0;
+    setClass($('preRevHint'), 'hidden', !preRev);
+    if (preRev) setText($('preRevHint'), t('pre_revenue_hint'));
+
+    // loud red debt banner (DESIGN §4) — only while in the red.
+    var db = $('debtBanner');
+    if (G.inRed() && !G.isGameOver()) {
+      setClass(db, 'hidden', false);
+      var bankDay = G.redBankruptDay();
+      // how deep toward the instant-insolvency ceiling are we (for the urgent variant)?
+      var ceiling = G.debtCeiling();   // negative
+      var pct = ceiling < 0 ? Math.max(0, Math.min(100, Math.round(s.cash / ceiling * 100))) : 0;
+      if (pct >= 70) setText($('debtBannerText'), t('debt_banner_near', { n: bankDay, pct: pct }));
+      else setText($('debtBannerText'), t('debt_banner_grace', { n: bankDay }));
+    } else setClass(db, 'hidden', true);
+  }
+
+  // ---------- GAME-OVER screen (DESIGN §4) ----------
+  // A full-screen overlay shown the instant ANY finale fires. It BLOCKS all play (taps/buys are
+  // gated on G.isGameOver() in the handlers; this overlay also sits on top capturing pointer
+  // events). It shows the ending title + flavor (companyName), the run summary (final share,
+  // days survived, valuation, generation, record flag), and two buttons: New Game (→ difficulty
+  // select → fresh run) and View Stats.
+  function endingTitleKey(eid, won) {
+    return won ? 'go_title_win' : 'go_title_lose';
+  }
+  function updateGameOver() {
+    var scr = $('gameOverScreen'); if (!scr) return;
+    if (!G.isGameOver()) { setClass(scr, 'hidden', true); return; }
+    if (!scr.classList.contains('hidden')) return;   // already shown — don't re-render every frame
+    setClass(scr, 'hidden', false);
+    var s = G.state;
+    var eid = s.ending || 'aligned';
+    var won = !!s.won;
+    setText($('goTitle'), t(endingTitleKey(eid, won)));
+    setText($('goEmblem'), won ? '✸' : '✕');
+    setClass($('goCard'), 'win', won);
+    setClass($('goCard'), 'lose', !won);
+    setText($('goCompany'), s.companyName || 'Singularity Inc.');
+    setText($('goFlavor'), t('ending_' + eid + '_t') + ' — ' + t('ending_' + eid + '_d', { co: s.companyName || 'Singularity Inc.' }));
+    // run summary
+    var days = Math.floor((s.playtime || 0) / (C.DAY_SEC || 60));
+    var rows = [
+      [t('go_sum_ending'), t('ending_' + eid + '_t')],
+      [t('go_sum_days'), String(days)],
+      [t('go_sum_share'), (Math.round((s.marketShare || 0) * 10) / 10) + '%'],
+      [t('go_sum_val'), '$' + fmt(G.valuation())],
+      [t('go_sum_gen'), 'v' + (s.modelGen || 0)]
+    ];
+    setHTML($('goSummary'), rows.map(function (r) {
+      return '<div class="go-row"><span class="go-k">' + r[0] + '</span><span class="go-v">' + r[1] + '</span></div>';
+    }).join(''));
+    // record flag (Phase 9): set in recordGameEnd when this run beat a difficulty best.
+    var rec = $('goRecord');
+    if (s._lastRunRecord) { setClass(rec, 'hidden', false); setText(rec, t('go_record', { diff: t('diff_' + (s.difficulty || 'normal')) })); }
+    else setClass(rec, 'hidden', true);
+    setText($('goNewGame'), t('go_new_game'));
+    setText($('goStats'), t('go_view_stats'));
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -1696,6 +1825,8 @@
     frameMoney = G.moneyRate();
     updateTop();
     updateRunway();
+    updateFinanceLine();   // DESIGN §2/§5/§6: Day N + always-on finance line + pre-revenue hint + debt banner
+    updateGameOver();      // DESIGN §4: full-screen blocking game-over overlay (when a finale has fired)
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); updateExec(); }
@@ -2127,6 +2258,17 @@
         e.preventDefault(); e.stopPropagation();
         if (d.dataset.tipDyn === 'runway') {
           showTipText(d, t('runway_flow_tip', { burn: fmt(_runwayFlow.burn), rev: fmt(_runwayFlow.rev) }));
+        } else if (d.dataset.tipDyn === 'finance' && _financeFlow) {
+          // full per-line monthly breakdown (DESIGN §2/§C): every dollar of cost named.
+          var f = _financeFlow, bd = f.bd;
+          var nsign = f.net < -1e-9 ? '−' : (f.net > 1e-9 ? '+' : '');
+          var txt = t('finance_tip', {
+            rev: fmt(f.rev), sal: fmt(bd.salaries), elec: fmt(bd.electricity),
+            comp: fmt(bd.compute), dc: fmt(bd.upkeep), oh: fmt(bd.overhead),
+            sign: nsign, net: fmt(Math.abs(f.net))
+          });
+          if (f.inRed) txt += t('finance_tip_debt');
+          showTipText(d, txt);
         }
         return;
       }
@@ -2245,6 +2387,31 @@
       if (G.acquisitionActive()) showAcquisitionModal();
       else if (G.state.crisis && G.state.crisis.warnLevel >= 3) showRecoveryModal('ultimatum');
       else showRecoveryModal('red');
+    });
+    // DESIGN §4: tapping the red debt banner opens the recovery levers (raise / cut / pivot).
+    var debtBanner = $('debtBanner');
+    if (debtBanner) debtBanner.addEventListener('click', function () {
+      window.GAME_AUDIO.buy();
+      if (G.acquisitionActive()) showAcquisitionModal();
+      else showRecoveryModal('red');
+    });
+    // GAME-OVER screen buttons: New Game → fresh run → difficulty select; View Stats → Stats tab.
+    var goNew = $('goNewGame');
+    if (goNew) goNew.addEventListener('click', function () {
+      window.GAME_AUDIO.buy();
+      setClass($('gameOverScreen'), 'hidden', true);
+      G.newGame();                  // fresh run, KEEP records + language + name + meta
+      renderStatic(); switchTab('company');
+      // straight to difficulty select (language already set — do NOT re-ask). On confirm it rolls
+      // a fresh seed/scenario/rival field + start cash, then we drop the player into the new run.
+      showDifficulty(function () { renderStatic(); update(); });
+    });
+    var goStats = $('goStats');
+    if (goStats) goStats.addEventListener('click', function () {
+      window.GAME_AUDIO.buy();
+      // View Stats: open the per-difficulty Hall of Fame as a modal ON TOP of the game-over screen
+      // (the dead game stays blocked beneath; dismiss returns to the summary).
+      showHallOfFameModal();
     });
     // PART B — tapping the LIVE ticker opens the news-feed panel
     var tkEl = $('ticker');

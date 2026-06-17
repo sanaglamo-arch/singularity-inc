@@ -247,9 +247,13 @@
   function recordGameEnd(ending, won) {
     var r = recordFor(state.difficulty);
     r.games = (r.games || 0) + 1;
-    // best-of bests one more time (the final frame), so the end-state always counts.
-    var sh = finiteNum(state.marketShare); if (sh > r.bestShare) r.bestShare = sh;
-    var val = valuation(); if (isFinite(val) && val > r.bestValuation) r.bestValuation = val;
+    // best-of bests one more time (the final frame), so the end-state always counts. Track whether
+    // THIS run set any new best, so the game-over screen can flag "New record!" (DESIGN §4).
+    var sh = finiteNum(state.marketShare); var val = valuation();
+    var newRecord = (sh > r.bestShare) || (isFinite(val) && val > r.bestValuation) || (endingRank(ending) > endingRank(r.bestEnding));
+    state._lastRunRecord = newRecord;
+    if (sh > r.bestShare) r.bestShare = sh;
+    if (isFinite(val) && val > r.bestValuation) r.bestValuation = val;
     // best ending (highest quality outcome ever achieved on this difficulty).
     if (endingRank(ending) > endingRank(r.bestEnding)) r.bestEnding = ending;
     if (won) {
@@ -1197,6 +1201,7 @@
   function addCash(v) { state.cash += v; state.totalEarnedThisRun += v; state.totalEarnedAllTime += v; }
 
   function tap() {
+    if (state.gameOver) return 0;   // DESIGN §4: a dead game is not tappable (run is frozen)
     // build overclock heat first so this tap reflects the new heat
     state.comboHeat = Math.min(1, state.comboHeat + C.COMBO.gainPerTap);
     if (state.comboHeat >= 0.999) state.maxHeatHit = true;
@@ -1210,6 +1215,7 @@
   }
 
   function buyGen(id) {
+    if (state.gameOver) return false;   // DESIGN §4: no purchases after the finale (run is frozen)
     var qty = state.buyMode === 'max' ? genMaxAffordable(id) : state.buyMode;
     if (qty < 1) return false;
     var cost = genCostCumulative(id, qty);
@@ -3492,6 +3498,31 @@
     emit('change');
   }
 
+  // NEW GAME (DESIGN §4 roguelike loop): start a FRESH run after a finale, but KEEP the
+  // meta-progression that survives across games — per-difficulty records (Phase 9), the
+  // chosen language, the company name (language already set; we do NOT re-ask), unlocked
+  // endings/achievements/cosmetics, and the optional Founder's Legacy bonus. Everything
+  // else resets to a clean garage. The UI then routes straight to difficulty select, which
+  // calls setDifficulty(level, true) to roll a fresh seed/scenario/rival field + start cash.
+  function newGame() {
+    var keep = {
+      records: state.records, lang: state.lang,
+      companyName: state.companyName, companyNamed: state.companyNamed,
+      endings: state.endings, achievements: state.achievements,
+      orb: state.orb, theme: state.theme,
+      legacyCount: state.legacyCount, legacyMult: state.legacyMult,
+      boostTokens: state.boostTokens, onboarded: state.onboarded,
+      totalEarnedAllTime: state.totalEarnedAllTime,
+      sound: state.sound, music: state.music, haptics: state.haptics, buyMode: state.buyMode,
+      difficulty: state.difficulty
+    };
+    state = newState();
+    for (var k in keep) if (keep[k] !== undefined) state[k] = keep[k];
+    state.createdAt = Date.now(); state.lastSeen = Date.now();
+    emit('change');
+    return true;
+  }
+
   // On load, mark already-satisfied achievements & valuation milestones as earned
   // WITHOUT toasting, so a returning/migrated/loaded player isn't flooded re-announcing
   // past progress. Only genuinely NEW unlocks during active play toast afterward.
@@ -3659,7 +3690,7 @@
     // tick / offline
     tick: tick, computeOffline: computeOffline, applyOffline: applyOffline,
     // persistence
-    save: save, load: load, reset: reset, init: init,
+    save: save, load: load, reset: reset, newGame: newGame, init: init,
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
     setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
