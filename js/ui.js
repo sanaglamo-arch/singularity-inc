@@ -58,11 +58,26 @@
     if (html !== undefined) e.innerHTML = html;
     return e;
   }
+  // Toasts are QUEUED with a visible cap so a burst (many achievements/milestones at
+  // once, e.g. a big offline jump or a save-load that retroactively awards) never stacks
+  // and buries the UI. At most TOAST_MAX show together; the rest appear in sequence.
+  var _toastQ = [], _toastShown = 0;
+  var TOAST_MAX = 3, TOAST_MS = 3000;
   function toast(msg, kind) {
-    var root = $('toastRoot');
-    var e = el('div', 'toast' + (kind ? ' ' + kind : ''), msg);
-    root.appendChild(e);
-    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 3000);
+    _toastQ.push({ msg: msg, kind: kind || '' });
+    if (_toastQ.length > 30) _toastQ.splice(0, _toastQ.length - 30); // safety: never let it grow unbounded
+    pumpToasts();
+  }
+  function pumpToasts() {
+    var root = $('toastRoot'); if (!root) return;
+    while (_toastShown < TOAST_MAX && _toastQ.length) {
+      var it = _toastQ.shift();
+      var e = el('div', 'toast' + (it.kind ? ' ' + it.kind : ''), it.msg);
+      root.appendChild(e); _toastShown++;
+      (function (node) {
+        setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); _toastShown--; pumpToasts(); }, TOAST_MS);
+      })(e);
+    }
   }
   function floatText(x, y, txt, cls) {
     var e = el('div', 'float' + (cls ? ' ' + cls : ''), txt);
@@ -386,7 +401,7 @@
   }
 
   // ---------- GDD v3: rival market-share standings ----------
-  var standRefs = null;
+  var standRefs = null, _standSig = '';
   function entityName(id) { return id === 'you' ? t('you_label') : t('rival_' + id); }
   function buildStandings() {
     var box = $('standingsRows'); if (!box) return;
@@ -402,17 +417,24 @@
   }
   function updateStandings() {
     if (!standRefs) buildStandings();
-    var rows = G.standings(), maxShare = 0;
+    var rows = G.standings(), maxShare = 0, box = $('standingsRows');
     rows.forEach(function (r) { if (r.share > maxShare) maxShare = r.share; });
     maxShare = Math.max(maxShare, 1);
+    // Reorder the REAL DOM nodes to the sorted order (not a CSS-order overlay) so the
+    // shown rank ALWAYS matches the displayed share in every state — and DOM order ==
+    // visual order (correct for screenshots / screen readers). Only re-append when the
+    // order actually changed (cheap; appendChild moves an existing node).
+    var sig = rows.map(function (r) { return r.id; }).join('|');
+    var reorder = sig !== _standSig;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], ref = standRefs[r.id]; if (!ref) continue;
-      setStyleP(ref.row, 'order', String(i));            // flex-order sort — no DOM reshuffle
+      if (reorder && box) box.appendChild(ref.row);
       setText(ref.rank, '#' + (i + 1));
       setText(ref.share, (Math.round(r.share * 10) / 10) + '%');
       setStyleP(ref.bar, 'width', (r.share / maxShare * 100).toFixed(1) + '%');
       setClass(ref.row, 'lead', i === 0);
     }
+    _standSig = sig;
     var rank = G.playerRank(), total = rows.length;
     setText($('standingsStatus'), rank === 1 ? t('standings_leader') : t('standings_behind', { n: rank, total: total }));
     // §5 acquisition: buy out the strongest rival (post mid-game)
@@ -771,11 +793,15 @@
     var html = '';
     C.RISK.VECTORS.forEach(function (vid) {
       var val = s.vec[vid], net = G.vectorNet(vid);
-      var arrow = net > 0.001 ? '▲' : (net < -0.001 ? '▼' : '–');
+      // rising risk = ▲ +rate (red/bad); falling = ▼ −rate (green/good). Arrow AND sign
+      // agree so "risk rising" is unambiguous (was an unsigned value next to an arrow).
+      var rising = net > 0.001, falling = net < -0.001;
+      var arrow = rising ? '▲' : (falling ? '▼' : '–');
+      var sign = rising ? '+' : (falling ? '−' : '');
       html += '<div class="vrow">' +
         '<div class="vhead"><span class="vname">' + t('vec_' + vid) + '</span><span class="vpct">' + Math.floor(val) + '%</span></div>' +
         '<div class="bar"><div class="vfill" style="width:' + val + '%;background:' + vecColor(val) + '"></div></div>' +
-        '<div class="vmeta muted small">' + t('vec_' + vid + '_d') + ' · <span class="' + (net > 0 ? 'vup' : 'vdn') + '">' + arrow + ' ' + Math.abs(net).toFixed(2) + '/s</span></div>' +
+        '<div class="vmeta muted small">' + t('vec_' + vid + '_d') + ' · <span class="' + (rising ? 'vup' : 'vdn') + '">' + arrow + ' ' + sign + Math.abs(net).toFixed(2) + '/s</span></div>' +
         '</div>';
     });
     $('vectorBars').innerHTML = html;
