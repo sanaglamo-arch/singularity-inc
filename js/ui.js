@@ -913,6 +913,19 @@
       setClass(eb, 'bad', s.eventId === 'shortage');
       setText(eb, t('ev_active', { name: t('ev_' + s.eventId), t: FMT.fmtTime((s.eventEndsAt - Date.now()) / 1000) }));
     } else setClass(eb, 'hidden', true);
+    // persistent race-status badge (item 3): '#1 market share' when leading, switches to
+    // 'Helion 78% AGI' as a rival closes in. Shown from mid-game (once rivals are revealed).
+    var rb = $('raceBadge');
+    if (rb) {
+      var rs = G.raceStatus && G.raceStatus();
+      if (rs && rs.kind === 'lead') {
+        setClass(rb, 'hidden', false); setClass(rb, 'threat', false);
+        setText(rb, t('race_lead_badge'));
+      } else if (rs && rs.kind === 'threat') {
+        setClass(rb, 'hidden', false); setClass(rb, 'threat', true);
+        setText(rb, t('race_threat_badge', { name: t('rival_' + rs.id), p: rs.pct }));
+      } else setClass(rb, 'hidden', true);
+    }
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -1595,6 +1608,11 @@
     });
     // one-time teaching beat the first time a run crosses ~1h (the v4→v5 cliff) (item 2)
     G.on('longtrain', function () { showLongTrainTeach(); });
+    // late-game drama: a rival crossed 50/75/90% AGI — they're catching up (item 3)
+    G.on('rivalagi', function (d) {
+      window.GAME_AUDIO.incident && window.GAME_AUDIO.incident(); buzz([0, 30, 50, 30]);
+      toast(t('rival_agi_toast', { name: t('rival_' + d.id), p: d.pct }), 'bad');
+    });
     // GDD v3: hire a researcher (speeds up training/research/builds)
     var hireBtn = $('hireBtn');
     if (hireBtn) hireBtn.addEventListener('click', function () {

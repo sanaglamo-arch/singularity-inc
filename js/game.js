@@ -90,6 +90,7 @@
       // R9 narrative campaign + race to AGI
       act: 0,                // current narrative act (monotonic)
       rivalAgi: {},          // rival id -> AGI progress 0..100
+      rivalAgiToasted: {},   // rival id -> highest AGI milestone (50/75/90) already toasted
       rivalShare: {},        // rival id -> market share % (GDD v3 race scoreboard)
       acquired: {},          // rival id -> true (acquired/removed from the race, §5)
       raceStance: null,      // story choice at Act 3
@@ -1091,7 +1092,16 @@
       var room = Math.max(0, (C.RIVAL_SHARE_CAP - cur) / C.RIVAL_SHARE_CAP);
       state.rivalShare[r.id] = Math.min(C.RIVAL_SHARE_CAP, cur + r.shareRate * room * dt);
       // AGI progress climbs on each rival's own timeline (the deadline / pressure)
-      state.rivalAgi[r.id] = Math.min(100, (state.rivalAgi[r.id] || 0) + r.agiRate * dt);
+      var before = state.rivalAgi[r.id] || 0;
+      var after = Math.min(100, before + r.agiRate * dt);
+      state.rivalAgi[r.id] = after;
+      // late-game drama: fire a toast as a rival crosses 50/75/90% AGI (they're catching up).
+      // Only once you can see the race (rivals revealed) and once per threshold per rival.
+      if (rivalsRevealed()) {
+        var last = state.rivalAgiToasted[r.id] || 0;
+        var ms = after >= 90 ? 90 : after >= 75 ? 75 : after >= 50 ? 50 : 0;
+        if (ms > last) { state.rivalAgiToasted[r.id] = ms; emit('rivalagi', { id: r.id, pct: ms }); }
+      }
     });
   }
   // standings: you + rivals, sorted by market share desc (for the race panel)
@@ -1109,6 +1119,18 @@
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
   function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
+  function leadingRival() { var best = null, bv = -1; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) { var a = state.rivalAgi[r.id] || 0; if (a > bv) { bv = a; best = r; } } }); return best ? { id: best.id, agi: bv } : null; }
+  // Topbar race-status badge (item 3): show '#1' when you lead the market AND no rival is
+  // closing in; otherwise surface the most threatening rival's AGI %. Null = nothing to show
+  // yet (race not revealed). The threat takes priority once a rival passes ~40% AGI.
+  function raceStatus() {
+    if (!rivalsRevealed() || !rivalsActive()) return null;
+    var lr = leadingRival();
+    var threat = lr && lr.agi >= 40;
+    if (threat) return { kind: 'threat', id: lr.id, pct: Math.round(lr.agi) };
+    if (isMarketLeader()) return { kind: 'lead' };
+    return lr ? { kind: 'threat', id: lr.id, pct: Math.round(lr.agi) } : null;
+  }
   function rivalAcquired(id) { return !!(state.acquired && state.acquired[id]); }
   // §5 acquisitions: buy out the strongest remaining rival (one-time each, post mid-game)
   function acquireTarget() {
@@ -1517,6 +1539,7 @@
     if (typeof s.unicorn !== 'boolean') s.unicorn = false;
     if (typeof s.decacorn !== 'boolean') s.decacorn = false;
     if (!s.acquired || typeof s.acquired !== 'object') s.acquired = {}; // v9
+    if (!s.rivalAgiToasted || typeof s.rivalAgiToasted !== 'object') s.rivalAgiToasted = {}; // race-drama toasts
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {
@@ -1635,7 +1658,7 @@
     trainDuration: trainDuration,
     researcherSpeed: researcherSpeed, researcherCost: researcherCost, hireResearcher: hireResearcher, talentUnlocked: talentUnlocked,
     nextFundingRound: nextFundingRound, canTakeFunding: canTakeFunding, takeFunding: takeFunding, fundingPayout: fundingPayout,
-    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, agiRank: agiRank, agiFieldSize: agiFieldSize,
+    rivalsActive: rivalsActive, standings: standings, playerRank: playerRank, isMarketLeader: isMarketLeader, leadingRivalAgi: leadingRivalAgi, leadingRival: leadingRival, raceStatus: raceStatus, agiRank: agiRank, agiFieldSize: agiFieldSize,
     acquireTarget: acquireTarget, acquireCost: acquireCost, acquireUnlocked: acquireUnlocked, canAcquire: canAcquire, acquireRival: acquireRival,
     datacenterMult: datacenterMult, buildCost: buildCost, buildActive: buildActive, canStartBuild: canStartBuild, startBuild: startBuild, buildProgress: buildProgress, buildTimeLeft: buildTimeLeft,
     researchEfficiencyMult: researchEfficiencyMult, researchProjCost: researchProjCost, researchActive: researchActive, canStartResearch: canStartResearch, startResearch: startResearch, researchProgress: researchProgress, researchTimeLeft: researchTimeLeft, processSpeed: processSpeed,
