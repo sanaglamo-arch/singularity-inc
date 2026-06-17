@@ -780,9 +780,9 @@
       weight_mods: [{ factor: 2.0, when: { 'meter.vec.reg': '>=55' } }],
       options: [
         { id: 'comply', tooltip_meters: ['cash', 'trust', 'risk'],
-          effects: { resource: { cash: '-300' }, meter: { trust: '+5', marketShare: '-2' }, vec: { reg: -16 } } },
+          effects: { resource: { cashMonthsBurn: -1.5 }, meter: { trust: '+5', marketShare: '-2' }, vec: { reg: -16 } } },
         { id: 'minimal', tooltip_meters: ['cash', 'risk'],
-          effects: { resource: { cash: '-90' }, vec: { reg: -4 }, set_var: { reg_debt: '+1' } } },
+          effects: { resource: { cashMonthsBurn: -0.4 }, vec: { reg: -4 }, set_var: { reg_debt: '+1' } } },
         { id: 'defy', tooltip_meters: ['marketShare', 'risk', 'trust'],
           effects: { meter: { marketShare: '+5', trust: '-3' }, vec: { reg: 18 },
                      schedule: { event: 'dec_reg_fine_hits', delaySec: 150, chance: 0.5, callback: 'callback_reg_fine' } } }
@@ -817,7 +817,7 @@
       trigger: { 'meter.marketShare': '>=12' },
       options: [
         { id: 'comply_all', tooltip_meters: ['cash', 'risk'],
-          effects: { resource: { cash: '-180' }, vec: { reg: -8 } } },
+          effects: { resource: { cashMonthsBurn: -1 }, vec: { reg: -8 } } },
         { id: 'geoblock', tooltip_meters: ['marketShare', 'trust'],
           effects: { meter: { marketShare: '-3', trust: '+2' }, vec: { reg: -4 } } },
         { id: 'ignore', tooltip_meters: ['marketShare', 'risk'],
@@ -832,7 +832,7 @@
         { id: 'pay', tooltip_meters: ['cash', 'trust', 'risk'],
           effects: { cashFrac: -0.10, meter: { trust: '+2' }, vec: { reg: -12 } } },
         { id: 'appeal', tooltip_meters: ['cash', 'risk', 'trust'],
-          effects: { resource: { cash: '-120' }, meter: { trust: '-3' }, vec: { reg: 8 } } }
+          effects: { resource: { cashMonthsBurn: -0.6 }, meter: { trust: '-3' }, vec: { reg: 8 } } }
       ]
     },
 
@@ -844,11 +844,11 @@
       weight_mods: [{ factor: 1.6, when: { 'meter.marketShare': '>=20' } }],
       options: [
         { id: 'lockin', tooltip_meters: ['cash', 'compute', 'risk'],
-          effects: { resource: { cash: '-500', compute: '+400' }, set_var: { capex_debt: '+1' } } },
+          effects: { resource: { cashMonthsBurn: -2, compute: '+400' }, set_var: { capex_debt: '+1' } } },
         { id: 'wait', tooltip_meters: ['compute', 'marketShare', 'risk'],
           effects: { meter: { marketShare: '-2' }, vec: { cap: -4 }, rival_effect: { helion: { agi: 1.5 } } } },
         { id: 'efficiency', tooltip_meters: ['cash', 'compute', 'align'],
-          effects: { resource: { cash: '-150', compute: '+120' }, meter: { align: '+1' } } }
+          effects: { resource: { cashMonthsBurn: -0.6, compute: '+120' }, meter: { align: '+1' } } }
       ]
     },
     {
@@ -857,7 +857,7 @@
       trigger: { 'resource.compute': '>=400' },
       options: [
         { id: 'permits', tooltip_meters: ['cash', 'compute', 'trust'],
-          effects: { resource: { cash: '-260', compute: '+180' }, meter: { trust: '+2' } } },
+          effects: { resource: { cashMonthsBurn: -1, compute: '+180' }, meter: { trust: '+2' } } },
         { id: 'fasttrack', tooltip_meters: ['compute', 'trust', 'risk'],
           effects: { resource: { compute: '+320' }, meter: { trust: '-4' }, vec: { reg: 10 },
                      schedule: { event: 'dec_chip_grid_backlash', delaySec: 160, chance: 0.5 } } }
@@ -869,7 +869,7 @@
       trigger: { OR: [] },
       options: [
         { id: 'subsidize', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-220' }, meter: { trust: '+4' } } },
+          effects: { resource: { cashMonthsBurn: -0.8 }, meter: { trust: '+4' } } },
         { id: 'stonewall', tooltip_meters: ['trust', 'risk'],
           effects: { meter: { trust: '-6' }, vec: { reg: 12 } } }
       ]
@@ -880,7 +880,7 @@
       trigger: { AND: [{ 'resource.compute': '>=2000' }, { 'resource.cash': '>=600' }] },
       options: [
         { id: 'build', tooltip_meters: ['cash', 'compute', 'risk'],
-          effects: { resource: { cash: '-600' }, meter: { valuation: '+8' },
+          effects: { resource: { cashMonthsBurn: -2.5 }, meter: { valuation: '+8' },
                      buff: { key: 'silicon', mult: 1.15, days: 6 }, set_var: { capex_debt: '+1' } } },
         { id: 'stay', tooltip_meters: ['cash', 'compute'],
           effects: { resource: { compute: '+150' } } }
@@ -892,7 +892,7 @@
       trigger: { 'meter.marketShare': '>=18' },
       options: [
         { id: 'pivot', tooltip_meters: ['cash', 'compute', 'align'],
-          effects: { resource: { cash: '-200' }, meter: { align: '+2', valuation: '-5' }, buff: { key: 'efficiency', mult: 1.1, days: 5 } } },
+          effects: { resource: { cashMonthsBurn: -0.8 }, meter: { align: '+2', valPct: -0.04 }, buff: { key: 'efficiency', mult: 1.1, days: 5 } } },
         { id: 'doubledown', tooltip_meters: ['compute', 'valuation', 'risk'],
           effects: { resource: { compute: '+260' }, meter: { valuation: '+4', marketShare: '+3' }, vec: { cap: 8 } } }
       ]
@@ -919,9 +919,9 @@
       trigger: { AND: [{ 'resource.cash': '>=400' }, { 'meter.marketShare': '>=18' }] },
       options: [
         { id: 'match', tooltip_meters: ['cash', 'researchers', 'valuation'],
-          effects: { resource: { cash: '-450', researchers: '+1' }, meter: { valuation: '+3' } } },
+          effects: { resource: { cashMonthsBurn: -1.5, researchers: '+1' }, meter: { valuation: '+3' } } },
         { id: 'walk', tooltip_meters: ['researchers', 'risk', 'cash'],
-          effects: { vec: { cap: 6 }, rival_effect: { helion: { agi: 2 } } } }
+          effects: { resource: { researchersPct: -0.08 }, vec: { cap: 6 }, rival_effect: { helion: { agi: 2 } } } }
       ]
     },
     {
@@ -930,7 +930,7 @@
       trigger: { 'resource.cash': '>=800' },
       options: [
         { id: 'absorb', tooltip_meters: ['cash', 'researchers', 'risk'],
-          effects: { resource: { cash: '-800', researchers: '+2' }, meter: { marketShare: '+3' }, vec: { reg: 10 } } },
+          effects: { resource: { cashMonthsBurn: -3, researchers: '+2' }, meter: { marketShare: '+3' }, vec: { reg: 10 } } },
         { id: 'pass', tooltip_meters: ['cash', 'trust'],
           effects: { meter: { trust: '+2' } } }
       ]
@@ -990,7 +990,7 @@
       trigger: { OR: [] },
       options: [
         { id: 'recall', tooltip_meters: ['cash', 'marketShare', 'trust'],
-          effects: { resource: { cash: '-200' }, meter: { marketShare: '-4', trust: '+4' }, vec: { cap: -8 } } },
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { marketShare: '-4', trust: '+4' }, vec: { cap: -8 } } },
         { id: 'deny', tooltip_meters: ['trust', 'risk'],
           effects: { meter: { trust: '-8' }, vec: { cap: 8, reg: 10 } } }
       ]
@@ -1008,7 +1008,7 @@
           effects: { meter: { marketShare: '+6' }, vec: { data: 12 }, set_var: { legal_debt: '+1' },
                      schedule: { event: 'dec_lawsuit_hits', delaySec: 120, chance: 0.6, callback: 'callback_lawsuit' } } },
         { id: 'license', tooltip_meters: ['cash', 'trust', 'risk'],
-          effects: { resource: { cash: '-200' }, meter: { trust: '+4', marketShare: '-2' }, vec: { data: -6 } } }
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { trust: '+4', marketShare: '-2' }, vec: { data: -6 } } }
       ]
     },
     {
@@ -1017,9 +1017,9 @@
       trigger: { OR: [] },
       options: [
         { id: 'settle', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-350' }, meter: { trust: '+2' }, vec: { data: -4 } } },
+          effects: { resource: { cashPctVal: -0.08 }, meter: { trust: '+2' }, vec: { data: -4 } } },
         { id: 'fight', tooltip_meters: ['cash', 'risk', 'trust'],
-          effects: { resource: { cash: '-150' }, meter: { trust: '-4' }, vec: { reg: 14 }, set_flag: 'sued_copyright' } }
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { trust: '-4' }, vec: { reg: 14 }, set_flag: 'sued_copyright' } }
       ]
     },
     {
@@ -1030,7 +1030,7 @@
         { id: 'preserve', tooltip_meters: ['trust', 'risk', 'marketShare'],
           effects: { meter: { trust: '-5', marketShare: '-2' }, vec: { reg: -6 } } },
         { id: 'resist', tooltip_meters: ['cash', 'trust', 'risk'],
-          effects: { resource: { cash: '-180' }, meter: { trust: '+4' }, vec: { reg: 10 } } }
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { trust: '+4' }, vec: { reg: 10 } } }
       ]
     },
     {
@@ -1065,7 +1065,7 @@
         { id: 'embrace', tooltip_meters: ['trust', 'marketShare', 'risk'],
           effects: { meter: { trust: '+3', marketShare: '-2' }, vec: { sec: 6 }, rival_effect: { all: { agi: 1.5 } } } },
         { id: 'legal', tooltip_meters: ['cash', 'risk', 'trust'],
-          effects: { resource: { cash: '-140' }, meter: { trust: '-2' }, vec: { sec: -6, reg: 6 } } }
+          effects: { resource: { cashMonthsBurn: -0.7 }, meter: { trust: '-2' }, vec: { sec: -6, reg: 6 } } }
       ]
     },
     {
@@ -1132,7 +1132,7 @@
       trigger: { 'resource.modelGen': '>=5' },
       options: [
         { id: 'keep', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-50' }, meter: { trust: '+1' } } },
+          effects: { resource: { cashMonthsBurn: -0.3 }, meter: { trust: '+1' } } },
         { id: 'sunset', tooltip_meters: ['cash', 'trust'],
           effects: { meter: { trust: '-2' } } }
       ]
@@ -1160,7 +1160,7 @@
         { id: 'concede', tooltip_meters: ['valuation', 'align', 'trust'],
           effects: { meter: { valuation: '+4', align: '-2', trust: '-2' }, set_var: { gov_debt: '+1' } } },
         { id: 'fight_board', tooltip_meters: ['cash', 'researchers', 'trust'],
-          effects: { resource: { cash: '-200', researchers: '-1' }, meter: { trust: '+3', valuation: '-4' } } }
+          effects: { resource: { cashMonthsBurn: -1, researchers: '-1' }, meter: { trust: '+3', valPct: -0.04 } } }
       ]
     },
     {
@@ -1169,9 +1169,9 @@
       trigger: { AND: [{ 'meter.marketShare': '>=18' }, { 'meter.valuation': '>=40' }] },
       options: [
         { id: 'convert', tooltip_meters: ['cash', 'trust', 'valuation'],
-          effects: { resource: { cash: '+400' }, meter: { valuation: '+8', trust: '-5', align: '-1' } } },
+          effects: { resource: { cashMonthsBurn: 6 }, meter: { valuation: '+8', trust: '-5', align: '-1' } } },
         { id: 'keep_mission', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-100' }, meter: { trust: '+5' } } }
+          effects: { resource: { cashMonthsBurn: -0.5 }, meter: { trust: '+5' } } }
       ]
     },
     {
@@ -1215,7 +1215,7 @@
       trigger: { AND: [{ 'meter.marketShare': '>=20' }, { 'resource.cash': '>=400' }] },
       options: [
         { id: 'take_pif', tooltip_meters: ['cash', 'compute', 'trust'],
-          effects: { resource: { cash: '+500', compute: '+300' }, meter: { trust: '-6' }, vec: { reg: 8 } } },
+          effects: { resource: { cashMonthsBurn: 5, compute: '+300' }, meter: { trust: '-6' }, vec: { reg: 8 } } },
         { id: 'decline', tooltip_meters: ['cash', 'trust'],
           effects: { meter: { trust: '+3' } } }
       ]
@@ -1252,7 +1252,7 @@
         { id: 'tout', tooltip_meters: ['valuation', 'trust', 'align'],
           effects: { meter: { valuation: '+3', trust: '-5', align: '-1' } } },
         { id: 'reskill', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '-120' }, meter: { trust: '+4' } } }
+          effects: { resource: { cashMonthsBurn: -0.6 }, meter: { trust: '+4' } } }
       ]
     },
     {
@@ -1275,6 +1275,120 @@
           effects: { resource: { cash: '+150' }, meter: { trust: '-4', align: '-1' } } },
         { id: 'neutral', tooltip_meters: ['trust', 'cash'],
           effects: { meter: { trust: '+1' } } }
+      ]
+    },
+
+    // ===================== PHASE 4 — FRONTIER EXISTENTIAL EVENTS (tier 4) =====================
+    // Gated to FRONTIER scale (valuation in the top band) AND late game (act 3, deep modelGen /
+    // share). Effects are %-of-scale so they cost BILLIONS / a model generation at this size —
+    // the "$50B company faces a $50B problem" fix. Grounded in DESIGN-events-catalog.md §1/§5/§9.
+    // Each ships a recovery path; the "fight" branch trades cash/runway for catastrophic-tail risk
+    // (reg vector → nationalization machinery). i18n: {id}_t/_d + per-option (EN+RU).
+
+    // DOJ DEMANDS YOU DELETE YOUR LATEST MODEL (catalog §1 DOJ/antitrust + §5 court-ordered).
+    // comply = lose a model GENERATION (modelGen −1) + a valuation hit; fight = a legal war that
+    // costs months of runway AND spikes the regulatory vector (feeds the nationalization trigger).
+    {
+      id: 'dec_fr_doj_delete', tier: 4, act: [3], category: 'regulation', weight: 60,
+      cooldown_sec: 360, once: true, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=7' }, { 'meter.marketShare': '>=20' }] },
+      weight_mods: [{ factor: 1.8, when: { 'meter.vec.reg': '>=55' } }],
+      options: [
+        { id: 'comply', tooltip_meters: ['cash', 'valuation', 'risk'],
+          effects: { resource: { modelGen: '-1' }, meter: { valPct: -0.12, marketShare: '-4' }, vec: { reg: -18 } } },
+        { id: 'fight', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cashMonthsBurn: -3 }, meter: { trust: '-4' }, vec: { reg: 22, sec: 6 },
+                     set_var: { nationalization_pressure: '+1' } } }
+      ]
+    },
+    // ANTITRUST SUIT — $-BILLIONS (catalog §1 FTC/DOJ antitrust). A break-up suit lands; settle
+    // bleeds a huge % of valuation, fight bets months of runway against a worse regulatory war.
+    {
+      id: 'dec_fr_antitrust', tier: 4, act: [3], category: 'legal', weight: 55,
+      cooldown_sec: 360, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'meter.marketShare': '>=24' }, { 'resource.modelGen': '>=7' }] },
+      weight_mods: [{ factor: 1.6, when: { 'meter.marketShare': '>=32' } }],
+      options: [
+        { id: 'settle', tooltip_meters: ['cash', 'valuation', 'marketShare'],
+          effects: { resource: { cashPctVal: -0.15 }, meter: { marketShare: '-3', trust: '+2' }, vec: { reg: -14 } } },
+        { id: 'fight', tooltip_meters: ['cash', 'risk', 'marketShare'],
+          effects: { resource: { cashMonthsBurn: -4 }, meter: { marketShare: '+2', trust: '-3' }, vec: { reg: 18 },
+                     set_var: { nationalization_pressure: '+1' } } }
+      ]
+    },
+    // FORCED DIVESTITURE (catalog §9 TikTok divestiture / structural remedy). Regulators order you
+    // to spin off a business line: obey loses share + a valuation slice; stall loses MORE runway and
+    // heat. Both bite at frontier scale.
+    {
+      id: 'dec_fr_divestiture', tier: 4, act: [3], category: 'regulation', weight: 50,
+      cooldown_sec: 360, once: true, priority: 'bankable', default_option: 'divest',
+      trigger: { AND: [{ 'meter.marketShare': '>=26' }, { 'meter.vec.reg': '>=40' }] },
+      options: [
+        { id: 'divest', tooltip_meters: ['valuation', 'marketShare', 'risk'],
+          effects: { meter: { valPct: -0.10, marketShare: '-6' }, vec: { reg: -16 }, set_var: { reg_debt: '+1' } } },
+        { id: 'stall', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cashMonthsBurn: -2 }, meter: { trust: '-4' }, vec: { reg: 16 },
+                     set_var: { nationalization_pressure: '+1' } } }
+      ]
+    },
+    // NATIONALIZATION THREAT (DESIGN §2 frontier flavor; catalog §9 sovereign control). The state
+    // moves to take a strategic stake. Accept = a giant cash injection (months of runway) but you
+    // surrender share + autonomy; resist = a costly standoff that bleeds runway and trust.
+    {
+      id: 'dec_fr_nationalize', tier: 4, act: [3], category: 'geopolitics', weight: 48,
+      cooldown_sec: 400, once: true, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=8' }, { 'meter.marketShare': '>=24' }] },
+      weight_mods: [{ factor: 1.7, when: { 'meter.vec.reg': '>=60' } }],
+      options: [
+        { id: 'accept_stake', tooltip_meters: ['cash', 'marketShare', 'trust'],
+          effects: { resource: { cashMonthsBurn: 8 }, meter: { marketShare: '-5', trust: '-3', align: '+1' }, vec: { reg: -20 } } },
+        { id: 'resist', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cashMonthsBurn: -3 }, meter: { trust: '+3' }, vec: { reg: 14 },
+                     set_var: { nationalization_pressure: '+1' } } }
+      ]
+    },
+    // CATASTROPHIC SAFETY INCIDENT (DESIGN §4 "incident → company-threat"; catalog §4 Grok/Character.AI).
+    // A frontier model causes real-world harm. Ground the fleet (lose a generation's deployment + huge
+    // cash) or contain-and-spin (cheaper now, but trust collapse + a regulatory war).
+    {
+      id: 'dec_fr_safety_catastrophe', tier: 4, act: [3], category: 'safety', weight: 52,
+      cooldown_sec: 360, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=7' }, { 'meter.risk': '>=50' }] },
+      weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=70' } }],
+      options: [
+        { id: 'ground_fleet', tooltip_meters: ['cash', 'valuation', 'align'],
+          effects: { resource: { cashPctVal: -0.10 }, meter: { marketShare: '-5', trust: '+4', align: '+2' }, vec: { cap: -16 } } },
+        { id: 'contain_spin', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { trust: '-9' }, vec: { cap: 12, reg: 16 },
+                     set_var: { nationalization_pressure: '+1' } } }
+      ]
+    },
+    // EXPORT-CONTROL SEIZURE (catalog §9 export bans / chip seizure at scale). A frontier compute
+    // build is frozen by national-security review: pay the "tax" (a billions-scale % of valuation) to
+    // free it, or comply and hand the lead to a rival.
+    {
+      id: 'dec_fr_export_seizure', tier: 4, act: [3], category: 'compute', weight: 46,
+      cooldown_sec: 360, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.compute': '>=5000' }, { 'meter.marketShare': '>=22' }] },
+      options: [
+        { id: 'pay_security_tax', tooltip_meters: ['cash', 'valuation', 'compute'],
+          effects: { resource: { cashPctVal: -0.08, compute: '+400' }, meter: { trust: '-2' }, vec: { reg: 6 } } },
+        { id: 'comply_seizure', tooltip_meters: ['compute', 'marketShare', 'risk'],
+          effects: { meter: { marketShare: '-4' }, vec: { reg: -8 }, rival_effect: { leader: { agi: 3 } } } }
+      ]
+    },
+    // INVESTOR ULTIMATUM (catalog §8 "one investor = leverage"; circular-financing reckoning). Your
+    // anchor investor demands a frontier-defining concession: capitulate (surrender a valuation slice
+    // + autonomy) or call their bluff (lose a giant chunk of runway as they pull back).
+    {
+      id: 'dec_fr_investor_ultimatum', tier: 4, act: [3], category: 'funding', weight: 44,
+      cooldown_sec: 360, once: false, priority: 'interrupt',
+      trigger: { AND: [{ 'resource.modelGen': '>=8' }, { 'meter.marketShare': '>=22' }] },
+      options: [
+        { id: 'capitulate', tooltip_meters: ['valuation', 'align', 'trust'],
+          effects: { meter: { valPct: -0.07, align: '-2', trust: '-2' }, set_var: { gov_debt: '+1' } } },
+        { id: 'call_bluff', tooltip_meters: ['cash', 'valuation', 'trust'],
+          effects: { resource: { cashMonthsBurn: -5 }, meter: { trust: '+3', valPct: -0.05 } } }
       ]
     }
   ];

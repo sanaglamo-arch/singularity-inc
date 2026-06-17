@@ -1390,6 +1390,11 @@
         else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
       }
       var dCompute = numDelta(r.compute); if (dCompute !== undefined) state.compute = Math.max(0, state.compute + dCompute);
+      // PHASE 4: modelGen delta — a frontier event can ROLL BACK a model generation (the
+      // "DOJ deletes your latest model"). Clamped to [0, MODELGEN.length]. This is an inherently
+      // scale-relative loss: it strips the latest revenue-multiplier rung off your product ladder.
+      var dGen = numDelta(r.modelGen);
+      if (dGen !== undefined) state.modelGen = Math.max(0, Math.min(C.MODELGEN.length, Math.floor((state.modelGen || 0) + dGen)));
       // researchersPct: lose/gain a FRACTION of current headcount (a "talent raid" auto-scales
       // with the size of your team). Folds into the same flat dRes path. Harmful = NEGATIVE.
       var dRes = numDelta(r.researchers);
