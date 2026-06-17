@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-06-17 — NIGHT BUILD: 4 RELATIONSHIP METERS (owner ask + audit §C fix)
+
+**What:** Implemented the 4 relationship meters from DESIGN-bills-meters §4-5, with the
+audit §C cross-pressure / open-doors fix and the §C Safety positive-pull. `state.trust`
+kept as the engine field, RELABELED in UI as **Public Approval / Одобрение населения**;
+added `govLoyalty`, `industryRel`, `morale` (default ~55). SAVE_VERSION 17→18, safe migrate.
+
+**The 4 meters (0-100, icon+color green/amber/red, plain tooltip EN+RU):**
+- 👥 Approval (= trust) · 🏛 Gov Loyalty · 🤝 Industry Rel · 🧑‍🔬 Morale.
+
+**Drivers wired (real game events):**
+- Gov ↑ paying taxes in full (settleOnline + offline settle); ↓ on shortfall/evasion.
+- Morale ↓ layoffs (−12), crunch; ↑ hiring (+1), shipping a generation (+3).
+- Approval ↑ shipping a generation (+2); (↓ incidents/layoffs already existed).
+- Decision-tagged drivers for all three (see below).
+
+**Consequences (low meters bite):**
+- Low Gov → feeds nationalizationEligible() (new gate, augments trust/reg) + higher tax
+  accrual (govTaxPressure up to +25%).
+- Low Morale → harder poach/mole on acquisition turns (moraleMoleBonus) + slower research
+  (processSpeed × moraleResearchMult; pivots at ~55 = neutral).
+- Low Industry → trips acqWeakSignal() (easier hostile takeover).
+- Low Approval → product-revenue drag (approvalRevMult, only <35).
+
+**Cross-pressure + open doors (audit §C):** ~13 decisions tagged with genuine trade-offs
+(comply → gov↑ but cash + morale↓ crunch; open-source → approval+industry↑ but share↓;
+price war → share↑ but industry↓; layoffs-tout → valuation↑ but morale/approval↓). Added
+3 OPEN-DOOR opportunity decisions gated by HIGH meters: high Industry → co-funded compute
+consortium (+runway); high Gov → government contract (+cash/share); high Morale → team
+moonshot (perm +3% output). All EN+RU.
+
+**Safety positive pull (§C):** clean risk + shipped + decent approval → trustedReleaseMult
+= ×1.08 product revenue ("trusted release" premium) — Safety now has an UPSIDE.
+
+**UI:** Relationships panel on the World tab (reuses risk-bar styling), 4 rows with
+icon + name + colored bar + %, one plain tooltip each. Renders clean at 360px, no overflow.
+
+**Proof:** node --check all files; headless harness 0 errors — v17→v18 migration defaults
+gov/ind/morale to 55; payTaxes full +4 / short −6; layoffs −12 / hire +1; low-gov feeds
+nat gate; trustedReleaseMult 1.08; processSpeed 1.0@55→0.88@10; netCashRate stays positive
+(economy intact). Screenshot at 360px read — green/amber/red bands all correct. index.html
+boots in headless Chrome with 0 JS console errors.
+
+**Commits:** 51d2893 (state/migration/applyEffect) · 76ee609 (drivers/consequences/Safety
+pull) · 7d4e218 (decision tags + open doors + i18n) · 16c8e7a (UI strip).
+
+**Honest notes:** Drivers/consequences/open-doors are all WIRED (not stubbed) and tested.
+Morale-mole hook rides the existing acquisition poach turns (not a separate black-swan
+event). Tagged ~13 of 62 decisions (a representative subset, per prompt). The trust HUD
+in the topbar still shows the raw number relabeled via tooltip; the full 4-meter panel
+lives on the World tab. dist zip rebuild deferred (live tree on :8080 is current).
+
+---
+
 ## 2026-06-17 — NIGHT BUILD: time scale + economy rebalance (two load-bearing fixes)
 
 Implemented the two core changes from the GDD/audit rework, both gated by a mandatory
