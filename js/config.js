@@ -366,24 +366,30 @@
         eventSeverityMult: 0.7, // HOOKED — scales bad decision/event magnitudes
         rivalAGIspeedMult: 0.8, // HOOKED — rival AGI creep speed in updateRivals
         varianceMult: 0.7,      // dormant (Phase: world variance / RNG spread)
+        // PHASE 6 lifecycle pacing: higher cd-mult = slower churn; lower entrant-mult = rarer
+        // dark-horses. Easy = calm field; Impossible = lively, aggressive, more newcomers.
+        lifecycleCdMult: 1.4, entrantMult: 0.6,
         rivalCount: [2, 3]
       },
       normal: {
         startCashMult: 1.0, burnMult: 1.0, computePriceMult: 1.0, revenueMult: 1.0,
         fundValMult: 1.0, rivalAggroMult: 1.0, failWarnMonths: 3, failMonths: 0,
         acqWindow: 4, eventSeverityMult: 1.0, rivalAGIspeedMult: 1.0, varianceMult: 1.0,
+        lifecycleCdMult: 1.0, entrantMult: 1.0,
         rivalCount: [3, 3]
       },
       hard: {
         startCashMult: 0.7, burnMult: 1.25, computePriceMult: 1.2, revenueMult: 0.85,
         fundValMult: 0.85, rivalAggroMult: 1.3, failWarnMonths: 2, failMonths: 0,
         acqWindow: 3, eventSeverityMult: 1.3, rivalAGIspeedMult: 1.2, varianceMult: 1.3,
+        lifecycleCdMult: 0.8, entrantMult: 1.4,
         rivalCount: [4, 4]
       },
       impossible: {
         startCashMult: 0.5, burnMult: 1.5, computePriceMult: 1.4, revenueMult: 0.7,
         fundValMult: 0.7, rivalAggroMult: 1.6, failWarnMonths: 1, failMonths: 0,
         acqWindow: 2, eventSeverityMult: 1.6, rivalAGIspeedMult: 1.45, varianceMult: 1.6,
+        lifecycleCdMult: 0.6, entrantMult: 2.0,
         rivalCount: [4, 5]
       }
     }
@@ -454,6 +460,43 @@
   };
   // legacy base rates (the old C.RIVALS numbers) the archetype scales multiply against.
   var RIVAL_BASE = { shareRate: 0.00045, agiRate: 0.00038, speed: 0.0110 };
+
+  // ---- PHASE 6 — RIVAL TRAJECTORIES (Sub-part A, DESIGN §5) -------------
+  // Per-archetype share-DRIFT character layered ON TOP of the steady creep in updateRivals.
+  // `vol` = stochastic share wobble amplitude (% of share, per second of jitter); `drift` =
+  // signed long-term bias on share growth (juggernaut/stealth push up, satire sags);
+  // `crash` = per-second probability a volatile archetype takes a sharp share dip (disruptor).
+  // All scaled by diff('rivalAggroMult') and the difficulty AGI-speed mult so harder = livelier.
+  // These shape HOW a rival rises/falls; the lifecycle roller (Sub-part B) fires the DRAMA.
+  var RIVAL_TRAJ = {
+    juggernaut: { vol: 0.010, drift:  0.045, crash: 0.0 },     // steady strong climb
+    safety:     { vol: 0.006, drift:  0.010, crash: 0.0 },     // slow, stable, rarely dips
+    disruptor:  { vol: 0.060, drift:  0.030, crash: 0.0009 },  // volatile spikes + crash risk
+    opensource: { vol: 0.018, drift:  0.020, crash: 0.0 },     // commoditizing pressure
+    sovereign:  { vol: 0.030, drift:  0.015, crash: 0.0002 },  // geopolitics swings
+    stealth:    { vol: 0.012, drift:  0.000, crash: 0.0 },     // quiet (surge comes via lifecycle)
+    satire:     { vol: 0.070, drift: -0.010, crash: 0.0005 }   // chaotic, unstable, sags
+  };
+
+  // ---- PHASE 6 — RIVAL LIFECYCLE (Sub-part B) --------------------------
+  // A periodic roller in tick() fires at most ONE lifecycle event per cooldown window so the
+  // feed stays tense, not spammy. COOLDOWN_SEC is the base gap; difficulty scales it (harder =
+  // shorter = more churn). MIN_GEN gates it behind the mid-game so the opening stays clean.
+  // Each event's `w` is a base weight; the roller picks weighted-random among ELIGIBLE events.
+  var RIVAL_LIFECYCLE = {
+    MIN_GEN: 2,               // no lifecycle drama before your 2nd model (race must be live)
+    COOLDOWN_SEC: 75,         // base gap between lifecycle events (×difficulty cooldownMult)
+    FIRST_DELAY_SEC: 60,      // grace after reveal before the first event can fire
+    SHIP_SHARE: [3, 7],       // share jump when a rival ships a model
+    SHIP_AGI: [4, 9],         // AGI jump on a ship
+    SCANDAL_SHARE: [-6, -2],  // share dip on a scandal/incident
+    BANKRUPT_SHARE_MAX: 7,    // only rivals at/under this share can go bankrupt
+    BANKRUPT_MIN_FIELD: 2,    // never empty the field: keep at least this many active rivals
+    MERGE_MIN_FIELD: 3,       // need at least this many to absorb one
+    ENTRANT_SURGE: [10, 16],  // a dark-horse enters near this share (impactful)
+    ENTRANT_AGI: [6, 14],
+    weights: { ship: 5, scandal: 4, bankrupt: 2, merge: 2, entrant: 1 }
+  };
 
   // ---- Endings (resolve at the AGI climax; each = badge + small meta-perk) ----
   var ENDINGS = {
@@ -1747,7 +1790,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 14,         // Phase 5: Safety/Incident-Risk reframe + named incidents (safe migrate)
+    SAVE_VERSION: 15,         // Phase 6: dynamic rival lifecycle (safe migrate; lifecycle state defaults)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1781,6 +1824,8 @@
     RIVAL_POOL: RIVAL_POOL,
     RIVAL_ARCHETYPES: RIVAL_ARCHETYPES,
     RIVAL_BASE: RIVAL_BASE,
+    RIVAL_TRAJ: RIVAL_TRAJ,
+    RIVAL_LIFECYCLE: RIVAL_LIFECYCLE,
     DIFFICULTY: DIFFICULTY,
     ACQUIRE: ACQUIRE,
     RACE: RACE,

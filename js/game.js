@@ -1977,16 +1977,34 @@
   function agiProgress() { return Math.max(0, Math.min(100, 100 * state.modelGen / C.MODELGEN.length)); }
   // ---- rival market-share race (the central scoreboard) ----
   function rivalsActive() { return state.modelGen >= 1; } // race begins once you have a product
+  function diffNum(key, dflt) { var v = diff(key); return (typeof v === 'number' && isFinite(v)) ? v : dflt; }
   function updateRivals(dt) {
     if (!rivalsActive()) return;
     ensureRivals();
     var agiMult = diff('rivalAGIspeedMult');   // HOOK: difficulty scales rival AGI creep
     if (typeof agiMult !== 'number' || !isFinite(agiMult)) agiMult = 1;
+    // SUB-PART A — archetype trajectories: aggression + AGI-speed scale HOW hard rivals push.
+    var aggro = diffNum('rivalAggroMult', 1);  // HOOK (was dormant): rival lifecycle aggression
+    var trajMult = aggro * (0.6 + 0.4 * agiMult); // harder difficulty = livelier share dynamics
     activeRivals().forEach(function (r) {
       // share creeps up, tapering toward the cap (so you can always overtake by shipping)
       var cur = isFinite(r.share) ? r.share : 0;
       var room = Math.max(0, (C.RIVAL_SHARE_CAP - cur) / C.RIVAL_SHARE_CAP);
-      r.share = Math.min(C.RIVAL_SHARE_CAP, cur + r.shareRate * room * dt);
+      var next = cur + r.shareRate * room * aggro * dt;
+      // SUB-PART A — per-archetype DRIFT + VOLATILITY + crash-risk on top of the steady creep.
+      var T = C.RIVAL_TRAJ[r.archetype] || C.RIVAL_TRAJ.satire;
+      // signed long-term drift (juggernaut climbs, satire sags), scaled by share-room so nobody
+      // runs away past the cap and weak labs can still slide toward bankruptcy territory.
+      next += T.drift * (T.drift >= 0 ? room : 1) * trajMult * dt;
+      // stochastic wobble: a symmetric jitter sized by the archetype's volatility — disruptor &
+      // satire shake hard (dramatic), safety barely moves (stable). Centered so it's not a bias.
+      next += (Math.random() - 0.5) * 2 * T.vol * trajMult * dt;
+      // crash risk: volatile archetypes can take a sudden sharp share dip (the spike-then-fall).
+      if (T.crash > 0 && Math.random() < T.crash * trajMult * dt) {
+        next -= cur * rnd(0.12, 0.30);
+        emitNews('rival', ['nh_rival_dip', 'nh_rival_dip2'], { name: rivalName(r.id) });
+      }
+      r.share = Math.max(0, Math.min(C.RIVAL_SHARE_CAP, next));
       // AGI progress climbs on each rival's own timeline (the deadline / pressure)
       var before = r.agi || 0;
       var after = Math.min(100, before + r.agiRate * agiMult * dt);
