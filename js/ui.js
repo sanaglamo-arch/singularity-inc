@@ -892,6 +892,52 @@
     var html = '';
     rows.forEach(function (r) { html += '<div class="statItem"><span>' + r[0] + '</span><span>' + r[1] + '</span></div>'; });
     $('statList').innerHTML = html;
+    renderHallOfFame();
+  }
+
+  // ---------- PHASE 9: Hall of Fame (per-difficulty records) ----------
+  // Renders one compact line per difficulty (Easy/Normal/Hard/Impossible) showing the
+  // persistent records: best share · fastest AGI · wins. A 🏆 flourish for difficulties
+  // where the player reached AGI / won. Difficulties never played show "—". EN+RU.
+  function hofPlural(n, base) {
+    // RU 3-form plural (one/few/many); EN 2-form (one/many). base = 'hof_wins'|'hof_games'.
+    var lang = window.GAME_I18N.getLang(), key;
+    if (lang === 'ru') {
+      var m10 = n % 10, m100 = n % 100;
+      if (m10 === 1 && m100 !== 11) key = base + '_one';
+      else if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) key = base + '_few';
+      else key = base + '_many';
+    } else { key = base + (n === 1 ? '_one' : '_many'); }
+    return t(key, { n: n });
+  }
+  function renderHallOfFame() {
+    var rec = G.state.records || {};
+    var order = (C.DIFFICULTY && C.DIFFICULTY.ORDER) || ['easy', 'normal', 'hard', 'impossible'];
+    setText($('hofTitle'), t('hof_title'));
+    var anyPlayed = false;
+    var html = '';
+    order.forEach(function (d) {
+      var r = rec[d];
+      var played = !!(r && (r.games || 0) > 0);
+      if (played) anyPlayed = true;
+      var won = !!(r && r.reachedAGI);
+      var parts = [];
+      if (played) {
+        parts.push(t('hof_share', { p: (r.bestShare || 0).toFixed(0) }));
+        if (won && (r.fastestAGIdays || 0) > 0) {
+          var days = r.fastestAGIdays < 10 ? r.fastestAGIdays.toFixed(1) : Math.round(r.fastestAGIdays);
+          parts.push(t('hof_agi', { n: days }));
+        }
+        if ((r.wins || 0) > 0) parts.push(hofPlural(r.wins, 'hof_wins'));
+        else parts.push(hofPlural(r.games || 0, 'hof_games'));
+      }
+      var detail = parts.length ? parts.join(' · ') : t('hof_empty_cell');
+      html += '<div class="hofItem' + (played ? '' : ' hofItem--empty') + '">' +
+        '<span class="hofDiff">' + (won ? '🏆 ' : '') + t('diff_' + d) + '</span>' +
+        '<span class="hofRec">' + detail + '</span></div>';
+    });
+    if (!anyPlayed) html = '<div class="hofNone muted small">' + t('hof_none') + '</div>' + html;
+    $('hofList').innerHTML = html;
   }
 
   // ---------- research / prestige ----------
