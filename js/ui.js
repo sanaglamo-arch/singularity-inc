@@ -1413,7 +1413,7 @@
     else { var dd = G.runwayDays(); var disp = dd >= 9999 ? '999+' : Math.round(dd); runwayTxt = t('finance_runway', { n: disp }); }
     var html =
       '<span class="fin-in">' + t('finance_income', { y: fmt(rev) }) + '</span>' + dc +
-      '<span class="fin-out">' + t('finance_costs', { x: fmt(bd.total) }) +
+      '<span class="fin-out">' + t('finance_costs', { x: fmt(rev - netMonthly) }) +
       ' <span class="fin-parts">(' + t('finance_costs_parts') + ')</span></span>' + dc +
       '<span class="fin-net' + (netMonthly < -1e-9 ? ' neg' : (netMonthly > 1e-9 ? ' pos' : '')) + '">' +
         t('finance_net', { sign: nsign, z: fmt(Math.abs(netMonthly)) }) + '</span>' + dc +
