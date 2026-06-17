@@ -521,6 +521,18 @@ h2:first-child { margin-top: 4px; }
 .awrow .awk { color: var(--fg-muted); }
 .awrow .awv { font-family: var(--font-display); font-weight: 700; color: var(--cyan); }
 .awrow.done .awv { color: var(--green); }
+/* "while you were away" — Managing Director delegation report */
+.awreport { max-height: 46vh; overflow-y: auto; gap: 7px; }
+.awcard { padding: 9px 11px; border-radius: 10px; background: rgba(20,19,42,0.55); border: 1px solid var(--glass-border); border-left-width: 3px; text-align: left; }
+.awcard.good { border-left-color: var(--green); }
+.awcard.bad { border-left-color: var(--rose); }
+.awc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.awc-title { font-weight: 700; font-size: 13px; color: var(--fg); line-height: 1.25; }
+.awc-choice { margin-top: 3px; line-height: 1.3; }
+.awtag { flex: 0 0 auto; font-size: 10px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; border-radius: 999px; padding: 3px 8px; white-space: nowrap; }
+.awtag.good { color: #06210f; background: linear-gradient(100deg, var(--green), #4ade80); }
+.awtag.bad { color: #2a0a12; background: linear-gradient(100deg, var(--rose), #fb7185); }
+.awtag.bonus { color: #1a1305; background: linear-gradient(100deg, var(--gold), var(--rose)); }
 .gs-kept { display: inline-block; margin: 8px auto 4px; padding: 5px 14px; border-radius: var(--radius-pill); font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.6px; color: #06210f; background: linear-gradient(100deg, var(--green), #4ade80); box-shadow: 0 6px 18px -8px var(--green); }
 .gensum { margin: 12px 0 4px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .gensum .gs-row { font-size: 13.5px; line-height: 1.4; padding: 8px 11px; border-radius: 9px; background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); }

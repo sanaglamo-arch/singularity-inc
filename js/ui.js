@@ -1632,14 +1632,49 @@
       '<button class="reward" id="offDouble">' + t('offline_double') + '</button>' +
       '</div>'
     );
-    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); hideModal(); maybeShowDaily(); };
+    // After collecting revenue, chain the director's "while you were away" report (if any),
+    // otherwise go straight to the daily check-in.
+    function afterCollect() { hideModal(); if (off.execReport && off.execReport.length) showAwayReport(off); else maybeShowDaily(); }
+    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); afterCollect(); };
     $('offDouble').onclick = function () {
       window.GAME_ADS.showRewarded({
-        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); hideModal(); maybeShowDaily(); },
-        onUnavailable: function () { G.applyOffline(off.earned, off.compute); hideModal(); toast(t('ad_unavailable'), 'bad'); maybeShowDaily(); }
+        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); afterCollect(); },
+        onUnavailable: function () { G.applyOffline(off.earned, off.compute); toast(t('ad_unavailable'), 'bad'); afterCollect(); }
       });
     };
   }
+  // "While you were away" — the Managing Director's delegation report. Reuses the offline
+  // modal style (awlist rows). Each row = a resolved decision + the director's choice, with
+  // good/bad framing. Effects were already applied by the engine on load (game.init).
+  function showAwayReport(off) {
+    var rep = off.execReport || [];
+    var name = off.execName ? t(off.execName) : '';
+    var mandate = t('mandate_' + (off.mandate || 'balance'));
+    var rows = '';
+    if (!rep.length) {
+      rows = '<div class="awrow"><span class="awk">' + t('away_none') + '</span></div>';
+    } else {
+      for (var i = 0; i < rep.length; i++) {
+        var r = rep[i];
+        var tag = r.bonus ? '<span class="awtag bonus">' + t('away_bonus') + '</span>'
+                : r.good ? '<span class="awtag good">' + t('away_good') + '</span>'
+                          : '<span class="awtag bad">' + t('away_bad') + '</span>';
+        rows += '<div class="awcard ' + (r.good ? 'good' : 'bad') + '">' +
+          '<div class="awc-head"><span class="awc-title">' + r.title + '</span>' + tag + '</div>' +
+          '<div class="awc-choice muted small">' + r.choice + '</div></div>';
+      }
+    }
+    showModal(
+      '<h3>' + t('away_title') + '</h3>' +
+      '<p>' + t('away_intro', { name: name, mandate: mandate }) + '</p>' +
+      '<div class="awlist awreport">' + rows + '</div>' +
+      '<div class="row"><button class="primary" id="awClose">' + t('away_close') + '</button></div>'
+    );
+    window.GAME_FX.flash('rgba(139,92,246,0.16)');
+    $('awClose').onclick = function () { hideModal(); maybeShowDaily(); };
+  }
+  // DEV/QA hook: render the away report from a supplied offline object (screenshots/tests).
+  window.__showAwayTest = function (off) { showAwayReport(off); };
   // show the daily check-in once any offline modal has been dismissed (never clobber it)
   function maybeShowDaily() {
     if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 250);
@@ -2118,16 +2153,21 @@
     // replay the current act's intro beat (also lets the player revisit it)
     if (location.hash === '#__intro') { setTimeout(function () { showActIntro(Math.max(1, G.currentAct())); }, 60); }
     var offlineShown = offline && offline.earned > 0;
+    var awayOnly = !offlineShown && offline && offline.execReport && offline.execReport.length;
     if (offlineShown) {
-      showOffline(offline);
+      showOffline(offline);   // chains the away report on collect (showAwayReport)
       if (!G.state.onboarded) G.setOnboarded(true); // returning player; skip tour
+    } else if (awayOnly) {
+      // director resolved decisions but revenue was negligible — show the report directly
+      showAwayReport(offline);
+      if (!G.state.onboarded) G.setOnboarded(true);
     } else if (!G.state.onboarded) {
       showOnboarding();
     }
-    // GDD v3 daily check-in: only once a real day has rolled over. If the offline
-    // modal is up, it chains the daily on dismiss (maybeShowDaily) so we never
-    // clobber the un-collected offline summary; otherwise fire it now.
-    if (!offlineShown) { if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 60); }
+    // GDD v3 daily check-in: only once a real day has rolled over. If the offline/away
+    // modal is up, it chains the daily on dismiss (maybeShowDaily) so we never clobber
+    // the un-collected summary; otherwise fire it now.
+    if (!offlineShown && !awayOnly) { if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 60); }
     // DEV/QA hook: ?newstest seeds sample headlines and opens the news feed for screenshots.
     if (/[?&]newstest/.test(location.search)) {
       window.__openNewsFeed = showNewsFeed;
