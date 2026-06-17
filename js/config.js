@@ -900,10 +900,12 @@
       cooldown_sec: 220, once: true, priority: 'bankable', default_option: 'closed',
       trigger: { 'resource.compute': '>=18' },
       options: [
-        { id: 'open', tooltip_meters: ['trust', 'risk'],
-          effects: { meter: { trust: '+5' }, vec: { sec: 4 }, set_flag: 'oss_lab' } },
-        { id: 'closed', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cash: '+30' }, meter: { trust: '-1' } } }
+        // CROSS-PRESSURE: open-sourcing wins public + peer goodwill (approval↑, industry↑)
+        // but gives away your edge (share↓). Closed keeps the lead but cools relations.
+        { id: 'open', tooltip_meters: ['trust', 'industry', 'marketShare', 'risk'],
+          effects: { meter: { trust: '+5', industryRel: '+6', marketShare: '-2' }, vec: { sec: 4 }, set_flag: 'oss_lab' } },
+        { id: 'closed', tooltip_meters: ['cash', 'trust', 'industry'],
+          effects: { resource: { cash: '+30' }, meter: { trust: '-1', industryRel: '-3' } } }
       ]
     },
     {
@@ -934,12 +936,12 @@
       cooldown_sec: 180, once: false, priority: 'interrupt',
       trigger: { 'resource.researchers': '>=1' },
       options: [
-        { id: 'match_offer', tooltip_meters: ['cash', 'researchers'],
-          effects: { resource: { cash: '-110' } } },
-        { id: 'let_walk', tooltip_meters: ['researchers', 'risk'],
-          effects: { resource: { researchers: '-1' }, vec: { sec: 5 } } },
-        { id: 'equity_plea', tooltip_meters: ['trust'],
-          effects: { meter: { trust: '+1' }, set_var: { dilution: '+1' } } }
+        { id: 'match_offer', tooltip_meters: ['cash', 'researchers', 'morale'],
+          effects: { resource: { cash: '-110' }, meter: { morale: '+3' } } },
+        { id: 'let_walk', tooltip_meters: ['researchers', 'risk', 'morale'],
+          effects: { resource: { researchers: '-1' }, vec: { sec: 5 }, meter: { morale: '-4' } } },
+        { id: 'equity_plea', tooltip_meters: ['trust', 'morale'],
+          effects: { meter: { trust: '+1', morale: '+2' }, set_var: { dilution: '+1' } } }
       ]
     },
     {
@@ -962,12 +964,14 @@
       trigger: { AND: [{ 'meter.marketShare': '>=8' }, { 'meter.vec.reg': '>=20' }] },
       weight_mods: [{ factor: 2.0, when: { 'meter.vec.reg': '>=55' } }],
       options: [
-        { id: 'comply', tooltip_meters: ['cash', 'trust', 'risk'],
-          effects: { resource: { cashMonthsBurn: -1.5 }, meter: { trust: '+5', marketShare: '-2' }, vec: { reg: -16 } } },
+        // CROSS-PRESSURE: full compliance pleases the public AND the state (gov↑), but the
+        // compliance crunch costs cash AND dings team morale — virtue is not free.
+        { id: 'comply', tooltip_meters: ['cash', 'trust', 'gov', 'morale', 'risk'],
+          effects: { resource: { cashMonthsBurn: -1.5 }, meter: { trust: '+5', govLoyalty: '+6', morale: '-3', marketShare: '-2' }, vec: { reg: -16 } } },
         { id: 'minimal', tooltip_meters: ['cash', 'risk'],
           effects: { resource: { cashMonthsBurn: -0.4 }, vec: { reg: -4 }, set_var: { reg_debt: '+1' } } },
-        { id: 'defy', tooltip_meters: ['marketShare', 'risk', 'trust'],
-          effects: { meter: { marketShare: '+5', trust: '-3' }, vec: { reg: 18 },
+        { id: 'defy', tooltip_meters: ['marketShare', 'risk', 'trust', 'gov'],
+          effects: { meter: { marketShare: '+5', trust: '-3', govLoyalty: '-7' }, vec: { reg: 18 },
                      schedule: { event: 'dec_reg_fine_hits', delaySec: 150, chance: 0.5, callback: 'callback_reg_fine' } } }
       ]
     },
@@ -976,11 +980,11 @@
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'decline',
       trigger: { AND: [{ 'meter.marketShare': '>=10' }, { 'meter.trust': '>=35' }] },
       options: [
-        { id: 'sign', tooltip_meters: ['trust', 'risk', 'marketShare'],
-          effects: { meter: { trust: '+6', marketShare: '-2' }, vec: { reg: -10 }, set_flag: 'signed_code',
+        { id: 'sign', tooltip_meters: ['trust', 'gov', 'risk', 'marketShare'],
+          effects: { meter: { trust: '+6', govLoyalty: '+5', marketShare: '-2' }, vec: { reg: -10 }, set_flag: 'signed_code',
                      schedule: { event: 'dec_reg_disclosure_bill', delaySec: 180, chance: 0.8, callback: 'callback_disclosure' } } },
-        { id: 'decline', tooltip_meters: ['risk', 'trust'],
-          effects: { meter: { trust: '-2' }, vec: { reg: 6 } } }
+        { id: 'decline', tooltip_meters: ['risk', 'trust', 'gov'],
+          effects: { meter: { trust: '-2', govLoyalty: '-4' }, vec: { reg: 6 } } }
       ]
     },
     {
@@ -1088,15 +1092,16 @@
       trigger: { 'resource.researchers': '>=1' },
       weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=15' } }],
       options: [
-        { id: 'counter', tooltip_meters: ['cash', 'researchers'],
-          effects: { resource: { cash: '-150' } } },
-        { id: 'letgo', tooltip_meters: ['researchers', 'risk'],
-          effects: { resource: { researchers: '-1' }, vec: { sec: 8 }, rival_effect: { cerebra: { agi: 1 } } } },
+        { id: 'counter', tooltip_meters: ['cash', 'researchers', 'morale'],
+          effects: { resource: { cash: '-150' }, meter: { morale: '+2' } } },
+        { id: 'letgo', tooltip_meters: ['researchers', 'risk', 'morale'],
+          effects: { resource: { researchers: '-1' }, vec: { sec: 8 }, meter: { morale: '-4' }, rival_effect: { cerebra: { agi: 1 } } } },
         // SUB-PART C — gamble: counter-raid the rival back for a researcher. 60% lands the hire / 40% they decline & you lose face.
-        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'], gamble: [60, 40],
-          effects: { resource: { cash: '-300' } },   // the signing war chest is spent either way
+        // CROSS-PRESSURE: poaching back damages industry relations (you raided a peer) either way.
+        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'industry', 'trust'], gamble: [60, 40],
+          effects: { resource: { cash: '-300' }, meter: { industryRel: '-5' } },   // the signing war chest is spent either way
           outcomes: [
-            { id: 'landed', chance: 0.60, good: true, news: 'dec_talent_poach_landed_news', effect: { resource: { researchers: '+1' } } },
+            { id: 'landed', chance: 0.60, good: true, news: 'dec_talent_poach_landed_news', effect: { resource: { researchers: '+1' }, meter: { morale: '+2' } } },
             { id: 'declined', chance: 0.40, good: false, news: 'dec_talent_poach_declined_news', effect: { meter: { trust: '-4' } } }
           ] }
       ]
@@ -1117,10 +1122,10 @@
       cooldown_sec: 300, once: true, priority: 'bankable', default_option: 'pass',
       trigger: { 'resource.cash': '>=800' },
       options: [
-        { id: 'absorb', tooltip_meters: ['cash', 'researchers', 'risk'],
-          effects: { resource: { cashMonthsBurn: -3, researchers: '+2' }, meter: { marketShare: '+3' }, vec: { reg: 10 } } },
-        { id: 'pass', tooltip_meters: ['cash', 'trust'],
-          effects: { meter: { trust: '+2' } } }
+        { id: 'absorb', tooltip_meters: ['cash', 'researchers', 'industry', 'risk'],
+          effects: { resource: { cashMonthsBurn: -3, researchers: '+2' }, meter: { marketShare: '+3', industryRel: '-5' }, vec: { reg: 10 } } },
+        { id: 'pass', tooltip_meters: ['cash', 'trust', 'industry'],
+          effects: { meter: { trust: '+2', industryRel: '+3' } } }
       ]
     },
     {
@@ -1144,8 +1149,9 @@
       options: [
         { id: 'review', tooltip_meters: ['cash', 'risk', 'align'],
           effects: { resource: { cash: '-120' }, meter: { align: '+2' }, vec: { cap: -8 } } },
-        { id: 'ship', tooltip_meters: ['marketShare', 'risk', 'align'],
-          effects: { meter: { marketShare: '+4', align: '-1' }, vec: { cap: 10 }, set_var: { safety_debt: '+1' },
+        // CROSS-PRESSURE: crunching to ship grabs share but the death-march burns out the team (morale↓).
+        { id: 'ship', tooltip_meters: ['marketShare', 'morale', 'risk', 'align'],
+          effects: { meter: { marketShare: '+4', morale: '-5', align: '-1' }, vec: { cap: 10 }, set_var: { safety_debt: '+1' },
                      schedule: { event: 'dec_safety_incident_hits', delaySec: 140, chance: 0.45, callback: 'callback_incident' } } }
       ]
     },
@@ -1243,10 +1249,12 @@
       cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'gated',
       trigger: { 'resource.modelGen': '>=2' },
       options: [
-        { id: 'open', tooltip_meters: ['trust', 'marketShare', 'risk'],
-          effects: { meter: { trust: '+5', marketShare: '-3' }, vec: { sec: 8 }, rival_effect: { all: { agi: 1 } } } },
-        { id: 'gated', tooltip_meters: ['marketShare', 'trust'],
-          effects: { meter: { marketShare: '+2', trust: '-1' } } }
+        // CROSS-PRESSURE: a real open release lifts approval + peer goodwill but hands rivals
+        // your edge (share↓, all rivals +AGI). Gated keeps the lead, cools the open-source crowd.
+        { id: 'open', tooltip_meters: ['trust', 'industry', 'marketShare', 'risk'],
+          effects: { meter: { trust: '+5', industryRel: '+5', marketShare: '-3' }, vec: { sec: 8 }, rival_effect: { all: { agi: 1 } } } },
+        { id: 'gated', tooltip_meters: ['marketShare', 'trust', 'industry'],
+          effects: { meter: { marketShare: '+2', trust: '-1', industryRel: '-2' } } }
       ]
     },
     {
@@ -1277,10 +1285,12 @@
       trigger: { 'meter.marketShare': '>=12' },
       weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=25' } }],
       options: [
-        { id: 'cut', tooltip_meters: ['cash', 'marketShare', 'risk'],
-          effects: { cashFrac: -0.08, meter: { marketShare: '+5' }, set_var: { runway_debt: '+1' } } },
-        { id: 'hold', tooltip_meters: ['marketShare', 'cash'],
-          effects: { meter: { marketShare: '-2' }, rival_effect: { helion: { share: 1 } } } }
+        // CROSS-PRESSURE: starting a price war grabs share but sours the whole industry (rivals
+        // remember). Holding the line keeps relations warm but cedes a little share.
+        { id: 'cut', tooltip_meters: ['cash', 'marketShare', 'industry', 'risk'],
+          effects: { cashFrac: -0.08, meter: { marketShare: '+5', industryRel: '-6' }, set_var: { runway_debt: '+1' } } },
+        { id: 'hold', tooltip_meters: ['marketShare', 'industry', 'cash'],
+          effects: { meter: { marketShare: '-2', industryRel: '+3' }, rival_effect: { helion: { share: 1 } } } }
       ]
     },
 
@@ -1393,10 +1403,12 @@
       cooldown_sec: 260, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.compute': '>=600' }, { 'meter.marketShare': '>=18' }] },
       options: [
-        { id: 'pay_tax', tooltip_meters: ['cash', 'compute', 'trust'],
-          effects: { cashFrac: -0.15, resource: { compute: '+200' }, meter: { trust: '-2' } } },
-        { id: 'comply_ban', tooltip_meters: ['compute', 'marketShare', 'trust'],
-          effects: { meter: { marketShare: '-3', trust: '+3' }, rival_effect: { helion: { agi: 1.5 } } } }
+        // CROSS-PRESSURE: routing around the ban keeps your compute but irritates regulators
+        // (gov↓). Complying loses you ground to rivals but earns the state's trust (gov↑).
+        { id: 'pay_tax', tooltip_meters: ['cash', 'compute', 'gov', 'trust'],
+          effects: { cashFrac: -0.15, resource: { compute: '+200' }, meter: { trust: '-2', govLoyalty: '-5' } } },
+        { id: 'comply_ban', tooltip_meters: ['compute', 'marketShare', 'gov', 'trust'],
+          effects: { meter: { marketShare: '-3', trust: '+3', govLoyalty: '+6' }, rival_effect: { helion: { agi: 1.5 } } } }
       ]
     },
     {
@@ -1404,10 +1416,10 @@
       cooldown_sec: 280, once: false, priority: 'bankable', default_option: 'refuse',
       trigger: { AND: [{ 'resource.compute': '>=1000' }, { 'meter.vec.sec': '>=30' }] },
       options: [
-        { id: 'gray_market', tooltip_meters: ['compute', 'risk', 'trust'],
-          effects: { resource: { compute: '+400' }, meter: { trust: '-5' }, vec: { reg: 14, sec: 8 } } },
-        { id: 'refuse', tooltip_meters: ['compute', 'trust'],
-          effects: { meter: { trust: '+2' } } }
+        { id: 'gray_market', tooltip_meters: ['compute', 'risk', 'gov', 'trust'],
+          effects: { resource: { compute: '+400' }, meter: { trust: '-5', govLoyalty: '-8' }, vec: { reg: 14, sec: 8 } } },
+        { id: 'refuse', tooltip_meters: ['compute', 'gov', 'trust'],
+          effects: { meter: { trust: '+2', govLoyalty: '+3' } } }
       ]
     },
     {
@@ -1426,10 +1438,11 @@
       cooldown_sec: 300, once: true, priority: 'interrupt',
       trigger: { AND: [{ 'resource.researchers': '>=4' }, { 'meter.vec.sec': '>=35' }] },
       options: [
-        { id: 'surveil', tooltip_meters: ['trust', 'align', 'risk'],
-          effects: { meter: { trust: '-4', align: '-1' }, vec: { sec: -12 } } },
-        { id: 'trust_team', tooltip_meters: ['risk', 'trust', 'align'],
-          effects: { meter: { trust: '+3', align: '+1' }, vec: { sec: 8 } } }
+        // CROSS-PRESSURE: surveilling your own people plugs the leak (sec↓) but corrodes morale.
+        { id: 'surveil', tooltip_meters: ['trust', 'morale', 'align', 'risk'],
+          effects: { meter: { trust: '-4', morale: '-6', align: '-1' }, vec: { sec: -12 } } },
+        { id: 'trust_team', tooltip_meters: ['risk', 'morale', 'trust', 'align'],
+          effects: { meter: { trust: '+3', morale: '+4', align: '+1' }, vec: { sec: 8 } } }
       ]
     },
 
@@ -1450,10 +1463,12 @@
       cooldown_sec: 240, once: false, priority: 'bankable', default_option: 'reskill',
       trigger: { 'meter.marketShare': '>=15' },
       options: [
-        { id: 'tout', tooltip_meters: ['valuation', 'trust', 'align'],
-          effects: { meter: { valuation: '+3', trust: '-5', align: '-1' } } },
-        { id: 'reskill', tooltip_meters: ['cash', 'trust'],
-          effects: { resource: { cashMonthsBurn: -0.6 }, meter: { trust: '+4' } } }
+        // CROSS-PRESSURE: touting "efficiency" layoffs flatters investors (valuation↑) but
+        // guts morale + public approval. Reskilling costs cash but keeps the team intact.
+        { id: 'tout', tooltip_meters: ['valuation', 'trust', 'morale', 'align'],
+          effects: { meter: { valuation: '+3', trust: '-5', morale: '-8', align: '-1' } } },
+        { id: 'reskill', tooltip_meters: ['cash', 'trust', 'morale'],
+          effects: { resource: { cashMonthsBurn: -0.6 }, meter: { trust: '+4', morale: '+4' } } }
       ]
     },
     {
@@ -1590,6 +1605,51 @@
           effects: { meter: { valPct: -0.07, align: '-2', trust: '-2' }, set_var: { gov_debt: '+1' } } },
         { id: 'call_bluff', tooltip_meters: ['cash', 'valuation', 'trust'],
           effects: { resource: { cashMonthsBurn: -5 }, meter: { trust: '+3', valPct: -0.05 } } }
+      ]
+    },
+
+    // ===================== OPEN DOORS (meters unlock OPPORTUNITIES) ===========
+    // Audit §C: meters must OPEN DOORS, not only penalize. Each of these is gated
+    // by a HIGH meter and offers a positive option (runway / cash / a perk). They
+    // sit in the ambient lottery but only TRIGGER when the gating meter is high,
+    // so investing in relationships pays off with real opportunities.
+    {
+      // HIGH Industry Rel → a rival offers a co-funded compute deal (+runway).
+      id: 'dec_door_compute_consortium', tier: 2, act: [1, 2, 3], category: 'compute', weight: 60,
+      cooldown_sec: 300, once: false, priority: 'bankable', default_option: 'pass',
+      trigger: { AND: [{ 'meter.industryRel': '>=70' }, { 'meter.marketShare': '>=10' }] },
+      weight_mods: [{ factor: 1.6, when: { 'meter.industryRel': '>=82' } }],
+      options: [
+        { id: 'join', tooltip_meters: ['cash', 'compute', 'industry'],
+          effects: { resource: { cashMonthsBurn: 4, compute: '+250' }, meter: { industryRel: '+2', marketShare: '-1' } } },
+        { id: 'pass', tooltip_meters: ['industry'],
+          effects: { meter: { industryRel: '-2' } } }
+      ]
+    },
+    {
+      // HIGH Gov Loyalty → a government defense / national-AI contract (+cash/revenue).
+      id: 'dec_door_gov_contract', tier: 3, act: [2, 3], category: 'geopolitics', weight: 58,
+      cooldown_sec: 320, once: false, priority: 'interrupt', default_option: 'decline',
+      trigger: { AND: [{ 'meter.govLoyalty': '>=70' }, { 'resource.modelGen': '>=2' }] },
+      weight_mods: [{ factor: 1.6, when: { 'meter.govLoyalty': '>=85' } }],
+      options: [
+        { id: 'accept', tooltip_meters: ['cash', 'marketShare', 'gov', 'risk'],
+          effects: { resource: { cashMonthsBurn: 6 }, meter: { marketShare: '+3', govLoyalty: '+2', trust: '-2' }, vec: { sec: 6 } } },
+        { id: 'decline', tooltip_meters: ['trust', 'gov'],
+          effects: { meter: { trust: '+2', govLoyalty: '-3' } } }
+      ]
+    },
+    {
+      // HIGH Morale → the team ships a moonshot side-project (a one-time perm. output chip).
+      id: 'dec_door_team_moonshot', tier: 2, act: [1, 2, 3], category: 'talent', weight: 56,
+      cooldown_sec: 340, once: false, priority: 'bankable', default_option: 'ship_safe',
+      trigger: { AND: [{ 'meter.morale': '>=72' }, { 'resource.researchers': '>=3' }] },
+      weight_mods: [{ factor: 1.6, when: { 'meter.morale': '>=85' } }],
+      options: [
+        { id: 'greenlight', tooltip_meters: ['morale', 'risk'],
+          effects: { allMult: 1.03, meter: { morale: '+1' }, vec: { cap: 4 } } },
+        { id: 'ship_safe', tooltip_meters: ['trust', 'morale'],
+          effects: { meter: { trust: '+2', morale: '-1' } } }
       ]
     }
   ];
