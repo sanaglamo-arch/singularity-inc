@@ -152,6 +152,13 @@
       _lastRunClean: false,  // was the most recently prestiged run incident-free
       onboarded: false,      // first-run tour shown
       difficulty: 'normal',  // chosen at new-game (easy|normal|hard|impossible) — multiplier vector (C.DIFFICULTY)
+      // ===== Phase 7 — VARIANCE LAYERS (DESIGN §7.5) =====
+      worldSeed: 0,          // shareable run id rolled at new-game (the "seed #4821" hook)
+      scenario: null,        // starting modifier id (C.SCENARIOS) — telegraphed in the new-game flow
+      climate: null,         // macro market state {funding,compute,hype,reg,eq:{...}, nextAt, lastBand:{...}, lastNewsAt:{...}}
+      lastLuckyAt: 0,        // lucky-break global cooldown anchor (ms)
+      nextLuckyCheckAt: 0,   // throttles the lucky-break roll cycle (ms)
+      luckyTotal: 0,         // lifetime lucky breaks fired (stats/flavor)
       companyName: 'Singularity Inc.', // player-chosen AI-lab name (item 2; shown as topbar brand)
       companyNamed: false,   // has the player confirmed a name yet (false => show the naming step)
       lastSeen: Date.now(),
@@ -232,6 +239,56 @@
     return target.rivals;
   }
   function seedRivals(difficulty) { return seedRivalsInto(state, difficulty); }
+
+  // ===================================================================
+  // PHASE 7 — VARIANCE LAYERS (DESIGN §7.5) ---------------------------
+  // World seed + starting scenario + the live market-climate model. All rolled
+  // at new-game. varianceMult (Easy ~0.6 → Impossible ~1.6) scales the spread.
+  // ===================================================================
+  function varMult() { var v = diff('varianceMult'); return (typeof v === 'number' && isFinite(v) && v > 0) ? v : 1; }
+  // a fresh per-game equilibrium for each climate axis (the "weather it tends toward"),
+  // pulled from EQ_BAND × varianceMult so swingier difficulties start further off-center.
+  function freshClimate(bias) {
+    var CL = C.CLIMATE, vm = varMult(), eq = {}, val = {};
+    CL.AXES.forEach(function (ax) {
+      var e = rnd(CL.EQ_BAND[0], CL.EQ_BAND[1]) * vm;        // per-axis equilibrium
+      if (bias && typeof bias[ax] === 'number') e += bias[ax]; // scenario tilt
+      e = Math.max(-CL.CLAMP, Math.min(CL.CLAMP, e));
+      eq[ax] = e; val[ax] = e;                                // start AT equilibrium
+    });
+    return { funding: val.funding, compute: val.compute, hype: val.hype, reg: val.reg,
+             eq: eq, nextAt: 0, lastBand: {}, lastNewsAt: {} };
+  }
+  function climateAxis(ax) {
+    var cl = state.climate; if (!cl || typeof cl[ax] !== 'number' || !isFinite(cl[ax])) return 0;
+    return cl[ax];
+  }
+  // SUB-PART A — roll the world: seed + scenario + (biased) starting climate + roster tilt.
+  // Called from setDifficulty(level, true). Idempotent-safe: only rolls when seedNewGame.
+  function rollWorld(difficulty) {
+    state.worldSeed = 1000 + Math.floor(Math.random() * 9000);   // shareable run id (#1000–9999)
+    var pool = C.SCENARIOS || [];
+    var sc = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    state.scenario = sc ? sc.id : null;
+    state.climate = freshClimate(sc ? sc.climate : null);
+    // apply the scenario's one-time opening tilts (gentle + recoverable).
+    if (sc) {
+      if (typeof sc.startCashMult === 'number' && state.cash > 0) state.cash = Math.round(state.cash * sc.startCashMult);
+      if (typeof sc.trustBias === 'number') state.trust = clampTrust((state.trust || 0) + sc.trustBias);
+      if (typeof sc.shareBias === 'number') state.marketShare = Math.max(0, Math.min(100, (state.marketShare || 0) + sc.shareBias));
+      if (typeof sc.researcherBias === 'number') state.researchers = Math.max(0, (state.researchers || 0) + sc.researcherBias);
+      // rivalsAhead: push the front-runner up a touch (you start behind). rivalsWeak: trim the field.
+      var act = activeRivals();
+      if (sc.rivalsAhead && act.length) {
+        var lead = act.slice().sort(function (a, b) { return (b.share || 0) - (a.share || 0); })[0];
+        if (lead) { lead.share = Math.min(C.RIVAL_SHARE_CAP, (lead.share || 0) + 6); lead.agi = Math.min(100, (lead.agi || 0) + 5); }
+      }
+      if (sc.rivalsWeak) act.forEach(function (r) { r.share = Math.max(0, (r.share || 0) * 0.8); r.agi = Math.max(0, (r.agi || 0) * 0.85); });
+    }
+  }
+  // ensure a climate exists (old saves / corruption) without re-rolling a scenario.
+  function ensureClimate() { if (!state.climate || typeof state.climate !== 'object') state.climate = freshClimate(null); }
+
   // active (not-yet-acquired) rivals — the live field
   function activeRivals() { return (state.rivals || []).filter(function (r) { return !r.acquired; }); }
   // localized display name for a rival id (live roster name first; falls back to i18n/id)
@@ -2949,6 +3006,34 @@
         return r;
       });
     }
+    // ---- v16 (Phase 7): VARIANCE LAYERS. A pre-Phase-7 save has no world seed,
+    // scenario, or climate. Default them SAFELY: a neutral climate (drawn fresh, so
+    // the macro economy is centered/calm for a returning player), no scenario tilt,
+    // and a freshly-rolled seed so even old saves get a shareable run id. The climate
+    // economy hooks all read through climateAxis() which returns 0 on a missing axis,
+    // so a malformed climate can never crash or distort. Lucky-break cooldowns default
+    // to 0 (ready after the first-delay grace).
+    if (typeof s.worldSeed !== 'number' || !isFinite(s.worldSeed) || s.worldSeed <= 0) {
+      s.worldSeed = 1000 + Math.floor(Math.random() * 9000);
+    }
+    if (typeof s.scenario !== 'string') s.scenario = null;
+    if (!s.climate || typeof s.climate !== 'object' || Array.isArray(s.climate)) {
+      s.climate = { funding: 0, compute: 0, hype: 0, reg: 0, eq: { funding: 0, compute: 0, hype: 0, reg: 0 }, nextAt: 0, lastBand: {}, lastNewsAt: {} };
+    } else {
+      // coerce each axis + equilibrium to a finite, clamped value (never trust storage).
+      var CLm = C.CLIMATE;
+      if (!s.climate.eq || typeof s.climate.eq !== 'object') s.climate.eq = {};
+      CLm.AXES.forEach(function (ax) {
+        s.climate[ax] = clean(s.climate[ax], 0, -CLm.CLAMP, CLm.CLAMP);
+        s.climate.eq[ax] = clean(s.climate.eq[ax], 0, -CLm.CLAMP, CLm.CLAMP);
+      });
+      if (typeof s.climate.nextAt !== 'number') s.climate.nextAt = 0;
+      if (!s.climate.lastBand || typeof s.climate.lastBand !== 'object') s.climate.lastBand = {};
+      if (!s.climate.lastNewsAt || typeof s.climate.lastNewsAt !== 'object') s.climate.lastNewsAt = {};
+    }
+    if (typeof s.lastLuckyAt !== 'number' || !isFinite(s.lastLuckyAt)) s.lastLuckyAt = 0;
+    if (typeof s.nextLuckyCheckAt !== 'number' || !isFinite(s.nextLuckyCheckAt)) s.nextLuckyCheckAt = 0;
+    if (typeof s.luckyTotal !== 'number' || !isFinite(s.luckyTotal)) s.luckyTotal = 0;
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -3046,7 +3131,9 @@
       if (seed > 0 && state.cash < seed) state.cash = seed;   // grant once (don't lower an existing balance)
       seedRivals(level);                                       // fresh random field for this run
       state.rivalLifeNextAt = 0;                               // PHASE 6: fresh lifecycle cooldown
-    } else { ensureRivals(); }
+      rollWorld(level);                                        // PHASE 7: world seed + scenario + climate (after cash+rivals)
+      state.lastLuckyAt = 0; state.nextLuckyCheckAt = 0;       // PHASE 7: fresh lucky-break cooldown
+    } else { ensureRivals(); ensureClimate(); }
     save();
     emit('change');
     return state.difficulty;
@@ -3137,6 +3224,10 @@
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
     setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
     setDifficulty: setDifficulty, diff: diff, seedRivals: seedRivals,
+    // Phase 7 — variance layers (world seed / scenario / climate / lucky)
+    rollWorld: rollWorld, ensureClimate: ensureClimate, climateAxis: climateAxis, varMult: varMult,
+    scenarioId: function () { return state.scenario; }, worldSeed: function () { return state.worldSeed; },
+    climateState: function () { return state.climate; },
     rivalName: rivalName, activeRivals: activeRivals, rivalById: rivalById,
     updateRivalLifecycle: updateRivalLifecycle, spawnEntrant: spawnEntrant,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,

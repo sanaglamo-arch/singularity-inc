@@ -395,6 +395,90 @@
     }
   };
 
+  // ===================================================================
+  // PHASE 7 — VARIANCE LAYERS (DESIGN-rivals-replayability §7.5) -------
+  // Several INDEPENDENT randomness sources so two same-difficulty, same-play
+  // runs DIVERGE. Fortune cuts BOTH ways (lucky breaks, not only incidents).
+  // Everything is FAIR: telegraphed in the feed + always a recovery lever.
+  // Amplitude/frequency/spread all × diff('varianceMult') (Easy ~0.6 calm →
+  // Impossible ~1.6 swingy). See game.js for the consumers.
+  // ===================================================================
+
+  // ---- SUB-PART A — STARTING SCENARIO MODIFIERS ------------------------
+  // Rolled once at new-game alongside the rival roster + world seed. Each is a
+  // one-line "the world you got": a small, telegraphed opening tilt (cash /
+  // runway / rivals / climate). Surfaced in the new-game flow. mods is applied
+  // ONCE at roll time (startCashMult multiplies the seeded opening cash; the
+  // climate fields BIAS the starting climate; rivalsAhead/rivalsWeak nudge the
+  // fresh roster). Kept gentle so a bad opening is recoverable, not a loss.
+  var SCENARIOS = [
+    { id: 'sc_flush',    startCashMult: 1.35, climate: { funding: +0.30, hype: +0.10 }, rivalsAhead: 1 },
+    { id: 'sc_lean',     startCashMult: 0.78, climate: { funding: -0.25 }, rivalsWeak: 1 },
+    { id: 'sc_cheap',    startCashMult: 1.0,  climate: { compute: -0.30, reg: +0.25 } },
+    { id: 'sc_hype',     startCashMult: 1.10, climate: { funding: +0.25, hype: +0.30, reg: +0.10 }, trustBias: -6 },
+    { id: 'sc_winter',   startCashMult: 0.85, climate: { funding: -0.35, hype: -0.20 }, rivalsWeak: 1 },
+    { id: 'sc_gold',     startCashMult: 1.0,  climate: { hype: +0.35, compute: +0.15 }, shareBias: +3 },
+    { id: 'sc_crackdown',startCashMult: 0.95, climate: { reg: +0.40, funding: -0.10 }, trustBias: +4 },
+    { id: 'sc_talent',   startCashMult: 1.0,  climate: { funding: +0.10 }, researcherBias: 1 }
+  ];
+
+  // ---- SUB-PART B — MARKET CLIMATE CYCLES ------------------------------
+  // A macro state that DRIFTS over time (Ornstein–Uhlenbeck-ish: noise + pull
+  // back to a per-game equilibrium) across four axes, each in roughly [-1,+1]:
+  //   funding  raise valuations / fundability   (+boom  -winter)
+  //   compute  compute & electricity price tilt (+cheap -crunch)  [+ = CHEAPER]
+  //   hype     adoption / revenue tailwind, but fragile trust
+  //   reg      regulatory mood (+angry pushes incident risk + cuts valuations)
+  // Each axis modulates the economy for EVERYONE. A SHIFT across a labelled
+  // band threshold is telegraphed in the news ("Funding winter sets in").
+  // Amplitude (noise + how far swings reach) × diff('varianceMult').
+  var CLIMATE = {
+    AXES: ['funding', 'compute', 'hype', 'reg'],
+    DRIFT_EVERY_SEC: 20,      // climate re-rolls a small step once per cycle
+    NOISE: 0.06,              // per-step random walk magnitude (× varianceMult)
+    REVERT: 0.05,            // pull back toward each axis equilibrium (mean reversion)
+    EQ_BAND: [-0.45, 0.45],  // per-game equilibrium drawn from this band (per axis)
+    CLAMP: 1.0,              // hard band on each axis
+    // band thresholds for the telegraphed labels (crossing one fires news)
+    BAND_HI: 0.45, BAND_LO: -0.45,
+    SHIFT_NEWS_COOLDOWN_SEC: 60,  // never spam more than one climate headline per axis per window
+    // how strongly each axis bends the economy (read in game.js). All gentle —
+    // climate colors the run, it never instakills (recovery levers still apply).
+    FUND_VAL_PER: 0.30,      // funding axis: ±30% on round payouts at the extreme
+    COMPUTE_PRICE_PER: 0.22, // compute axis: ∓22% on compute/electricity price (+axis = cheaper)
+    REVENUE_HYPE_PER: 0.20,  // hype axis: ±20% on revenue/adoption
+    REG_RISK_PER: 0.18,      // reg axis: + regulatory-risk creep when angry
+    AGGRO_PER: 0.25          // funding+hype lift rival aggression a touch (livelier booms)
+  };
+
+  // ---- SUB-PART D — LUCKY BREAKS (fortune the GOOD way) ----------------
+  // A pool of POSITIVE random events that fire on a cooldowned roll, MIRRORING
+  // incidents but beneficial — so randomness can let you DOMINATE, not only
+  // punish. Each carries a news headline. magnitude forms reuse applyEffect's
+  // %-of-scale vocabulary so they scale garage→frontier. Frequency + magnitude
+  // × diff('varianceMult'). Balanced against the incident cadence (similar
+  // cooldown), but lucky breaks need no risk floor — fortune can strike anytime.
+  var LUCKY_CFG = {
+    FIRST_DELAY_SEC: 90,     // grace before the first lucky break can fire
+    COOLDOWN_SEC: 170,       // base global cooldown (× /varianceMult: swingier = more often)
+    COOLDOWN_MIN: 80,
+    CHECK_EVERY_SEC: 5,      // roll cadence (a "cycle")
+    CHANCE: 0.05             // per-cycle base chance (× varianceMult)
+  };
+  // each: id (i18n key {id}_news), eff applied via applyEffect, optional act gate.
+  // Magnitudes deliberately mild-but-felt; the +cash ones use cashGift (windfall-capped
+  // anti-printer). All telegraphed by their own headline so the player SEES the luck.
+  var LUCKY = [
+    { id: 'lk_viral',    act: [0, 1, 2, 3, 4], eff: { meter: { marketShare: '+3' }, set_var: { lucky_count: '+1' } } },
+    { id: 'lk_whale',    act: [1, 2, 3, 4],    eff: { cashGift: 70, meter: { trust: '+2' } } },
+    { id: 'lk_star',     act: [1, 2, 3, 4],    eff: { resource: { researchers: '+1' } } },
+    { id: 'lk_stumble',  act: [1, 2, 3, 4],    eff: { meter: { marketShare: '+2' }, rival_effect: { leader: { share: -2 } } } },
+    { id: 'lk_grant',    act: [0, 1, 2, 3, 4], eff: { cashGift: 55 } },
+    { id: 'lk_breakthru',act: [2, 3, 4],       eff: { meter: { align: '+2', marketShare: '+1' } } },
+    { id: 'lk_endorse',  act: [1, 2, 3, 4],    eff: { meter: { trust: '+5' } } },
+    { id: 'lk_efficient',act: [2, 3, 4],       eff: { resource: { compute: '+40' }, meter: { marketShare: '+1' } } }
+  ];
+
   // ---- RIVAL POOL (replayability core, §4) -----------------------------
   // ~40 named fictional AI labs. On a NEW game, N are picked at random (N by difficulty).
   // archetype ∈ juggernaut|safety|disruptor|opensource|sovereign|stealth|satire — drives
@@ -1790,7 +1874,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 15,         // Phase 6: dynamic rival lifecycle (safe migrate; lifecycle state defaults)
+    SAVE_VERSION: 16,         // Phase 7: variance layers (worldSeed/scenario/climate; safe migrate)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1827,6 +1911,10 @@
     RIVAL_TRAJ: RIVAL_TRAJ,
     RIVAL_LIFECYCLE: RIVAL_LIFECYCLE,
     DIFFICULTY: DIFFICULTY,
+    SCENARIOS: SCENARIOS,
+    CLIMATE: CLIMATE,
+    LUCKY_CFG: LUCKY_CFG,
+    LUCKY: LUCKY,
     ACQUIRE: ACQUIRE,
     RACE: RACE,
     ENDINGS: ENDINGS,

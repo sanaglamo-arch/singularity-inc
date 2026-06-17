@@ -1984,16 +1984,36 @@
       for (var i = 0; i < kids.length; i++) setClass(kids[i], 'on', kids[i].getAttribute('data-diff') === sel);
     });
     $('diffOk').onclick = function () {
-      G.setDifficulty(sel, true);   // seeds start-cash boost + random rival roster
+      G.setDifficulty(sel, true);   // seeds start-cash boost + random rival roster + world/scenario/climate
       renderStatic(); update();
       done();
     };
   }
 
+  // ---------- starting-scenario reveal (Phase 7; after difficulty) ----------
+  // One line telling the player "the world you got" — the seeded climate + modifier.
+  // Shown once for a genuinely new game so the run feels handed-out, not generic.
+  function showScenario(done) {
+    var id = G.scenarioId && G.scenarioId();
+    if (!id) { done(); return; }   // no scenario rolled (old save / safety) → skip cleanly
+    var seed = (G.worldSeed && G.worldSeed()) || 0;
+    showModal(
+      '<div class="ob ob-scenario">' +
+      '<div class="ob-icon">' + ic('ic_world') + '</div>' +
+      '<h3>' + t('scenario_title') + '</h3>' +
+      (seed ? '<div class="sc-seed">' + t('scenario_seed', { seed: seed }) + '</div>' : '') +
+      '<p>' + t(id) + '</p>' +
+      '<div class="row">' +
+      '<button class="primary" id="scenarioOk">' + t('scenario_start') + '</button>' +
+      '</div></div>'
+    );
+    $('scenarioOk').onclick = function () { window.GAME_AUDIO.buy(); done(); };
+  }
+
   // ---------- onboarding tour ----------
   function showOnboarding() {
     // genuinely-new game: name your lab → choose difficulty → the tour
-    if (!G.state.companyNamed) { showNaming(function () { showDifficulty(function () { showTour(); }); }); return; }
+    if (!G.state.companyNamed) { showNaming(function () { showDifficulty(function () { showScenario(function () { showTour(); }); }); }); return; }
     showTour();
   }
   function showTour() {
