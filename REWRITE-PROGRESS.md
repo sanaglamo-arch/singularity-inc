@@ -38,3 +38,6 @@ Transforming from prestige-RESET meta → continuous NO-RESET AI-lab tycoon.
   button to switch tabs synchronously, don't rely on hash+immediate update().
 
 ## CRITICAL FIX (this session): bind() aborted on $('prestigeBtn') null-deref (removed in P6) -> ALL listeners after it (train/funding/boost/build/research/hire/autopilot/alignment) were DEAD. Guarded. Lesson: verify NEW buttons via real DOM click, not just direct engine calls. Audited: all new buttons fire.
+
+## MAINTENANCE CHECKPOINT (light cadence; single maintained line — update in place)
+Last checkpoint: node --check all OK · parity 668/668 · arc AGI @18d21h/0% dead all-funding · safety incident ratio 0.20 · overflow @360 EN+ru company/world pageHScroll=false (only intentional marquee/ellipsis). Build healthy; no open gaps.
