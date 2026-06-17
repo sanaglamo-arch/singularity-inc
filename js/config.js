@@ -428,12 +428,7 @@
     ]
   };
 
-  // ---- Autopilot (smart auto-buy; decoupled from managers) -------------
-  var AUTOPILOT = {
-    UNLOCK_PRESTIGES: 1,    // unlocks after the first model release
-    DEFAULT_RESERVE: 0.5,   // keep 50% of cash by default
-    FILL_RANGE: 15          // 'fill to milestone' only acts within N of the next breakpoint
-  };
+  // (Autopilot config removed in Phase 1 — automation dropped in favor of active decisions.)
 
   // ---- Cosmetics (earned, no pay-to-win) -------------------------------
   // unlock: {} always | {prestiges:n} | {singularities:n} | {ach:n owned}
@@ -568,7 +563,6 @@
     ADS: ADS,
     ACHIEVEMENTS: ACHIEVEMENTS,
     WINDFALL: WINDFALL,
-    AUTOPILOT: AUTOPILOT,
     ACTS: ACTS,
     RIVALS: RIVALS,
     RIVAL_SHARE_CAP: RIVAL_SHARE_CAP,

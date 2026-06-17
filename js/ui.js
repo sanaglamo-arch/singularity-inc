@@ -139,16 +139,9 @@
     buildMarket();
     // (legacy prestige/singularity/artifacts/tech tabs were retired in GDD v3)
     // (Alignment / Stats / Awards / Settings labels live in the More sheet, built on open)
-    // upgrades + autopilot
+    // upgrades (autopilot panel removed in Phase 1 — active decisions, not automation)
     $('upgradesTitle').textContent = t('upgrades_title');
     $('managersTitle').textContent = t('managers_title');
-    $('autopilotHdr').innerHTML = t('autopilot_title') + infoBtn('tip_autopilot');
-    $('apReserveLabel').innerHTML = t('ap_reserve') + infoBtn('tip_reserve');
-    $('apModeLabel').textContent = t('ap_mode');
-    $('apGensLabel').textContent = t('ap_gens');
-    var apo = $('apOnSeg').children; apo[0].textContent = t('on'); apo[1].textContent = t('off');
-    var apm = $('apModeSeg').children; apm[0].textContent = t('ap_mode_roi'); apm[1].textContent = t('ap_mode_milestone');
-    buildAutopilot();
     // GDD v3: Team (hiring) view — repurposed from the old Research tab
     if ($('teamTitle')) {
       $('teamTitle').innerHTML = t('team_title') + infoBtn('tip_team');
@@ -582,53 +575,7 @@
     }
   }
 
-  // ---------- autopilot ----------
-  function buildAutopilot() {
-    var list = $('apGenToggles'); if (!list) return; list.innerHTML = '';
-    C.GENERATORS.forEach(function (g) {
-      var chip = el('button', 'ap-chip'); chip.dataset.gid = g.id;
-      chip.innerHTML = '<span class="api">' + ic('gen_' + g.id) + '</span><span class="apn">' + t('g_' + g.id) + '</span><span class="apdot"></span>';
-      chip.addEventListener('click', function () {
-        var on = !G.state.autopilot.gens[g.id];
-        G.toggleAutopilotGen(g.id, on); window.GAME_AUDIO.buy(); updateAutopilot();
-      });
-      list.appendChild(chip);
-    });
-  }
-  function apStatusText() {
-    var s = G.state, st = G.apStatus();
-    if (!s.autopilot.on) return t('ap_status_off');
-    var anyGen = false; for (var k in s.autopilot.gens) if (s.autopilot.gens[k]) anyGen = true;
-    if (!anyGen) return t('ap_status_nogens');
-    if (st.kind === 'buy') return t('ap_status_buy', { name: t('g_' + st.id), mode: t(st.mode === 'milestone' ? 'ap_mode_milestone_short' : 'ap_mode_roi_short') });
-    if (st.kind === 'reserve') return t('ap_status_reserve');
-    return t('ap_status_idle');
-  }
-  function updateAutopilot() {
-    var s = G.state, unlocked = G.autopilotUnlocked();
-    $('autopilotLocked').classList.toggle('hidden', unlocked);
-    $('autopilotPanel').classList.toggle('hidden', !unlocked);
-    if (!unlocked) { $('autopilotLocked').innerHTML = '<div class="es-icon">' + ic('ic_bolt') + '</div>' + t('autopilot_locked'); return; }
-    // on/off seg
-    var onb = $('apOnSeg').children; onb[0].classList.toggle('on', s.autopilot.on); onb[1].classList.toggle('on', !s.autopilot.on);
-    // status
-    var stEl = $('apStatus'); stEl.textContent = apStatusText();
-    stEl.classList.toggle('live', s.autopilot.on && G.apStatus().kind === 'buy');
-    // reserve
-    var pct = Math.round(s.autopilot.reserve * 100);
-    if (document.activeElement !== $('apReserve')) $('apReserve').value = pct;
-    $('apReserveKeeps').textContent = t('ap_reserve_keeps', { p: pct, v: fmt(s.cash * s.autopilot.reserve) });
-    // mode seg
-    var mb = $('apModeSeg').children; mb[0].classList.toggle('on', s.autopilot.mode === 'roi'); mb[1].classList.toggle('on', s.autopilot.mode === 'milestone');
-    // gen toggles
-    var chips = $('apGenToggles').children;
-    for (var i = 0; i < chips.length; i++) {
-      var gid = chips[i].dataset.gid;
-      chips[i].classList.toggle('hidden', s.gens[gid] === 0);
-      chips[i].classList.toggle('on', !!s.autopilot.gens[gid]);
-    }
-  }
-
+  // (Autopilot UI removed in Phase 1 — the Upgrades tab is now Global Upgrades + Managers.)
 
   // ---------- cosmetics ----------
   var ORB_PREVIEW = {
@@ -1052,7 +999,7 @@
     if (sig !== _lastCardSig) {
       _lastCardSig = sig;
       var html = sorted.map(renderCardHTML).join('');
-      if (!html) html = '<div class="empty-state">' + t('ap_status_idle') + '</div>';
+      if (!html) html = '<div class="empty-state">' + t('news_quiet') + '</div>';
       cl.innerHTML = html; wireCardButtons(cl);
     } else {
       // refresh only the countdown labels in place
@@ -1222,7 +1169,7 @@
     frameMoney = G.moneyRate();
     updateTop();
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
-    else if (currentTab === 'upgrades') { updateAutopilot(); updateUpgrades(); updateManagers(); }
+    else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
@@ -1564,14 +1511,7 @@
     if ($('prestigeBtn')) $('prestigeBtn').addEventListener('click', openPrestigeFlow);
     if ($('prestigeCta')) $('prestigeCta').addEventListener('click', function () { window.GAME_AUDIO.buy(); openPrestigeFlow(); });
 
-    // autopilot controls
-    var apOn = $('apOnSeg').children;
-    apOn[0].addEventListener('click', function () { G.setAutopilotOn(true); window.GAME_AUDIO.buy(); updateAutopilot(); });
-    apOn[1].addEventListener('click', function () { G.setAutopilotOn(false); updateAutopilot(); });
-    $('apReserve').addEventListener('input', function () { G.setAutopilotReserve(parseInt(this.value, 10) / 100); updateAutopilot(); });
-    var apMode = $('apModeSeg').children;
-    apMode[0].addEventListener('click', function () { G.setAutopilotMode('roi'); window.GAME_AUDIO.buy(); updateAutopilot(); });
-    apMode[1].addEventListener('click', function () { G.setAutopilotMode('milestone'); window.GAME_AUDIO.buy(); updateAutopilot(); });
+    // (autopilot controls removed in Phase 1)
 
     // (the singularity/2nd-prestige tab was retired in GDD v3; doSingularity
     //  remains in the engine only for the 'beaten' ending path)
