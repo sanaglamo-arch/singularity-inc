@@ -2044,7 +2044,7 @@
     var risk = highestVector().val;
     if (risk < IC.RISK_FLOOR) return;
     var f = Math.min(1, (risk - IC.RISK_FLOOR) / (100 - IC.RISK_FLOOR));
-    var chance = IC.CHANCE_AT_FLOOR + (IC.CHANCE_AT_MAX - IC.CHANCE_AT_FLOOR) * f;
+    var chance = (IC.CHANCE_AT_FLOOR + (IC.CHANCE_AT_MAX - IC.CHANCE_AT_FLOOR) * f) * varMult(); // SUB-PART E: variance scales incident frequency
     if (Math.random() > chance) return;
     var pool = (C.INCIDENTS || []).filter(incidentActEligible);
     if (!pool.length) return;
@@ -2066,6 +2066,24 @@
     if (Array.isArray(ev.act) && ev.act.indexOf(currentAct()) < 0) return false;
     return true;
   }
+  // multiply the numeric deltas of a (beneficial) effect by `mult`, returning a SHALLOW
+  // copy so the config template is never mutated. Handles the keys lucky breaks use:
+  // cashGift, meter.{marketShare,trust,align}, resource.{compute,researchers}, rival_effect.
+  // Schema-string deltas ("+3") and numbers both supported. Researchers stay integer-ish.
+  function scaleGoodEffect(eff, mult) {
+    if (!eff || !(mult > 0) || mult === 1) return eff;
+    function sc(v) { var n = numDelta(v); return (n === undefined) ? v : n * mult; }
+    var out = {};
+    for (var k in eff) out[k] = eff[k];
+    if (typeof eff.cashGift !== 'undefined') out.cashGift = sc(eff.cashGift);
+    if (eff.meter) { out.meter = {}; for (var mk in eff.meter) out.meter[mk] = sc(eff.meter[mk]); }
+    if (eff.resource) {
+      out.resource = {};
+      for (var rk in eff.resource) out.resource[rk] = (rk === 'researchers') ? eff.resource[rk] : sc(eff.resource[rk]);
+    }
+    // rival_effect / set_var left as-is (small/structural; not magnitude-scaled).
+    return out;
+  }
   function updateLucky() {
     var LK = C.LUCKY_CFG, now = Date.now(), vm = varMult();
     if (now < (state.nextLuckyCheckAt || 0)) return;
@@ -2082,7 +2100,9 @@
     var ev = pool[Math.floor(Math.random() * pool.length)];
     state.lastLuckyAt = now;
     state.luckyTotal = (state.luckyTotal || 0) + 1;
-    applyEffect(ev.eff);
+    // SUB-PART E: scale the lucky MAGNITUDE by varianceMult so fortune is bigger on swingier
+    // difficulties too (mirrors incident harm scaling) — fortune cuts both ways, symmetrically.
+    applyEffect(scaleGoodEffect(ev.eff, varMult()));
     emitNews('milestone', [ev.id + '_news']);
     emit('lucky', { id: ev.id });
     checkAchievements(); emit('change');
