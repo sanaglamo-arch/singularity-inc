@@ -149,7 +149,8 @@
         acq: null,           // live hostile-takeover offer {rivalId,name,offer,turnsLeft,nextTurnAt,poached,trigVal}
         acqClearUntil: 0,    // cooldown: no new acquisition offer before this wall-clock time
         sharePeak: 0,        // highest market share seen (acquisition "share slipping" signal)
-        natAt: 0             // wall-clock when nationalization restructure began (grace before ending)
+        natAt: 0,            // wall-clock when nationalization restructure began (grace before ending)
+        redSince: 0          // in-game playtime (sec) when cash first went NEGATIVE this stretch (0 = not in the red)
       },
       debt: { owed: 0, perMonth: 0, monthsLeft: 0 }, // venture-debt drag added to monthly burn
       lang: window.GAME_I18N.getLang(),
@@ -619,7 +620,10 @@
   // genRevenueMult used by funding. revGenFactor(g) = REV_GEN_STEP^modelGen.
   function revGenFactor() { return Math.pow(C.CORE.REV_GEN_STEP, state.modelGen); }
   function moneyRate() {
-    if (state.modelGen <= 0) return 0;            // no product yet → tap bootstrap only
+    // NaN-GUARD: coerce modelGen so a missing/garbage field (e.g. undefined from an old/partial
+    // save) reads as 0 here. `undefined <= 0` is false, so without this the function would fall
+    // through to revGenFactor()=Math.pow(step, undefined)=NaN and poison cash (the reported bug).
+    if (!(finiteNum(state.modelGen) > 0)) return 0;   // no product yet → tap bootstrap only
     var trust = worldUnlocked() ? trustMult() : 1; // reputation moves product revenue (±10%)
     // Phase 2: revenue = product capability (revGenFactor) × adoption (compute^ADOPTION_EXP,
     // sub-linear so burn — linear in compute — outruns it WITHIN a generation) × market share ×
@@ -677,28 +681,40 @@
     // Phase 3: venture-debt repayment is an ADDED operating drain until the term runs out
     // (the death-spiral lever). NOT scaled by burnMult — it's a fixed contractual repayment.
     var debt = (state.debt && state.debt.monthsLeft > 0) ? (state.debt.perMonth || 0) : 0;
+    compute = finiteNum(compute); electricity = finiteNum(electricity); salaries = finiteNum(salaries);
+    upkeep = finiteNum(upkeep); overhead = finiteNum(overhead); debt = finiteNum(debt);
     var total = compute + electricity + salaries + upkeep + overhead + debt;
     return { compute: compute, electricity: electricity, salaries: salaries, upkeep: upkeep, overhead: overhead, debt: debt, total: total };
   }
-  // total MONTHLY burn (the opposing drain to revenue).
-  function monthlyBurn() { return burnBreakdown().total; }
+  // total MONTHLY burn (the opposing drain to revenue). Excludes debt interest — that's applied
+  // in burnPerSec()/netMonthlyBurn() so the breakdown stays the "base" operating costs.
+  function monthlyBurn() { return finiteNum(burnBreakdown().total); }
   // MONTHLY product revenue (the existing per-second income, reframed monthly so it sits in
   // the same units as burn). moneyRate already weaves product capability (genRevenueMult) ×
   // marketShare × trust; here we also apply diff('revenueMult') so the difficulty lever bites.
   function diffRevenueMult() { var m = diff('revenueMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
-  function revenuePerSec() { return moneyRate() * diffRevenueMult() * climateRevenueMult(); } // PHASE 7: hype tailwind
+  // every economy primitive below is wrapped in finiteNum() as a hard backstop: if ANY upstream
+  // term ever evaluates to NaN/Infinity, the headline numbers (and the cash drain that reads them)
+  // stay finite instead of poisoning state.cash. The moneyRate() guard above is the real fix; this
+  // is defence-in-depth so a future non-finite term can never re-introduce the NaN-cash bug.
+  function revenuePerSec() { return finiteNum(moneyRate() * diffRevenueMult() * climateRevenueMult()); } // PHASE 7: hype tailwind
   function monthlyRevenue() { return revenuePerSec() * C.BURN.MONTH_SEC; }
-  // per-second cash drain from burn (monthly → per-second).
-  function burnPerSec() { return monthlyBurn() / C.BURN.MONTH_SEC; }
-  // net cash rate ($/sec): revenue minus burn. >0 ⇒ profitable.
+  // DEBT INTEREST (DESIGN §B): while cash is in the red, creditors add +10% to burn — makes the
+  // hole costlier and the spiral faster, but never an instant death (the ceiling/grace do that).
+  function debtInterestMult() { return (state.cash || 0) < 0 ? C.BURN.RED_INTEREST_MULT : 1; }
+  // per-second cash drain from burn (monthly → per-second), × debt interest when in the red.
+  function burnPerSec() { return finiteNum(monthlyBurn() * debtInterestMult() / C.BURN.MONTH_SEC); }
+  // net cash rate ($/sec): revenue minus burn. >0 ⇒ profitable, <0 ⇒ losing money (the topbar headline).
   function netCashRate() { return revenuePerSec() - burnPerSec(); }
   // net MONTHLY burn: burn − revenue. <=0 ⇒ profitable (runway = Infinity).
-  function netMonthlyBurn() { return monthlyBurn() - monthlyRevenue(); }
-  // RUNWAY in MONTHS = cash / netBurn. Infinity when profitable (netBurn ≤ 0).
+  function netMonthlyBurn() { return finiteNum(monthlyBurn() * debtInterestMult() - monthlyRevenue()); }
+  // RUNWAY in MONTHS = cash / netBurn. Infinity when profitable (netBurn ≤ 0); 0 when already in the red.
   function runwayMonths() {
     var nb = netMonthlyBurn();
     if (nb <= 0) return Infinity;
-    return (state.cash || 0) / nb;
+    var cash = finiteNum(state.cash);
+    if (cash <= 0) return 0;            // in the red: runway is spent (debt timer governs the rest)
+    return cash / nb;
   }
   function isProfitable() { return netMonthlyBurn() <= 0; }
 
@@ -1068,6 +1084,64 @@
     maybeTriggerAcquisition();
     updateAcquisition(dt);
     updateNationalization();
+  }
+
+  // ===================================================================
+  // IN-THE-RED DEBT MODEL (DESIGN-debt-bankruptcy §B / DESIGN-economy-fixes §3-4)
+  // Cash may go negative (the burn drain no longer clamps at 0). While cash < 0:
+  //   • a DEBT TIMER runs (crisis.redSince = playtime when we first went red);
+  //   • a loud red banner telegraphs "bankrupt by Day N" (UI reads redBankruptDay());
+  //   • GRACE in in-game days by difficulty (Easy 90 · Normal 60 · Hard 35 · Impossible 18);
+  //   • a DEBT CEILING: cash < −(K × monthly burn) ⇒ instant insolvency (K 3/2.5/2/1.5);
+  //   • DEBT INTEREST ×1.10 on burn (applied in burnPerSec/netMonthlyBurn).
+  // Recovering to cash ≥ 0 resets the timer + clears the banner. On grace-expiry or
+  // ceiling-breach: if weak-but-valuable → acquisition ultimatum; else → bankruptcy ending.
+  // ===================================================================
+  function redGraceDays() { var d = diff('debtGraceDays'); return (typeof d === 'number' && isFinite(d) && d > 0) ? d : 60; }
+  function debtCeilingK() { var k = diff('debtCeilingK'); return (typeof k === 'number' && isFinite(k) && k > 0) ? k : 2.5; }
+  function inRed() { return finiteNum(state.cash) < 0; }
+  // dollar floor cash may reach before instant insolvency (a NEGATIVE number).
+  function debtCeiling() { return -(debtCeilingK() * monthlyBurn()); }
+  // in-game days spent in the red so far this stretch (0 if not in the red).
+  function redDaysElapsed() {
+    var cr = state.crisis;
+    if (!inRed() || !cr || !cr.redSince) return 0;
+    return Math.max(0, (finiteNum(state.playtime) - cr.redSince) / (C.DAY_SEC || 60));
+  }
+  // the in-game DAY (since founding) by which bankruptcy lands if you don't recover.
+  function redBankruptDay() {
+    var cr = state.crisis;
+    if (!inRed() || !cr || !cr.redSince) return 0;
+    return Math.floor((cr.redSince + redGraceDays() * (C.DAY_SEC || 60)) / (C.DAY_SEC || 60));
+  }
+  function dayNow() { return Math.floor(finiteNum(state.playtime) / (C.DAY_SEC || 60)); }
+  // route a debt failure: weak-but-valuable (high valuation + a weakness signal) → acquisition
+  // ultimatum (a chance to survive absorbed); otherwise → bankruptcy ending. Mirrors §B.
+  function resolveDebtFailure() {
+    if (state.gameOver) return;
+    var valuable = valuation() >= C_CR.ACQ_MIN_VALUATION && (state.modelGen || 0) >= C_CR.ACQ_MIN_GEN && !!strongestRival();
+    if (valuable && !acquisitionActive()) { maybeTriggerAcquisition(); }
+    // if an acquisition ultimatum is (now) live, let it play out — it's the survivable path.
+    if (acquisitionActive()) return;
+    triggerFinale('bankrupt', false);
+  }
+  function updateRedDebt() {
+    var cr = state.crisis; if (!cr || state.gameOver) return;
+    if (!inRed()) {
+      // RECOVERED to cash ≥ 0 → reset the timer + clear the banner (one-time "saved" beat).
+      if (cr.redSince) { cr.redSince = 0; emit('crisis', { kind: 'red_cleared' }); emit('change'); }
+      return;
+    }
+    // entered the red this tick → start the timer + loud telegraph (once per stretch).
+    if (!cr.redSince) {
+      cr.redSince = finiteNum(state.playtime) || 0.0001;   // tiny epsilon so the truthy guard holds at t=0
+      emit('crisis', { kind: 'red', day: redBankruptDay() });
+      emit('change');
+    }
+    // DEBT CEILING: too deep in the hole → instant insolvency (time isn't the only limit).
+    if (finiteNum(state.cash) < debtCeiling()) { resolveDebtFailure(); return; }
+    // GRACE EXPIRED: held the red too long → bankruptcy (or acquisition if weak-but-valuable).
+    if (redDaysElapsed() >= redGraceDays()) { resolveDebtFailure(); return; }
   }
 
   // ---- costs -----------------------------------------------------------
@@ -2614,7 +2688,7 @@
     state.funding = {};
     state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0;
     // Phase 3: clear any failure-state machinery so the new company starts from a clean slate.
-    state.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0 };
+    state.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0, redSince: 0 };
     state.debt = { owed: 0, perMonth: 0, monthsLeft: 0 };
     seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the legacy run
     state.rivalLifeNextAt = 0; // PHASE 6: reset lifecycle cooldown for the fresh field
@@ -2867,12 +2941,16 @@
     // GDD v3 continuous meta: generators produce COMPUTE; your shipped product
     // produces MONEY (∝ infra × generation × share). No more cash-from-generators.
     state.compute += computeRate() * dt;
-    // Phase 2 BURN → RUNWAY: revenue is the income, burn is the opposing operating drain.
-    // Credit revenue through addCash (so lifetime/earned totals stay honest), then subtract
-    // the burn from cash. Cash is FLOORED at 0 here — Phase 2 surfaces runway tension but must
-    // never instakill; bankruptcy/game-over triggers off runway in Phase 3.
+    // BURN → RUNWAY: revenue is the income, burn is the opposing operating drain.
+    // Credit revenue through addCash (so lifetime/earned totals stay honest), then subtract burn.
+    // Cash is NO LONGER floored at 0 (DESIGN §3/§B): it may go NEGATIVE (debt). The debt timer +
+    // banner + ceiling (updateRedDebt) govern the fail path; here we just let it sink and keep it
+    // FINITE. The isFinite backstop is the last line of defence against the NaN-cash bug — even if
+    // some upstream term slips through the guards above, cash never becomes NaN.
     addCash(revenuePerSec() * dt);
-    state.cash = Math.max(0, state.cash - burnPerSec() * dt);
+    var drained = state.cash - burnPerSec() * dt;
+    state.cash = isFinite(drained) ? drained : state.cash;
+    updateRedDebt();   // DESIGN §B: in-the-red timer / ceiling / interest / recovery, drives bankruptcy
     if (trainingActive()) {
       if (Date.now() >= state.training.endsAt) finishTraining();
       else emitTrainProgress();   // subtle 25/50/75% progress pings on long runs
@@ -3269,7 +3347,7 @@
     // and because the v12 grandfather already guarantees ≥12 months of runway for any pre-burn
     // save, nobody is bankrupt-on-load. The crisis engine will only escalate during real play.
     if (!s.crisis || typeof s.crisis !== 'object' || Array.isArray(s.crisis)) {
-      s.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0 };
+      s.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0, redSince: 0 };
     } else {
       // an in-progress v13 save: keep its fields but defensively coerce + clear any stale lethal timers.
       s.crisis.warnLevel = Math.floor(clean(s.crisis.warnLevel, 0, 0, 3));
@@ -3277,6 +3355,12 @@
       s.crisis.acqClearUntil = clean(s.crisis.acqClearUntil, 0, 0);
       s.crisis.sharePeak = clean(s.crisis.sharePeak, 0, 0, 100);
       s.crisis.natAt = clean(s.crisis.natAt, 0, 0);
+      // DEBT TIMER (new): default to "not in the red". Never resume an old save mid-grace into an
+      // instant bankruptcy — if cash is somehow negative on load, restart the grace clock at "now"
+      // (rebased below to current playtime so a save that sat for days doesn't instantly expire).
+      s.crisis.redSince = clean(s.crisis.redSince, 0, 0);
+      if (s.crisis.redSince && !(clean(s.cash, 0) < 0)) s.crisis.redSince = 0;     // not actually in the red → clear
+      else if (s.crisis.redSince) s.crisis.redSince = clean(s.playtime, 0, 0);     // rebase the grace clock to now
       if (s.crisis.acq && typeof s.crisis.acq !== 'object') s.crisis.acq = null;
       if (s.crisis.acq) {
         // re-base the countdown clock so a save that sat for days doesn't instantly expire.
@@ -3303,7 +3387,9 @@
       if (typeof max === 'number' && n > max) n = max;
       return n;
     }
-    s.cash = clean(s.cash, 0, 0);
+    // cash may be NEGATIVE now (debt) — clean to a finite value but DO NOT floor at 0, or a
+    // saved debt would silently vanish on reload (DESIGN §4: cash not retro-clamped weirdly).
+    s.cash = clean(s.cash, 0);
     s.compute = clean(s.compute, 0, 0);
     s.totalEarnedAllTime = clean(s.totalEarnedAllTime, 0, 0);
     s.totalEarnedThisRun = clean(s.totalEarnedThisRun, 0, 0);
@@ -3521,6 +3607,9 @@
     burnBreakdown: burnBreakdown, monthlyBurn: monthlyBurn, monthlyRevenue: monthlyRevenue,
     revenuePerSec: revenuePerSec, burnPerSec: burnPerSec, netCashRate: netCashRate,
     netMonthlyBurn: netMonthlyBurn, runwayMonths: runwayMonths, isProfitable: isProfitable,
+    // in-the-red debt model (DESIGN-debt-bankruptcy §B): UI reads these for the banner + Day N.
+    inRed: inRed, redDaysElapsed: redDaysElapsed, redGraceDays: redGraceDays, redBankruptDay: redBankruptDay,
+    debtCeiling: debtCeiling, debtCeilingK: debtCeilingK, dayNow: dayNow, updateRedDebt: updateRedDebt,
     genRevenueMult: genRevenueMult, nextGen: nextGen, isAGI: isAGI,
     trainingActive: trainingActive, canStartTraining: canStartTraining, startTraining: startTraining,
     trainingProgress: trainingProgress, trainingTimeLeft: trainingTimeLeft, finishTraining: finishTraining,

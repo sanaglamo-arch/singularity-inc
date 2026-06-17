@@ -369,28 +369,34 @@
         // PHASE 6 lifecycle pacing: higher cd-mult = slower churn; lower entrant-mult = rarer
         // dark-horses. Easy = calm field; Impossible = lively, aggressive, more newcomers.
         lifecycleCdMult: 1.4, entrantMult: 0.6,
-        rivalCount: [2, 3]
+        rivalCount: [2, 3],
+        // DEBT (DESIGN-debt-bankruptcy §F): grace = in-game days you may hold cash<0 before
+        // bankruptcy; ceilingK = insolvency if cash < −(K × monthly burn). Easier = more rope.
+        debtGraceDays: 90, debtCeilingK: 3
       },
       normal: {
         startCashMult: 1.0, burnMult: 1.0, computePriceMult: 1.0, revenueMult: 1.0,
         fundValMult: 1.0, rivalAggroMult: 1.0, failWarnMonths: 3, failMonths: 0,
         acqWindow: 4, eventSeverityMult: 1.0, rivalAGIspeedMult: 1.0, varianceMult: 1.0,
         lifecycleCdMult: 1.0, entrantMult: 1.0,
-        rivalCount: [3, 3]
+        rivalCount: [3, 3],
+        debtGraceDays: 60, debtCeilingK: 2.5
       },
       hard: {
         startCashMult: 0.7, burnMult: 1.25, computePriceMult: 1.2, revenueMult: 0.85,
         fundValMult: 0.85, rivalAggroMult: 1.3, failWarnMonths: 2, failMonths: 0,
         acqWindow: 3, eventSeverityMult: 1.3, rivalAGIspeedMult: 1.2, varianceMult: 1.3,
         lifecycleCdMult: 0.8, entrantMult: 1.4,
-        rivalCount: [4, 4]
+        rivalCount: [4, 4],
+        debtGraceDays: 35, debtCeilingK: 2
       },
       impossible: {
         startCashMult: 0.5, burnMult: 1.5, computePriceMult: 1.4, revenueMult: 0.7,
         fundValMult: 0.7, rivalAggroMult: 1.6, failWarnMonths: 1, failMonths: 0,
         acqWindow: 2, eventSeverityMult: 1.6, rivalAGIspeedMult: 1.45, varianceMult: 1.6,
         lifecycleCdMult: 0.6, entrantMult: 2.0,
-        rivalCount: [4, 5]
+        rivalCount: [4, 5],
+        debtGraceDays: 18, debtCeilingK: 1.5
       }
     }
   };
@@ -1986,7 +1992,10 @@
     // even a bare garage burns a little (so runway is a finite, meaningful number from day 1).
     OVERHEAD_BASE: 28,        // $/month floor (founder ramen / office) — sets early runway
     OVERHEAD_PER_HEAD: 120,   // $/month overhead per researcher (HR, desks, tooling)
-    OVERHEAD_PER_DC: 200      // $/month overhead per datacenter (site/admin)
+    OVERHEAD_PER_DC: 200,     // $/month overhead per datacenter (site/admin)
+    // DEBT (DESIGN-debt-bankruptcy §B): once cash goes negative, creditors add +10% to burn
+    // (a costlier hole that speeds the spiral, but not an instant death).
+    RED_INTEREST_MULT: 1.10
   };
 
   // ---- FAILURE STATES (Phase 3, DESIGN-depth-redesign §2) --------------
