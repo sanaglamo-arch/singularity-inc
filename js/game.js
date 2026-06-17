@@ -112,6 +112,11 @@
       rivalLifeNextAt: 0,    // PHASE 6: epoch ms when the next lifecycle event may fire (cooldown anchor)
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
+      // ===== PHASE 9 — PER-DIFFICULTY RECORDS / HALL OF FAME (DESIGN §6) =====
+      // META-PROGRESSION: persists across runs/new-games (NEVER reset by seeding a new run).
+      // records[diff] = { bestShare, bestValuation, reachedAGI, fastestAGIdays, bestEnding,
+      //                   games, wins, noBankruptcyWin }. Keyed by difficulty (easy|normal|hard|impossible).
+      records: {},
       // ===== GDD v3 — continuous no-reset meta =====
       compute: 0,            // 🖥 compute STOCK (generators produce it; spent to train models)
       researchers: 0,        // 👥 hired researchers (speed up timed processes)
@@ -204,6 +209,62 @@
     var v = lv ? lv[key] : undefined;
     if (v === undefined) { var n = C.DIFFICULTY.levels[C.DIFFICULTY.DEFAULT]; v = n ? n[key] : undefined; }
     return v;
+  }
+
+  // ---- PHASE 9: per-difficulty records / Hall of Fame (DESIGN §6) -------
+  // META-PROGRESSION that SURVIVES new games. state.records[diff] is updated:
+  //  • continuously during play (bestShare, bestValuation) for the CURRENT difficulty;
+  //  • once per game-end (recordGameEnd) — games++, plus wins/AGI/days/ending as applicable.
+  // A "day" is in-game time: state.playtime / C.DAY_SEC (1 in-game day = C.DAY_SEC real sec).
+  // Endings that count as a WIN (you reached AGI): aligned / foom / quiet (and any won===true).
+  // Quality order for bestEnding (higher = better) — failures rank below any AGI win.
+  var ENDING_RANK = { bankrupt: 0, absorbed: 1, nationalized: 2, beaten: 3, foom: 4, aligned: 5, quiet: 6 };
+  function endingRank(id) { return (id && ENDING_RANK[id] !== undefined) ? ENDING_RANK[id] : -1; }
+  // a blank record (all fields neutral). bools false; numbers 0; bestEnding null.
+  function blankRecord() {
+    return { bestShare: 0, bestValuation: 0, reachedAGI: false, fastestAGIdays: 0, bestEnding: null, games: 0, wins: 0, noBankruptcyWin: false };
+  }
+  // fetch (creating if needed) the record bucket for a difficulty key.
+  function recordFor(diffKey) {
+    if (!state.records || typeof state.records !== 'object') state.records = {};
+    var key = (typeof diffKey === 'string' && C.DIFFICULTY.levels[diffKey]) ? diffKey : (state.difficulty || C.DIFFICULTY.DEFAULT);
+    if (!state.records[key] || typeof state.records[key] !== 'object') state.records[key] = blankRecord();
+    return state.records[key];
+  }
+  // CONTINUOUS tracking: bump the current difficulty's bestShare/bestValuation each tick.
+  // Cheap + idempotent (monotonic max). Skipped after the finale (the run is frozen).
+  function trackRecords() {
+    if (state.gameOver) return;
+    var r = recordFor(state.difficulty);
+    var sh = finiteNum(state.marketShare);
+    if (sh > r.bestShare) r.bestShare = sh;
+    var val = valuation();
+    if (isFinite(val) && val > r.bestValuation) r.bestValuation = val;
+  }
+  // GAME-END: called exactly once per finale (win OR any failure). Records the outcome.
+  // won = you reached AGI first (aligned/foom/quiet, or a won nationalized). ending = the id.
+  function recordGameEnd(ending, won) {
+    var r = recordFor(state.difficulty);
+    r.games = (r.games || 0) + 1;
+    // best-of bests one more time (the final frame), so the end-state always counts.
+    var sh = finiteNum(state.marketShare); if (sh > r.bestShare) r.bestShare = sh;
+    var val = valuation(); if (isFinite(val) && val > r.bestValuation) r.bestValuation = val;
+    // best ending (highest quality outcome ever achieved on this difficulty).
+    if (endingRank(ending) > endingRank(r.bestEnding)) r.bestEnding = ending;
+    if (won) {
+      r.wins = (r.wins || 0) + 1;
+      r.reachedAGI = true;
+      // fastest AGI in in-game days (lower is better; first win seeds it).
+      var days = finiteNum(state.playtime) / (C.DAY_SEC || 60);
+      if (days > 0 && (!r.fastestAGIdays || days < r.fastestAGIdays)) r.fastestAGIdays = days;
+      // a win with NO bankruptcy danger ever triggered this run = a clean flawless win.
+      if (!bankruptcyEverThisRun()) r.noBankruptcyWin = true;
+    }
+  }
+  // did the run ever enter bankruptcy DANGER (crisis warn escalated)? Used for noBankruptcyWin.
+  function bankruptcyEverThisRun() {
+    var cr = state.crisis;
+    return !!(cr && ((cr.warnLevel || 0) >= 2 || (cr.natAt || 0) > 0));
   }
 
   // ---- rival roster (data-driven, §4 replayability core) ---------------
@@ -2530,6 +2591,7 @@
     if (state.gameOver) return false;
     state.gameOver = true; state.ending = ending; state.won = !!won;
     state.endings[ending] = true;
+    recordGameEnd(ending, !!won);   // PHASE 9: persist this game's outcome to the difficulty's record
     checkAchievements();
     emit('ending', { id: ending, won: !!won });
     return true;
@@ -2869,6 +2931,7 @@
     updateRace(dt);
 
     state.playtime += dt;
+    trackRecords();      // PHASE 9: continuously track bests (share/valuation) for this difficulty
     checkAchievements();
   }
 
@@ -3303,6 +3366,25 @@
     if (typeof s.lastLuckyAt !== 'number' || !isFinite(s.lastLuckyAt)) s.lastLuckyAt = 0;
     if (typeof s.nextLuckyCheckAt !== 'number' || !isFinite(s.nextLuckyCheckAt)) s.nextLuckyCheckAt = 0;
     if (typeof s.luckyTotal !== 'number' || !isFinite(s.luckyTotal)) s.luckyTotal = 0;
+    // ---- PHASE 9: per-difficulty records / Hall of Fame (DESIGN §6). META-PROGRESSION.
+    // Any save predating this has no `records` → default to {} (already backfilled above from
+    // newState()). We do NOT seed it from existing best-ish stats (spec: not required). Coerce
+    // each present bucket defensively so a tampered/old save can never crash the Hall of Fame.
+    if (!s.records || typeof s.records !== 'object' || Array.isArray(s.records)) s.records = {};
+    else {
+      Object.keys(s.records).forEach(function (k) {
+        var r = s.records[k];
+        if (!r || typeof r !== 'object' || Array.isArray(r)) { delete s.records[k]; return; }
+        r.bestShare = clean(r.bestShare, 0, 0, 100);
+        r.bestValuation = clean(r.bestValuation, 0, 0);
+        r.reachedAGI = !!r.reachedAGI;
+        r.fastestAGIdays = clean(r.fastestAGIdays, 0, 0);
+        r.bestEnding = (typeof r.bestEnding === 'string') ? r.bestEnding : null;
+        r.games = Math.floor(clean(r.games, 0, 0));
+        r.wins = Math.floor(clean(r.wins, 0, 0));
+        r.noBankruptcyWin = !!r.noBankruptcyWin;
+      });
+    }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
   }
@@ -3514,6 +3596,7 @@
     currentAct: currentAct, rivalsRevealed: rivalsRevealed, agiProgress: agiProgress,
     leadingRival: leadingRival, maxRivalAgi: maxRivalAgi, slowLeadingRival: slowLeadingRival,
     endingPerkMult: endingPerkMult, endingsUnlocked: endingsUnlocked, applyRaceStance: applyRaceStance,
+    recordFor: recordFor, recordGameEnd: recordGameEnd,   // PHASE 9: Hall of Fame access (read + test harness)
     determineEnding: determineEnding, isGameOver: isGameOver, startLegacy: startLegacy, legacyNextBonus: legacyNextBonus,
     raceOpenSource: raceOpenSource, raceOpenReady: raceOpenReady,
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
