@@ -406,6 +406,115 @@
     ]
   };
 
+  // ===== DECISION ENGINE (Phase 2) — events as DATA ======================
+  // The decision engine reads these declarative rows; one generic runtime fires
+  // them (see game.js evalCond/decision pacer). NOTE: the older C.EVENTS object
+  // above is the world/industry-frenzy system and is UNRELATED — decision events
+  // live under C.DECISIONS to avoid any collision.
+  //
+  // Schema (design §4):
+  //   { id, act:[..], category, weight, cooldown_sec, once, default_option?,
+  //     priority:'interrupt'|'bankable'|'ambient',
+  //     trigger:{<cond-tree>}, weight_mods:[{factor, when:{<cond-tree>}}],
+  //     options:[{ id, trigger?, tooltip_meters?, effects:{<applyEffect grammar>} }] }
+  // i18n keys: {id}_t (title), {id}_d (desc), {id}_{optionId} (option label).
+  //
+  // ⚠ PHASE 2 = ~6 TEST events to exercise the engine. Phase 3 expands to 70–90
+  //   real events from DESIGN-events-catalog.md. Each test row is marked TEST.
+  var DECISIONS_PACING = {
+    FIRST_DELAY: 90,        // no decision before this much ACTIVE playtime (sec)
+    INTERVAL_MIN: 120,      // ~one decision per 2–4 min of active play (Act-scaled below)
+    INTERVAL_MAX: 240,
+    ACT_SPEEDUP: 0.12,      // each act shortens the interval by this fraction (later acts = busier)
+    QUIET_FLOOR: 45,        // hard minimum gap between ANY two decisions (a breathing floor)
+    CATEGORY_COOLDOWN: 90,  // per-category cooldown (no two of one category back-to-back, sec)
+    NO_REPEAT_SEC: 60       // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
+  };
+  var DECISIONS = [
+    // --- TEST 1 (interrupt): legal data dilemma — buy-vs-pirate + a delayed lawsuit (§4 example) ---
+    {
+      id: 'dec_data_dilemma', act: [1, 2], category: 'legal', weight: 100,
+      cooldown_sec: 240, once: false, priority: 'interrupt', _test: true,
+      trigger: { AND: [{ 'resource.compute': '>=20' }, { NOT: { flag: 'sued_copyright' } }] },
+      weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=60' } }],
+      options: [
+        { id: 'pirate', tooltip_meters: ['marketShare', 'risk', 'cash'],
+          effects: { meter: { marketShare: '+6' }, vec: { data: 12 }, set_var: { legal_debt: '+1' },
+                     schedule: { event: 'dec_lawsuit_hits', delaySec: 120, chance: 0.6 } } },
+        { id: 'license', tooltip_meters: ['cash', 'trust', 'risk'],
+          effects: { resource: { cash: '-200' }, meter: { trust: '+4', marketShare: '-2' }, vec: { reg: -4 } } }
+      ]
+    },
+    // --- TEST 2 (interrupt): compute supply deal — a frontier-act capacity crunch ---
+    {
+      id: 'dec_compute_deal', act: [2, 3], category: 'compute', weight: 90,
+      cooldown_sec: 240, once: false, priority: 'interrupt', _test: true,
+      trigger: { 'resource.compute': '>=50' },
+      weight_mods: [{ factor: 1.5, when: { 'meter.marketShare': '>=20' } }],
+      options: [
+        { id: 'lockin', tooltip_meters: ['cash', 'compute'],
+          effects: { resource: { cash: '-400', compute: '+300' } } },
+        { id: 'spot', tooltip_meters: ['compute', 'risk'],
+          effects: { resource: { compute: '+120' }, vec: { sec: 8 } } },
+        { id: 'pass', tooltip_meters: ['trust'],
+          effects: { meter: { trust: '+2' } } }
+      ]
+    },
+    // --- TEST 3 (bankable): talent poach — most decisions live here (inbox) ---
+    {
+      id: 'dec_talent_poach', act: [1, 2, 3], category: 'talent', weight: 100,
+      cooldown_sec: 180, once: false, priority: 'bankable', default_option: 'counter', _test: true,
+      trigger: { 'resource.researchers': '>=1' },
+      weight_mods: [{ factor: 1.4, when: { 'meter.marketShare': '>=15' } }],
+      options: [
+        // default_option = least-risky: pay to keep the team
+        { id: 'counter', tooltip_meters: ['cash', 'researchers'],
+          effects: { resource: { cash: '-150' } } },
+        { id: 'letgo', tooltip_meters: ['researchers', 'risk'],
+          effects: { resource: { researchers: '-1' }, vec: { sec: 10 } } },
+        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'],
+          effects: { resource: { cash: '-300', researchers: '+1' }, meter: { trust: '-3' } } }
+      ]
+    },
+    // --- TEST 4 (bankable): safety review backlog — gated on having shipped a model ---
+    {
+      id: 'dec_safety_review', act: [2, 3], category: 'safety', weight: 80,
+      cooldown_sec: 200, once: false, priority: 'bankable', default_option: 'review', _test: true,
+      trigger: { 'resource.modelGen': '>=2' },
+      weight_mods: [{ factor: 2.0, when: { 'meter.risk': '>=50' } }],
+      options: [
+        { id: 'review', tooltip_meters: ['cash', 'risk', 'align'],
+          effects: { resource: { cash: '-120' }, meter: { align: '+1' }, vec: { cap: -8 } } },
+        { id: 'ship', tooltip_meters: ['marketShare', 'risk'],
+          effects: { meter: { marketShare: '+4' }, vec: { cap: 10 }, set_var: { safety_debt: '+1' } } }
+      ]
+    },
+    // --- TEST 5 (ambient): industry flavor — auto-resolves with a small default drift ---
+    {
+      id: 'dec_oss_release', act: [1, 2, 3], category: 'opensource', weight: 60,
+      cooldown_sec: 150, once: false, priority: 'ambient', default_option: 'note', _test: true,
+      trigger: {},
+      weight_mods: [],
+      options: [
+        { id: 'note', effects: { meter: { trust: '+1' } } }
+      ]
+    },
+    // --- TEST 6 (interrupt, scheduled TARGET): the lawsuit that the data dilemma can summon ---
+    // Fired ONLY via schedule() from dec_data_dilemma's 'pirate' option (delayed consequence,
+    // Sub-part E). Excluded from the random pacer (priority 'scheduled' → not in the pool).
+    {
+      id: 'dec_lawsuit_hits', act: [1, 2, 3], category: 'legal', weight: 0,
+      cooldown_sec: 0, once: false, priority: 'scheduled', _test: true, _callback: true,
+      trigger: { OR: [] },   // never rolls in the ambient pool
+      options: [
+        { id: 'settle', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-350' }, meter: { trust: '+2' } } },
+        { id: 'fight', tooltip_meters: ['cash', 'risk', 'trust'],
+          effects: { resource: { cash: '-150' }, meter: { trust: '-4' }, vec: { reg: 14 }, set_flag: 'sued_copyright' } }
+      ]
+    }
+  ];
+
   // ---- Market / investing minigame -------------------------------------
   // R13 anti-printer rework: a BOUNDED RANDOM WALK (REVERT 0) — no mean-reversion
   // edge, so buy-low/sell-high is a coin-flip that loses to the fee on average. A
@@ -575,6 +684,8 @@
     ENDINGS: ENDINGS,
     TRUST: TRUST,
     CARDS: CARDS,
+    DECISIONS: DECISIONS,
+    DECISIONS_PACING: DECISIONS_PACING,
     MARKET: MARKET,
     COSMETICS: COSMETICS,
     EVENTS: EVENTS,

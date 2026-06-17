@@ -911,6 +911,13 @@
   // applyEffect — the shared vocabulary for crisis/news card choices AND (Phase 1
   // groundwork) the decision engine. The original keys below are UNCHANGED; the new
   // keys are purely additive so existing content keeps working byte-for-byte.
+  // parse an effect delta that may be a number (4, -200) OR a schema string ("+4","-200","6").
+  // returns undefined when absent/unparseable so callers can skip cleanly.
+  function numDelta(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : undefined;
+    if (typeof v === 'string') { var n = parseFloat(v); return isFinite(n) ? n : undefined; }
+    return undefined;
+  }
   function applyEffect(eff) {
     if (!eff) return;
     // ---- existing card-effect keys (unchanged) ----
@@ -925,29 +932,30 @@
     // resource: flat deltas. cash clamps at 0 unless allowDebt; compute/researchers clamp at 0.
     if (eff.resource) {
       var r = eff.resource;
-      if (typeof r.cash === 'number') {
-        var nc = state.cash + r.cash;
-        if (r.cash > 0) addCash(r.cash);                              // earnings count toward totals
+      var dCash = numDelta(r.cash);
+      if (dCash !== undefined) {
+        var nc = state.cash + dCash;
+        if (dCash > 0) addCash(dCash);                                // earnings count toward totals
         else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
       }
-      if (typeof r.compute === 'number') state.compute = Math.max(0, state.compute + r.compute);
-      if (typeof r.researchers === 'number') state.researchers = Math.max(0, Math.floor(state.researchers + r.researchers));
+      var dCompute = numDelta(r.compute); if (dCompute !== undefined) state.compute = Math.max(0, state.compute + dCompute);
+      var dRes = numDelta(r.researchers); if (dRes !== undefined) state.researchers = Math.max(0, Math.floor(state.researchers + dRes));
     }
     // meter: clamped deltas to derived scoreboards. marketShare/trust 0..100; align via state.align.
     if (eff.meter) {
       var m = eff.meter;
-      if (typeof m.marketShare === 'number') state.marketShare = Math.max(0, Math.min(100, state.marketShare + m.marketShare));
-      if (typeof m.trust === 'number') state.trust = clampTrust(state.trust + m.trust);
-      if (typeof m.align === 'number') state.align = Math.max(0, state.align + m.align);
+      var dShare = numDelta(m.marketShare); if (dShare !== undefined) state.marketShare = Math.max(0, Math.min(100, state.marketShare + dShare));
+      var dTrust = numDelta(m.trust); if (dTrust !== undefined) state.trust = clampTrust(state.trust + dTrust);
+      var dAlign = numDelta(m.align); if (dAlign !== undefined) state.align = Math.max(0, state.align + dAlign);
       // valuation is a DERIVED figure (no stored field) — record the adjustment as an
       // accumulator now; later phases may fold it into valuation().
-      if (typeof m.valuation === 'number') state.vars.valuation_adj = (state.vars.valuation_adj || 0) + m.valuation;
+      var dVal = numDelta(m.valuation); if (dVal !== undefined) state.vars.valuation_adj = (state.vars.valuation_adj || 0) + dVal;
     }
     // flags: boolean store
     if (eff.set_flag) state.flags[eff.set_flag] = true;
     if (eff.clr_flag) delete state.flags[eff.clr_flag];
-    // vars: numeric accumulators
-    if (eff.set_var) for (var vk in eff.set_var) state.vars[vk] = (state.vars[vk] || 0) + eff.set_var[vk];
+    // vars: numeric accumulators (accept number or schema string delta)
+    if (eff.set_var) for (var vk in eff.set_var) { var dv = numDelta(eff.set_var[vk]); if (dv !== undefined) state.vars[vk] = (state.vars[vk] || 0) + dv; }
     // schedule: queue a future event. delay_days (1 day = 1 in-game day) or delaySec.
     if (eff.schedule) {
       var sc = eff.schedule;
