@@ -1439,13 +1439,17 @@
       '<button class="reward" id="offDouble">' + t('offline_double') + '</button>' +
       '</div>'
     );
-    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); hideModal(); };
+    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); hideModal(); maybeShowDaily(); };
     $('offDouble').onclick = function () {
       window.GAME_ADS.showRewarded({
-        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); hideModal(); },
-        onUnavailable: function () { G.applyOffline(off.earned, off.compute); hideModal(); toast(t('ad_unavailable'), 'bad'); }
+        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); hideModal(); maybeShowDaily(); },
+        onUnavailable: function () { G.applyOffline(off.earned, off.compute); hideModal(); toast(t('ad_unavailable'), 'bad'); maybeShowDaily(); }
       });
     };
+  }
+  // show the daily check-in once any offline modal has been dismissed (never clobber it)
+  function maybeShowDaily() {
+    if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 250);
   }
 
   // ---------- insight flash collectible ----------
@@ -1803,14 +1807,17 @@
     update();
     // replay the current act's intro beat (also lets the player revisit it)
     if (location.hash === '#__intro') { setTimeout(function () { showActIntro(Math.max(1, G.currentAct())); }, 60); }
-    if (offline && offline.earned > 0) {
+    var offlineShown = offline && offline.earned > 0;
+    if (offlineShown) {
       showOffline(offline);
       if (!G.state.onboarded) G.setOnboarded(true); // returning player; skip tour
     } else if (!G.state.onboarded) {
       showOnboarding();
     }
-    // GDD v3 daily check-in (after any offline modal); only once a real day has rolled over
-    if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, offline && offline.earned > 0 ? 400 : 60);
+    // GDD v3 daily check-in: only once a real day has rolled over. If the offline
+    // modal is up, it chains the daily on dismiss (maybeShowDaily) so we never
+    // clobber the un-collected offline summary; otherwise fire it now.
+    if (!offlineShown) { if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 60); }
   }
   function showDaily() {
     if (!G.dailyAvailable()) return;
