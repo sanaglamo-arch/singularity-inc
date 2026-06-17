@@ -1157,7 +1157,6 @@
       case 'research': return G.researchUnlocked();
       case 'world': return G.worldUnlocked();
       case 'alignment': return G.riskUnlocked();
-      case 'singularity': return G.singUnlocked() || G.rivalsRevealed();
       case 'stats': return G.statsUnlocked();
       case 'achievements': return G.awardsUnlocked();
       default: return true;
@@ -1188,7 +1187,7 @@
 
   // ---------- tabs ----------
   // destinations that live behind the "More" overflow button (not in the bottom nav)
-  var MORE_GROUP = { singularity: 1, alignment: 1, stats: 1, achievements: 1, settings: 1 };
+  var MORE_GROUP = { alignment: 1, stats: 1, achievements: 1, settings: 1 };
   function switchTab(tab) {
     if (!tabUnlocked(tab)) tab = 'company';  // never land on a locked tab
     currentTab = tab;
@@ -1213,7 +1212,7 @@
     if (G.statsUnlocked()) items.push({ tab: 'stats', icon: 'nav_stats' });
     if (G.awardsUnlocked()) items.push({ tab: 'achievements', icon: 'nav_achievements' });
     items.push({ tab: 'settings', icon: 'nav_settings' });
-    var tabLabel = { singularity: 'tab_singularity', alignment: 'tab_alignment', stats: 'tab_stats', achievements: 'tab_achievements', settings: 'tab_settings' };
+    var tabLabel = { alignment: 'tab_alignment', stats: 'tab_stats', achievements: 'tab_achievements', settings: 'tab_settings' };
     var html = '<div class="sheet"><h3>' + t('more_title') + '</h3><div class="sheet-grid">';
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
@@ -1652,7 +1651,7 @@
     startTicker();
     updateBuyModeBar();
     // deep-linkable tab via URL hash (e.g. #stats)
-    var validTabs = { company: 1, upgrades: 1, research: 1, singularity: 1, alignment: 1, world: 1, stats: 1, achievements: 1, settings: 1 };
+    var validTabs = { company: 1, upgrades: 1, research: 1, alignment: 1, world: 1, stats: 1, achievements: 1, settings: 1 };
     var hash = (location.hash || '').replace('#', '');
     switchTab(validTabs[hash] ? hash : 'company');
     window.addEventListener('hashchange', function () {
