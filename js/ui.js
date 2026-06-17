@@ -2185,6 +2185,10 @@
     $('diffOk').onclick = function () {
       G.setDifficulty(sel, true);   // seeds start-cash boost + random rival roster + world/scenario/climate
       renderStatic(); update();
+      // DISMISS this modal before proceeding. The next step (scenario reveal / tour) opens its own
+      // modal via showModal(); but the game-over→New Game path passes a done() that opens NOTHING,
+      // so without an explicit hide the difficulty popup would hang center-screen. Hide first, always.
+      hideModal();
       done();
     };
   }
