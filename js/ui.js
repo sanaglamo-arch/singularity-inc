@@ -1594,7 +1594,10 @@
       window.GAME_FX.celebrate(cx, cy, name, true);
       // AGI finale has its own cinematic (the 'ending' event). For every other generation,
       // show a clear SUMMARY of what shipping it gave — the heart of the no-reset loop.
-      if (!G.isAGI() && g) showGenSummaryDeferred(d.gen);
+      // DEFER the modal ~1.2s so the celebratory shockwave + confetti play VISIBLY over the
+      // main screen first (progress hits 100% → burst → THEN the summary slides in). This is
+      // the run's climax (~11×/run) — let the dopamine land before the modal covers it.
+      if (!G.isAGI() && g) { var dg = d.gen; setTimeout(function () { showGenSummaryDeferred(dg); }, 1200); }
     });
 
     $('breakthroughBtn').addEventListener('click', function () {
