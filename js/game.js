@@ -1795,8 +1795,9 @@
     if (ev.priority === 'ambient') {
       // auto-apply a small default effect; news ticker line only.
       var optA = pickDefaultOption(ev);
-      if (optA) applyEffect(optA.effects);
-      decisionNews(ev, optA ? optA.id : null);
+      var oA = optA ? applyResolvedOption(optA) : null;
+      if (oA && oA.news) emitNews(oA.good ? 'milestone' : 'regulatory', [oA.news]);
+      else decisionNews(ev, optA ? optA.id : null);
       emit('decision', { kind: 'ambient', id: ev.id });
       checkAchievements(); emit('change');
       return;
@@ -1823,11 +1824,60 @@
     var ev = decisionById(eventId); if (!ev) return false;
     var opt = null; for (var i = 0; i < ev.options.length; i++) if (ev.options[i].id === optionId) opt = ev.options[i];
     if (!opt) return false;
-    applyEffect(opt.effects);
+    // SUB-PART C — PROBABILISTIC OUTCOMES: an option may resolve with a ROLL across
+    // `outcomes: [{chance, effect, news, good}, ...]`. We roll once, apply the base
+    // option effects (if any) PLUS the rolled outcome's effect, and surface WHICH WAY
+    // it went (the outcome's news headline + a 'decision' event with .outcome so the
+    // UI can flash + toast the result). Variance of the spread × varianceMult is baked
+    // into the config chances/magnitudes chosen for harder difficulties via scaleHarm
+    // (harm direction) + the telegraphed odds in the option label. Always has a
+    // recovery path: even the bad branch is a setback, never an instakill.
+    var rolled = null;
+    if (Array.isArray(opt.outcomes) && opt.outcomes.length) {
+      rolled = rollOutcome(opt.outcomes);
+      applyEffect(opt.effects);          // any guaranteed base effect first
+      if (rolled) applyEffect(rolled.effect);
+    } else {
+      applyEffect(opt.effects);
+    }
     if (uid != null) removeInbox(uid);
-    decisionNews(ev, optionId);
-    checkAchievements(); emit('change');
+    if (rolled && rolled.news) emitNews(rolled.good ? 'milestone' : 'regulatory', [rolled.news]);
+    else decisionNews(ev, optionId);
+    checkAchievements();
+    emit('decision', { kind: 'resolved', id: eventId, option: optionId, outcome: rolled ? { id: rolled.id, good: !!rolled.good, news: rolled.news } : null });
+    emit('change');
     return true;
+  }
+  // apply an option's effects INCLUDING a probabilistic-outcome roll, returning the
+  // rolled outcome (or null). Shared by the auto-resolve / ambient paths so a gamble
+  // option resolves consistently no matter how it was triggered.
+  function applyResolvedOption(opt) {
+    if (!opt) return null;
+    applyEffect(opt.effects);
+    if (Array.isArray(opt.outcomes) && opt.outcomes.length) {
+      var o = rollOutcome(opt.outcomes);
+      if (o) applyEffect(o.effect);
+      return o;
+    }
+    return null;
+  }
+  // weighted roll over an outcomes list. `chance` values are RELATIVE weights (they
+  // need not sum to 1 — a [0.55, 0.45] pair reads as 55/45). varianceMult widens the
+  // gap between the most- and least-likely outcomes on harder difficulties: the modal
+  // (likeliest) outcome is dampened toward the field while the tails are amplified, so
+  // Impossible feels swingier (rare hits + rare misses) and Easy more predictable.
+  function rollOutcome(outcomes) {
+    var vm = varMult();
+    var ws = outcomes.map(function (o) { return (typeof o.chance === 'number' && o.chance > 0) ? o.chance : 0.0001; });
+    if (vm !== 1 && outcomes.length > 1) {
+      // re-center each weight around the mean by varianceMult: >1 spreads, <1 compresses.
+      var mean = ws.reduce(function (a, b) { return a + b; }, 0) / ws.length;
+      ws = ws.map(function (w) { return Math.max(0.0001, mean + (w - mean) * vm); });
+    }
+    var total = ws.reduce(function (a, b) { return a + b; }, 0);
+    var roll = Math.random() * total, acc = 0;
+    for (var i = 0; i < outcomes.length; i++) { acc += ws[i]; if (roll <= acc) return outcomes[i]; }
+    return outcomes[outcomes.length - 1];
   }
   // PART A — a resolved decision (by player, inbox, or auto) yields a news headline.
   // Prefer a per-outcome line ({id}_{opt}_news), else the decision title.
@@ -1855,7 +1905,12 @@
       if (it.autoAt && now >= it.autoAt) {
         var ev = decisionById(it.id), opt = pickDefaultOption(ev);
         state.inbox.splice(i, 1);
-        if (ev && opt) { applyEffect(opt.effects); decisionNews(ev, opt.id); emit('decision', { kind: 'auto', id: it.id, option: opt.id }); }
+        if (ev && opt) {
+          var oAuto = applyResolvedOption(opt);
+          if (oAuto && oAuto.news) emitNews(oAuto.good ? 'milestone' : 'regulatory', [oAuto.news]);
+          else decisionNews(ev, opt.id);
+          emit('decision', { kind: 'auto', id: it.id, option: opt.id, outcome: oAuto ? { id: oAuto.id, good: !!oAuto.good } : null });
+        }
       }
     }
     checkAchievements();
@@ -2782,9 +2837,10 @@
       var pick = execChoose(ev, tier.judgment, state.mandate);
       if (!pick) continue;
       var opt = pick.opt;
-      applyEffect(opt.effects);
+      var oExec = applyResolvedOption(opt);   // PHASE 7: resolve a gamble option's roll while away too
       if (pick.bonus) applyEffect({ resource: { cash: '+' + Math.round(moneyRate() * 30 + 50) } }); // legend bonus
-      decisionNews(ev, opt.id);
+      if (oExec && oExec.news) emitNews(oExec.good ? 'milestone' : 'regulatory', [oExec.news]);
+      else decisionNews(ev, opt.id);
       // good/bad framing from the realized score sign under the active mandate
       var sc = optionScore(opt, state.mandate);
       report.push({
@@ -3306,6 +3362,7 @@
     // decision engine (Phase 2)
     evalCond: evalCond, _evalCondTest: _evalCondTest,
     decisionById: decisionById, resolveDecision: resolveDecision, removeInbox: removeInbox,
+    rollOutcome: rollOutcome, applyResolvedOption: applyResolvedOption,
     incidentById: incidentById, markSafetyRevealed: markSafetyRevealed,
     pickDefaultOption: pickDefaultOption, decisionWeight: decisionWeight,
     // executive / managing-director ladder

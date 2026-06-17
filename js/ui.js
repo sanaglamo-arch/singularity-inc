@@ -2118,7 +2118,15 @@
       } else if (d.kind === 'ambient') {
         window.GAME_FX.flash('rgba(34,211,238,0.10)');
       } else if (d.kind === 'auto') {
-        updateInboxBadge(); toast(t(d.id + '_t'), '');
+        updateInboxBadge();
+        // PHASE 7: an auto-resolved gamble surfaces which way the roll went.
+        if (d.outcome && d.outcome.news) toast(t(d.outcome.news), d.outcome.good ? 'good' : 'bad');
+        else toast(t(d.id + '_t'), '');
+      } else if (d.kind === 'resolved' && d.outcome) {
+        // PHASE 7: a player-resolved GAMBLE — flash + toast the rolled outcome (which way it went).
+        if (d.outcome.good) { window.GAME_FX.flash('rgba(52,211,153,0.22)'); window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); }
+        else { window.GAME_FX.flash('rgba(251,92,120,0.24)'); window.GAME_AUDIO.incident && window.GAME_AUDIO.incident(); buzz([0, 30, 50]); }
+        if (d.outcome.news) toast(t(d.outcome.news), d.outcome.good ? 'good' : 'bad');
       }
     });
     // a new real headline jumps to the front of the ticker AND refreshes an open feed/World.

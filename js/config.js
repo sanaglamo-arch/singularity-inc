@@ -1051,8 +1051,13 @@
           effects: { resource: { cash: '-150' } } },
         { id: 'letgo', tooltip_meters: ['researchers', 'risk'],
           effects: { resource: { researchers: '-1' }, vec: { sec: 8 }, rival_effect: { cerebra: { agi: 1 } } } },
-        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'],
-          effects: { resource: { cash: '-300', researchers: '+1' }, meter: { trust: '-3' } } }
+        // SUB-PART C — gamble: counter-raid the rival back for a researcher. 60% lands the hire / 40% they decline & you lose face.
+        { id: 'raid', tooltip_meters: ['cash', 'researchers', 'trust'], gamble: [60, 40],
+          effects: { resource: { cash: '-300' } },   // the signing war chest is spent either way
+          outcomes: [
+            { id: 'landed', chance: 0.60, good: true, news: 'dec_talent_poach_landed_news', effect: { resource: { researchers: '+1' } } },
+            { id: 'declined', chance: 0.40, good: false, news: 'dec_talent_poach_declined_news', effect: { meter: { trust: '-4' } } }
+          ] }
       ]
     },
     {
@@ -1122,8 +1127,12 @@
       options: [
         { id: 'patch', tooltip_meters: ['cash', 'risk'],
           effects: { resource: { cash: '-90' }, vec: { sec: -10 } } },
-        { id: 'spin', tooltip_meters: ['trust', 'risk'],
-          effects: { meter: { trust: '-3' }, vec: { sec: 6 } } }
+        // SUB-PART C — gamble: spin the jailbreak as a non-issue instead of patching. 50% blows over / 50% it spreads.
+        { id: 'spin', tooltip_meters: ['trust', 'risk'], gamble: [50, 50],
+          outcomes: [
+            { id: 'blowsover', chance: 0.50, good: true, news: 'dec_safety_jailbreak_blowsover_news', effect: { meter: { trust: '+1' }, vec: { sec: -3 } } },
+            { id: 'spreads', chance: 0.50, good: false, news: 'dec_safety_jailbreak_spreads_news', effect: { meter: { trust: '-6' }, vec: { sec: 14 } } }
+          ] }
       ]
     },
     {
@@ -1242,8 +1251,12 @@
       options: [
         { id: 'rehearse', tooltip_meters: ['cash', 'trust'],
           effects: { resource: { cash: '-80' }, meter: { trust: '+2' } } },
-        { id: 'wing_it', tooltip_meters: ['marketShare', 'trust', 'valuation'],
-          effects: { meter: { marketShare: '+3', trust: '-4', valuation: '-3' } } }
+        // SUB-PART C — two-sided gamble: ship the live demo unrehearsed. 55% viral hit / 45% it bombs.
+        { id: 'wing_it', tooltip_meters: ['marketShare', 'trust'], gamble: [55, 45],
+          outcomes: [
+            { id: 'hit', chance: 0.55, good: true, news: 'dec_prod_demo_hit_news', effect: { meter: { marketShare: '+6', trust: '+3' } } },
+            { id: 'flop', chance: 0.45, good: false, news: 'dec_prod_demo_flop_news', effect: { meter: { marketShare: '-2', trust: '-5' }, vec: { sec: 5 } } }
+          ] }
       ]
     },
     {
@@ -1262,8 +1275,13 @@
       cooldown_sec: 200, once: false, priority: 'interrupt',
       trigger: { AND: [{ 'resource.modelGen': '>=3' }, { 'resource.compute': '>=500' }] },
       options: [
-        { id: 'ride', tooltip_meters: ['compute', 'marketShare', 'risk'],
-          effects: { resource: { compute: '-200' }, meter: { marketShare: '+6' }, vec: { sec: 6 } } },
+        // SUB-PART C — gamble: pour compute into riding the viral trend. 60% it scales / 40% it melts down.
+        { id: 'ride', tooltip_meters: ['compute', 'marketShare', 'risk'], gamble: [60, 40],
+          effects: { resource: { compute: '-200' } },   // the compute is spent either way
+          outcomes: [
+            { id: 'scaled', chance: 0.60, good: true, news: 'dec_prod_viral_trend_scaled_news', effect: { meter: { marketShare: '+8' } } },
+            { id: 'meltdown', chance: 0.40, good: false, news: 'dec_prod_viral_trend_meltdown_news', effect: { meter: { marketShare: '+1', trust: '-3' }, vec: { sec: 10 } } }
+          ] },
         { id: 'ratelimit', tooltip_meters: ['marketShare', 'trust', 'compute'],
           effects: { meter: { marketShare: '+1', trust: '+2' } } }
       ]
