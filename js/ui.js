@@ -401,7 +401,7 @@
   }
 
   // ---------- GDD v3: rival market-share standings ----------
-  var standRefs = null, _standSig = '';
+  var standRefs = null;
   function entityName(id) { return id === 'you' ? t('you_label') : t('rival_' + id); }
   function buildStandings() {
     var box = $('standingsRows'); if (!box) return;
@@ -420,21 +420,19 @@
     var rows = G.standings(), maxShare = 0, box = $('standingsRows');
     rows.forEach(function (r) { if (r.share > maxShare) maxShare = r.share; });
     maxShare = Math.max(maxShare, 1);
-    // Reorder the REAL DOM nodes to the sorted order (not a CSS-order overlay) so the
-    // shown rank ALWAYS matches the displayed share in every state — and DOM order ==
-    // visual order (correct for screenshots / screen readers). Only re-append when the
-    // order actually changed (cheap; appendChild moves an existing node).
-    var sig = rows.map(function (r) { return r.id; }).join('|');
-    var reorder = sig !== _standSig;
+    // Reorder the REAL DOM nodes to the sorted order EVERY update so the shown rank,
+    // the row position, and the displayed share are ALWAYS derived from the same fresh
+    // sort — impossible to desync. (No sig-cache: it could skip a needed reorder after a
+    // renderStatic rebuild left the DOM in build order. Only 4 rows; appendChild is cheap
+    // and only runs while the World tab is visible.)
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], ref = standRefs[r.id]; if (!ref) continue;
-      if (reorder && box) box.appendChild(ref.row);
+      if (box) box.appendChild(ref.row);
       setText(ref.rank, '#' + (i + 1));
       setText(ref.share, (Math.round(r.share * 10) / 10) + '%');
       setStyleP(ref.bar, 'width', (r.share / maxShare * 100).toFixed(1) + '%');
       setClass(ref.row, 'lead', i === 0);
     }
-    _standSig = sig;
     var rank = G.playerRank(), total = rows.length;
     setText($('standingsStatus'), rank === 1 ? t('standings_leader') : t('standings_behind', { n: rank, total: total }));
     // §5 acquisition: buy out the strongest rival (post mid-game)
