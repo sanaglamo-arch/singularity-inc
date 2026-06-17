@@ -131,6 +131,8 @@
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
       onboarded: false,      // first-run tour shown
+      companyName: 'Singularity Inc.', // player-chosen AI-lab name (item 2; shown as topbar brand)
+      companyNamed: false,   // has the player confirmed a name yet (false => show the naming step)
       lastSeen: Date.now(),
       createdAt: Date.now()
     };
@@ -1779,9 +1781,16 @@
     // capture the ORIGINAL save version BEFORE we backfill defaults — version-gated
     // derivations below must read pre-rewrite fields, not the zeros the backfill seeds.
     var fromVer = (typeof s.version === 'number') ? s.version : 0;
+    // item 2: a save that predates the company-name feature must NOT be re-prompted to
+    // name its lab — grandfather it as already-named (keeps the default brand) before the
+    // generic backfill below seeds companyNamed:false.
+    var hadCompanyName = ('companyName' in s);
     // ensure all keys exist (forward-compatible)
     var base = newState();
     for (var k in base) if (!(k in s)) s[k] = base[k];
+    if (!hadCompanyName) s.companyNamed = true;
+    // sanitize a loaded name defensively (never trust storage)
+    s.companyName = sanitizeCompanyName(s.companyName);
     GEN.forEach(function (g) { if (s.gens[g.id] === undefined) s.gens[g.id] = 0; });
     // Autopilot was removed in Phase 1 — drop the field from any old save (never crash).
     if ('autopilot' in s) delete s.autopilot;
@@ -1938,6 +1947,26 @@
   function setHaptics(b) { state.haptics = !!b; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
   function setOnboarded(b) { state.onboarded = !!b; save(); }
+  // item 2: sanitize a company name — strip tags/HTML, collapse whitespace, trim, cap to
+  // 24 chars, and fall back to the default brand if the result is empty.
+  var DEFAULT_COMPANY_NAME = 'Singularity Inc.';
+  function sanitizeCompanyName(name) {
+    if (typeof name !== 'string') return DEFAULT_COMPANY_NAME;
+    var n = name.replace(/<[^>]*>/g, ' ')         // strip any HTML tags
+                .replace(/[<>]/g, '')             // strip stray angle brackets
+                .replace(/[\u0000-\u001f\u007f]/g, '') // strip control chars
+                .replace(/\s+/g, ' ')             // collapse whitespace
+                .trim();
+    if (n.length > 24) n = n.slice(0, 24).trim();
+    return n.length ? n : DEFAULT_COMPANY_NAME;
+  }
+  function setCompanyName(name) {
+    state.companyName = sanitizeCompanyName(name);
+    state.companyNamed = true;
+    save();
+    emit('change');
+    return state.companyName;
+  }
   function achCount() { var c = 0; for (var k in state.achievements) if (state.achievements[k]) c++; return c; }
   function cosmeticUnlocked(item) {
     var u = item.unlock || {};
@@ -2011,6 +2040,7 @@
     save: save, load: load, reset: reset, init: init,
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
+    setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
     // progressive unlock schedule + release projection

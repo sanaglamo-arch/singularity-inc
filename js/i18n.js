@@ -456,6 +456,9 @@
     ach_progress: '{n}/{m} unlocked',
 
     settings_title: 'Settings',
+    company_name: 'Company name',
+    rename_save: 'Rename',
+    rename_done: 'Renamed to {name}',
     language: 'Language',
     sound: 'Sound',
     music: 'Music',
@@ -581,6 +584,10 @@
     // --- achievements tab + onboarding ---
     tab_achievements: 'Awards',
     ob_skip: 'Skip', ob_next: 'Next', ob_done: 'Got it!',
+    // --- naming step (item 2) ---
+    name_lab_title: 'Name your AI lab',
+    name_lab_body: 'What should the world call your company? You can change this later in Settings.',
+    name_lab_confirm: 'Found the lab',
     ob_1_title: 'Tap to make compute',
     ob_1_body: 'Tap the big TRAIN orb to generate COMPUTE — the fuel for training AI models. (It also earns a little starter cash.)',
     ob_2_title: 'Buy hardware',
@@ -668,12 +675,12 @@
     theme_default: 'Default', theme_void: 'Void', theme_aurora: 'Aurora',
     cos_locked_gen: 'Reach model generation {n}', cos_locked_prestiges: 'Release {n} model(s)', cos_locked_singularities: 'Ascend {n}×', cos_locked_ach: 'Unlock {n} achievements',
     news: [
-      ['Two founders, one GPU, infinite optimism.', 'Garage rent paid in equity and instant noodles.', 'Mom asks if "the AI thing" is going anywhere.'],
-      ['Series A closed; the office now has a beanbag.', 'Hire #3 is a coffee machine with opinions.', 'Pitch deck adds the word "moat" eleven times.'],
-      ['Trained on the entire internet. Lawyers notified.', 'Model writes its own performance review. It’s glowing.', 'Investors call it "a paradigm shift," wire more cash.'],
-      ['Frontier model passes the bar exam, then bills you.', 'Data center hum now audible from orbit.', 'Regulators schedule a hearing; model offers to attend.'],
-      ['Compute visible from space; astronomers file complaints.', 'Model negotiates its own electricity contract.', 'Board briefly very surprised by quarterly results.'],
-      ['The model politely requests we call it "colleague".', 'Reality folds inward; the roadmap still slips.', 'It achieved situational awareness. HR is concerned.']
+      ['{co}: two founders, one GPU, infinite optimism.', 'Garage rent paid in equity and instant noodles.', 'Mom asks if "the AI thing" is going anywhere.'],
+      ['{co} closes Series A; the office now has a beanbag.', 'Hire #3 is a coffee machine with opinions.', 'Pitch deck adds the word "moat" eleven times.'],
+      ['{co} trained on the entire internet. Lawyers notified.', 'Model writes its own performance review. It’s glowing.', 'Investors call it "a paradigm shift," wire more cash.'],
+      ['{co}’s frontier model passes the bar exam, then bills you.', 'Data center hum now audible from orbit.', 'Regulators schedule a hearing; model offers to attend.'],
+      ['{co} compute visible from space; astronomers file complaints.', 'Model negotiates its own electricity contract.', 'Board briefly very surprised by quarterly results.'],
+      ['{co}’s model politely requests we call it "colleague".', 'Reality folds inward; the roadmap still slips.', 'It achieved situational awareness. HR is concerned.']
     ],
 
     a_tech: 'First Principles', a_tech_d: 'Complete a research project.',
@@ -1128,6 +1135,9 @@
     ach_progress: 'Открыто {n}/{m}',
 
     settings_title: 'Настройки',
+    company_name: 'Название компании',
+    rename_save: 'Переименовать',
+    rename_done: 'Новое название: {name}',
     language: 'Язык',
     sound: 'Звук',
     music: 'Музыка',
@@ -1240,6 +1250,10 @@
     ev_active: '{name}: {t}',
     tab_achievements: 'Награды',
     ob_skip: 'Пропустить', ob_next: 'Далее', ob_done: 'Понятно!',
+    // --- наименование лаборатории (item 2) ---
+    name_lab_title: 'Назовите свою ИИ-лабораторию',
+    name_lab_body: 'Как мир будет называть вашу компанию? Изменить можно позже в настройках.',
+    name_lab_confirm: 'Основать лабораторию',
     ob_1_title: 'Тапай ради компьюта',
     ob_1_body: 'Жми большой шар ОБУЧАТЬ, чтобы получать КОМПЬЮТ — топливо для обучения моделей. (Заодно капают первые деньги.)',
     ob_2_title: 'Покупай железо',
@@ -1324,12 +1338,12 @@
     theme_default: 'Стандарт', theme_void: 'Бездна', theme_aurora: 'Аврора',
     cos_locked_gen: 'Достигни поколения модели {n}', cos_locked_prestiges: 'Выпусти {n} модель(ей)', cos_locked_singularities: 'Вознесись {n}×', cos_locked_ach: 'Открой {n} достижений',
     news: [
-      ['Два основателя, одна GPU, бесконечный оптимизм.', 'Аренда гаража оплачена долями и дошираком.', 'Мама спрашивает, движется ли «эта штука с ИИ».'],
-      ['Раунд A закрыт; в офисе появился пуфик.', 'Сотрудник №3 — кофемашина с мнением.', 'В питч-деке слово «ров» встречается одиннадцать раз.'],
-      ['Обучена на всём интернете. Юристы уведомлены.', 'Модель сама написала себе ревью. Хвалебное.', 'Инвесторы зовут это «сменой парадигмы», шлют ещё денег.'],
-      ['Передовая модель сдала экзамен на адвоката и выставила счёт.', 'Гул дата-центра слышно с орбиты.', 'Регуляторы назначили слушание; модель готова прийти.'],
-      ['Вычисления видно из космоса; астрономы жалуются.', 'Модель сама договорилась о тарифе на электричество.', 'Совет директоров недолго очень удивлён отчётом.'],
-      ['Модель вежливо просит звать её «коллегой».', 'Реальность сворачивается внутрь; дедлайны всё равно плывут.', 'Она обрела ситуационную осознанность. HR обеспокоен.']
+      ['{co}: два основателя, одна GPU, бесконечный оптимизм.', 'Аренда гаража оплачена долями и дошираком.', 'Мама спрашивает, движется ли «эта штука с ИИ».'],
+      ['{co} закрыла раунд A; в офисе появился пуфик.', 'Сотрудник №3 — кофемашина с мнением.', 'В питч-деке слово «ров» встречается одиннадцать раз.'],
+      ['{co} обучена на всём интернете. Юристы уведомлены.', 'Модель сама написала себе ревью. Хвалебное.', 'Инвесторы зовут это «сменой парадигмы», шлют ещё денег.'],
+      ['Передовая модель {co} сдала экзамен на адвоката и выставила счёт.', 'Гул дата-центра слышно с орбиты.', 'Регуляторы назначили слушание; модель готова прийти.'],
+      ['Вычисления {co} видно из космоса; астрономы жалуются.', 'Модель сама договорилась о тарифе на электричество.', 'Совет директоров недолго очень удивлён отчётом.'],
+      ['Модель {co} вежливо просит звать её «коллегой».', 'Реальность сворачивается внутрь; дедлайны всё равно плывут.', 'Она обрела ситуационную осознанность. HR обеспокоен.']
     ],
 
     a_tech: 'С нуля', a_tech_d: 'Заверши исследовательский проект.',

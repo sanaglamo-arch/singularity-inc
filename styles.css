@@ -861,6 +861,19 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .ob-dots { display: flex; gap: 7px; justify-content: center; margin: 16px 0 2px; }
 .ob-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--glass-border); transition: background 0.2s; }
 .ob-dots .dot.on { background: var(--cyan); box-shadow: 0 0 8px var(--glow-cyan); }
+/* item 2: company-name input (onboarding naming step + Settings rename) */
+.name-input {
+  width: 100%; box-sizing: border-box; margin: 4px 0 2px; padding: 12px 14px;
+  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--fg); font-size: 15px; font-weight: 600;
+  font-family: var(--font-display); -webkit-appearance: none; outline: none;
+}
+.name-input:focus { border-color: var(--violet); box-shadow: 0 0 0 1px rgba(139,92,246,0.35); }
+.ob-name .row { margin-top: 14px; }
+.ob-name .name-input { text-align: center; }
+.name-edit { display: flex; gap: 8px; align-items: center; flex: 1 1 auto; min-width: 0; max-width: 60%; }
+.name-edit .name-input { margin: 0; font-size: 13px; padding: 9px 11px; }
+.name-save { flex: 0 0 auto; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); background: linear-gradient(100deg, var(--violet), var(--cyan)); color: #0a0a18; font-weight: 700; font-size: 12px; padding: 9px 12px; min-height: 40px; cursor: pointer; white-space: nowrap; }
 
 /* ---------- evolving backdrop stages (escalate toward AGI) ---------- */
 html[data-stage="1"] #app::before { filter: blur(28px) saturate(1.15); }

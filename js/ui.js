@@ -150,7 +150,7 @@
   // ---------- static labels (i18n) ----------
   function renderStatic() {
     document.documentElement.lang = window.GAME_I18N.getLang();
-    $('brandName').textContent = t('game_title');
+    $('brandName').textContent = G.state.companyName || t('game_title'); // item 2: player-named lab
     $('brandIcon').innerHTML = ic('ic_insight');
     $('tapIcon').innerHTML = ic('ic_brain');
     $('tapLabel').textContent = t('tap_button');
@@ -201,6 +201,9 @@
     $('achTitle').textContent = t('achievements_title');
     // settings
     $('settingsTitle').textContent = t('settings_title');
+    $('companyNameLabel').textContent = t('company_name');
+    $('companyNameSave').textContent = t('rename_save');
+    var cni = $('companyNameInput'); if (cni && document.activeElement !== cni) cni.value = G.state.companyName || '';
     $('langLabel').textContent = t('language');
     $('soundLabel').textContent = t('sound');
     $('musicLabel').textContent = t('music');
@@ -697,7 +700,9 @@
     var pool = currentNews(); if (!pool.length) return;
     tickerIdx = (tickerIdx + 1) % pool.length;
     var el2 = $('tickerText');
-    if (el2) { el2.textContent = pool[tickerIdx]; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
+    // item 2: {co} in a headline reads as the player's chosen company name
+    var line = pool[tickerIdx].replace(/\{co\}/g, G.state.companyName || t('game_title'));
+    if (el2) { el2.textContent = line; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
   }
   function startTicker() { rotateTicker(); if (tickerTimer) clearInterval(tickerTimer); tickerTimer = setInterval(rotateTicker, 9000); }
 
@@ -1552,8 +1557,43 @@
     e.addEventListener('touchstart', claim, { passive: false });
   }
 
+  // ---------- naming step (item 2) ----------
+  // Shown once, only for a genuinely new game (companyNamed===false). A simple text-input
+  // modal with the default brand pre-filled; sanitized on confirm. Legacy saves are
+  // grandfathered as already-named in migrate() and never reach this.
+  function showNaming(done) {
+    var def = G.state.companyName || 'Singularity Inc.';
+    showModal(
+      '<div class="ob ob-name">' +
+      '<div class="ob-icon">' + ic('ic_insight') + '</div>' +
+      '<h3>' + t('name_lab_title') + '</h3>' +
+      '<p>' + t('name_lab_body') + '</p>' +
+      '<input id="labNameInput" class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" />' +
+      '<div class="row">' +
+      '<button class="primary" id="labNameOk">' + t('name_lab_confirm') + '</button>' +
+      '</div></div>'
+    );
+    var inp = $('labNameInput');
+    inp.value = def;
+    inp.setAttribute('aria-label', t('name_lab_title'));
+    function confirm() {
+      G.setCompanyName(inp.value);   // sanitizes + falls back to default if empty
+      renderStatic(); update();
+      done();
+    }
+    $('labNameOk').onclick = confirm;
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); confirm(); } });
+    // focus + select so the player can immediately type over the default
+    setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) {} }, 50);
+  }
+
   // ---------- onboarding tour ----------
   function showOnboarding() {
+    // genuinely-new game gets the naming step first, then the tour
+    if (!G.state.companyNamed) { showNaming(function () { showTour(); }); return; }
+    showTour();
+  }
+  function showTour() {
     var steps = [
       { icon: ic('ic_brain'), title: 'ob_1_title', body: 'ob_1_body' },
       { icon: ic('gen_laptop'), title: 'ob_2_title', body: 'ob_2_body' },
@@ -1840,6 +1880,19 @@
         onUnavailable: function () { toast(t('ad_unavailable'), 'bad'); }
       });
     });
+    // company rename (item 2): live — updates the topbar brand immediately
+    var renameSave = $('companyNameSave'), renameInput = $('companyNameInput');
+    if (renameSave && renameInput) {
+      function applyRename() {
+        var name = G.setCompanyName(renameInput.value); // sanitizes + falls back to default
+        renameInput.value = name;
+        renderStatic(); update();
+        window.GAME_AUDIO.buy();
+        toast(t('rename_done', { name: name }), 'good', { routine: true });
+      }
+      renameSave.addEventListener('click', applyRename);
+      renameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); applyRename(); } });
+    }
     // save / reset
     $('saveBtn').addEventListener('click', function () { G.save(); toast(t('saved_toast'), '', { routine: true }); });
     $('resetBtn').addEventListener('click', function () {
