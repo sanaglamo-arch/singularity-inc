@@ -821,15 +821,20 @@
     var s = G.state;
     var totalGens = 0;
     C.GENERATORS.forEach(function (g) { totalGens += s.gens[g.id]; });
+    var maxGen = C.MODELGEN.length;
+    var genLabel = s.modelGen >= maxGen ? t('stat_modelgen_agi') : (s.modelGen + ' / ' + maxGen);
     var rows = [
+      [t('stat_modelgen'), genLabel],
+      [t('stat_compute'), fmt(s.compute)],
+      [t('stat_compute_rate'), fmt(G.cps()) + '/s'],
+      [t('stat_money_sec'), fmt(G.moneyRate()) + '/s'],
       [t('stat_total_cash'), fmt(s.totalEarnedAllTime)],
-      [t('stat_this_run'), fmt(s.totalEarnedThisRun)],
-      [t('stat_cps'), fmt(G.cps())],
-      [t('stat_taps'), s.taps],
+      [t('stat_share'), (s.marketShare || 0).toFixed(1) + '%'],
+      [t('stat_valuation'), fmt(G.valuation())],
+      [t('stat_researchers'), s.researchers || 0],
+      [t('stat_datacenters'), s.datacenters || 0],
       [t('stat_generators'), totalGens],
-      [t('stat_prestiges'), s.prestiges],
-      [t('stat_rp'), s.rp],
-      [t('stat_total_rp'), s.totalRP],
+      [t('stat_taps'), s.taps],
       [t('stat_incidents'), s.incidentsTotal],
       [t('stat_playtime'), FMT.fmtTime(s.playtime)]
     ];

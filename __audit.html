@@ -6,8 +6,10 @@ f.onload=function(){setTimeout(function(){var w=f.contentWindow,d=f.contentDocum
   var s=w.GAME.state; s.act=9; s.seen=s.seen||{};
   if(stage==='mid'){s.modelGen=3;s.cash=2e6;s.compute=8e5;s.marketShare=12;s.boostTokens=2;s.researchers=4;s.researchLevel=3;s.datacenters=2;s.gens.laptop=40;s.gens.gpuRig=18;s.gens.serverRack=6;s.funding={seed:true};s.align=4;s.trust=62;}
   else if(stage==='late'){s.modelGen=8;s.cash=1e15;s.compute=1e12;s.marketShare=57;s.boostTokens=3;s.researchers=200;s.researchLevel=16;s.datacenters=14;['laptop','gpuRig','serverRack','gpuCluster','dataCenter','superComp','neuroArray'].forEach((id,i)=>s.gens[id]=200-i*10);s.funding={seed:true,a:true,b:true,c:true};s.align=10;s.trust=70;}
+  try{w.location.hash='#'+tab;}catch(e){}
   var navs=d.querySelectorAll('#tabbar button'); for(var i=0;i<navs.length;i++){ if(navs[i].dataset.tab===tab){navs[i].click();break;} if(tab==='more'&&navs[i].dataset.more){navs[i].click();break;} }
   w.GAME_UI.update();w.GAME_UI.update(); var mr=d.getElementById('modalRoot'); if(mr){var ok=mr.querySelector('.primary,button'); if(ok)ok.click();}
+  try{w.location.hash='#'+tab;}catch(e){}
   for(var i2=0;i2<navs.length;i2++){ if(navs[i2].dataset.tab===tab){navs[i2].click();break;} } w.GAME_UI.update();
   // audit: horizontal overflow + text clipping on visible elements
   var issues=[], all=d.querySelectorAll('#app *');
