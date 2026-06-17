@@ -358,6 +358,7 @@ h2:first-child { margin-top: 4px; }
   font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 0.4px; color: #1a1305;
   background: linear-gradient(100deg, var(--gold), #ffe08a); box-shadow: 0 8px 24px -10px var(--glow-gold);
   transition: transform 0.09s var(--ease-spring), filter 0.2s; }
+#fundNote { margin: 6px 2px 2px; line-height: 1.45; display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
 #fundingBtn:active { transform: scale(0.98); filter: brightness(1.06); }
 /* ---------- GDD v3: rival market-share standings ---------- */
 #standingsPanel { flex: 0 0 auto; margin: 0 0 10px; padding: 11px 14px; border-radius: var(--radius);

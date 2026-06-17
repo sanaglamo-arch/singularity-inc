@@ -313,11 +313,13 @@
     setClass($('buildBox'), 'hidden', preProduct);
     setText($('modelProg'), t('model_progress', { n: s.modelGen, total: C.MODELGEN.length }));
     // funding round (P5): appears when valuation clears the next round's milestone
-    var fb = $('fundingBtn'), round = G.nextFundingRound();
+    var fb = $('fundingBtn'), round = G.nextFundingRound(), fn = $('fundNote');
     if (round && G.canTakeFunding()) {
       setClass(fb, 'hidden', false); fb.disabled = false;
       setText(fb, t('fund_btn', { name: t('fund_' + round.id), v: '$' + fmt(G.fundingPayout(round)) }));
-    } else { setClass(fb, 'hidden', true); }
+      // explain WHERE the money comes from (anti-"откуда деньги?") + ⓘ for the full picture
+      if (fn) { setHTML(fn, t('fund_explain', { name: t('fund_' + round.id), v: '$' + fmt(G.fundingPayout(round)), p: Math.round((round.mult - 1) * 100) }) + infoBtn('tip_funding')); setClass(fn, 'hidden', false); }
+    } else { setClass(fb, 'hidden', true); if (fn) setClass(fn, 'hidden', true); }
     // earned-boost activation (speeds ALL timers ×2 for 2h)
     var bzb = $('boostBtn');
     if ((s.boostTokens || 0) > 0 && !G.boostActive()) {
