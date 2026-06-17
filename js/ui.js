@@ -98,6 +98,7 @@
     $('tapIcon').innerHTML = ic('ic_brain');
     $('tapLabel').textContent = t('tap_button');
     $('tapHint').textContent = t('tap_hint');
+    $('tapBtn').setAttribute('aria-label', t('tap_button')); // localized accessible name
     // nav icons (replace emoji with inline SVG)
     var navIcons = { company: 'nav_company', upgrades: 'nav_upgrades', research: 'nav_research', singularity: 'nav_singularity', alignment: 'nav_alignment', world: 'ic_world', stats: 'nav_stats', achievements: 'nav_achievements', settings: 'nav_settings' };
     $('trustHud').querySelector('.thi').innerHTML = ic('ic_trust');
