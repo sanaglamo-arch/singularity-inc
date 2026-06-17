@@ -1067,6 +1067,30 @@
     window.GAME_AUDIO.singularity(); buzz([0,60,80,60,80,120]);
     toast(t('ending_unlocked_toast', { name: t('ending_' + d.id + '_t') }), 'gold');
   }
+  // Generation-advance summary: what shipping this model just gave you (the no-reset payoff).
+  var GEN_UNLOCK = { 1: 'unlock_area_race', 2: 'unlock_area_team', 3: 'unlock_area_align', 5: 'unlock_area_acquire' };
+  function fmtMult(m) { return m < 100 ? m.toFixed(1) : fmt(m); }
+  function showGenSummary(genCount) {
+    var g = C.MODELGEN[genCount - 1]; if (!g) return;
+    var next = C.MODELGEN[genCount], unlockKey = GEN_UNLOCK[genCount];
+    var html = '<h3>' + t('gen_summary_title', { name: t(g.id) }) + '</h3>' +
+      '<p>' + t('gen_summary_sub') + '</p>' +
+      '<div class="gensum">' +
+        '<div class="gs-row gs-up">▲ ' + t('gen_summary_output', { p: Math.round((g.revMult - 1) * 100), tot: fmtMult(G.genRevenueMult()) }) + '</div>' +
+        '<div class="gs-row gs-up">▲ ' + t('gen_summary_share', { s: g.share, cur: Math.round((G.state.marketShare || 0) * 10) / 10 }) + '</div>' +
+        (unlockKey ? '<div class="gs-row gs-unlock">🔓 ' + t('gen_summary_unlocked', { what: t(unlockKey) }) + '</div>' : '') +
+        (next ? '<div class="gs-row gs-next muted">' + t('gen_summary_next', { name: t(next.id) }) + '</div>' : '') +
+      '</div>' +
+      '<div class="row"><button class="primary" id="gsOk">' + t('gen_summary_ok') + '</button></div>';
+    showModal(html);
+    if ($('gsOk')) $('gsOk').onclick = hideModal;
+  }
+  // Don't clobber an open modal (offline/daily on return): wait until it's dismissed.
+  function showGenSummaryDeferred(genCount) {
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden')) { setTimeout(function () { showGenSummaryDeferred(genCount); }, 700); return; }
+    showGenSummary(genCount);
+  }
 
   // ---------- next-goal nudge ----------
   function computeNudge() {
@@ -1557,8 +1581,9 @@
       window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
       var cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
       window.GAME_FX.celebrate(cx, cy, name, true);
-      // (the AGI finale cinematic is fired by the 'ending' event, not here, to avoid double-firing)
-      if (!G.isAGI() && g) toast(t('train_done_toast', { name: name, p: Math.round((g.revMult - 1) * 100), s: g.share }), 'gold');
+      // AGI finale has its own cinematic (the 'ending' event). For every other generation,
+      // show a clear SUMMARY of what shipping it gave — the heart of the no-reset loop.
+      if (!G.isAGI() && g) showGenSummaryDeferred(d.gen);
     });
 
     $('breakthroughBtn').addEventListener('click', function () {
