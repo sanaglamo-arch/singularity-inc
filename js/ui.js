@@ -940,6 +940,14 @@
         setText(rb, t('race_threat_badge', { name: t('rival_' + rs.id), p: rs.pct }));
       } else setClass(rb, 'hidden', true);
     }
+    // ITEM 1: the topbar badges hang at top:100% onto the ticker row. When ANY badge
+    // is shown, reserve a strip above the ticker text so the centered boost plaque
+    // never collides with the LIVE ticker copy (verified @360/390/414).
+    var anyBadge = !$('boostBadge').classList.contains('hidden')
+                || !$('eventBadge').classList.contains('hidden')
+                || (rb && !rb.classList.contains('hidden'));
+    var tk = $('ticker');
+    if (tk) setClass(tk, 'has-badge', anyBadge);
   }
 
   // ---------- World: news cards, crises, market ----------

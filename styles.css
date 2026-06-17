@@ -224,6 +224,10 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 #ticker .tk-ico { width: 13px; height: 13px; flex: 0 0 auto; border-radius: 50%; background: var(--rose); box-shadow: 0 0 8px var(--glow-rose); position: relative; }
 #ticker .tk-ico::after { content: 'LIVE'; position: absolute; left: 17px; top: -1px; font-size: 8px; font-weight: 800; letter-spacing: 0.5px; color: var(--rose); }
 #tickerText { margin-left: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: tickerFade 0.5s var(--ease); }
+/* ITEM 1: the topbar buff/event/race badges drop onto the ticker at top:100%. When one
+   is visible, reserve a strip so the centered ×2 boost plaque can't overlap the ticker
+   copy — the LIVE text simply flows below the badge row. No overlap @360/390/414. */
+#ticker.has-badge { padding-top: 26px; }
 @keyframes tickerFade { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; } }
 
 /* ---------- cosmetics gallery ---------- */
