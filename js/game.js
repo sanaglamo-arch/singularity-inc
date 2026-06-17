@@ -75,6 +75,8 @@
       playtime: 0,           // seconds
       sound: false,
       music: false,
+      sfxVol: 0.7,           // SFX volume 0..1 (scales master SFX gain)
+      musicVol: 0.7,         // music volume 0..1 (scales music master)
       haptics: true,         // vibration feedback (mobile)
       orb: 'orb_default',    // cosmetic: TRAIN orb skin
       theme: 'theme_default',// cosmetic: backdrop theme
@@ -3588,6 +3590,11 @@
     if (!s.eventBag || typeof s.eventBag !== 'object' || Array.isArray(s.eventBag)) s.eventBag = {};
     if (!Array.isArray(s.inbox)) s.inbox = [];
     if (typeof s.nextDecisionAt !== 'number') s.nextDecisionAt = 0;
+    // ---- volume sliders (safe backfill for old saves) ----
+    if (typeof s.sfxVol !== 'number' || isNaN(s.sfxVol)) s.sfxVol = 0.7;
+    s.sfxVol = Math.max(0, Math.min(1, s.sfxVol));
+    if (typeof s.musicVol !== 'number' || isNaN(s.musicVol)) s.musicVol = 0.7;
+    s.musicVol = Math.max(0, Math.min(1, s.musicVol));
     // ---- v10: executive / managing-director ladder (safe backfill for old saves) ----
     if (typeof s.exec !== 'number') s.exec = -1;
     s.exec = Math.floor(clean(s.exec, -1, -1, (C.EXECS ? C.EXECS.length : 1) - 1));
@@ -3788,6 +3795,57 @@
     emit('change');
   }
 
+  // ---- manual SAVE EXPORT / IMPORT (idle players fear losing a long run) ----
+  // Export the live save as a portable, copyable string: base64 of the JSON, tagged with a
+  // short prefix so a paste can be sanity-checked before import. Base64 keeps it newline-free
+  // and easy to select. Returns '' if encoding fails (caller surfaces an error).
+  var SAVE_PREFIX = 'SINGv1:';
+  function b64encode(str) {
+    try {
+      if (typeof btoa === 'function') return btoa(unescape(encodeURIComponent(str)));
+      return Buffer.from(str, 'utf8').toString('base64');   // headless / Node fallback
+    } catch (e) { return ''; }
+  }
+  function b64decode(b64) {
+    try {
+      if (typeof atob === 'function') return decodeURIComponent(escape(atob(b64)));
+      return Buffer.from(b64, 'base64').toString('utf8');
+    } catch (e) { return ''; }
+  }
+  function exportSave() {
+    save();   // flush current state to storage first so export == what's saved
+    var json;
+    try { json = JSON.stringify(state); } catch (e) { return ''; }
+    var enc = b64encode(json);
+    return enc ? (SAVE_PREFIX + enc) : '';
+  }
+  // Import a previously-exported string. Tolerates the prefix being present or absent and
+  // tolerates raw JSON too. On success: state is replaced (migrated + persisted) and 'change'
+  // emits. Returns true on success, false on any malformed input (state untouched).
+  function importSave(str) {
+    if (typeof str !== 'string') return false;
+    var raw = str.trim();
+    if (!raw) return false;
+    if (raw.indexOf(SAVE_PREFIX) === 0) raw = raw.slice(SAVE_PREFIX.length);
+    var json = null;
+    // try base64 first; if that yields no JSON, treat the input as raw JSON.
+    var decoded = b64decode(raw.replace(/\s+/g, ''));
+    if (decoded && decoded.charAt(0) === '{') json = decoded;
+    else if (raw.charAt(0) === '{') json = raw;
+    if (!json) return false;
+    var parsed;
+    try { parsed = JSON.parse(json); } catch (e) { return false; }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    var migrated;
+    try { migrated = migrate(parsed); } catch (e) { return false; }
+    if (!migrated || typeof migrated !== 'object') return false;
+    state = migrated;
+    if (state.lang) { try { window.GAME_I18N.setLang(state.lang); } catch (e) {} }
+    save();
+    emit('change');
+    return true;
+  }
+
   // NEW GAME (DESIGN §4 roguelike loop): start a FRESH run after a finale, but KEEP the
   // meta-progression that survives across games — per-difficulty records (Phase 9), the
   // chosen language, the company name (language already set; we do NOT re-ask), unlocked
@@ -3804,6 +3862,7 @@
       boostTokens: state.boostTokens, onboarded: state.onboarded,
       totalEarnedAllTime: state.totalEarnedAllTime,
       sound: state.sound, music: state.music, haptics: state.haptics, buyMode: state.buyMode,
+      sfxVol: state.sfxVol, musicVol: state.musicVol,
       difficulty: state.difficulty
     };
     state = newState();
@@ -3854,6 +3913,9 @@
   function setSound(b) { state.sound = !!b; emit('change'); }
   function setMusic(b) { state.music = !!b; emit('change'); }
   function setHaptics(b) { state.haptics = !!b; emit('change'); }
+  // volume 0..1 (clamped, NaN-safe). UI wires these to the audio/music master gains.
+  function setSfxVol(v) { v = Math.max(0, Math.min(1, Number(v))); state.sfxVol = isNaN(v) ? 0.7 : v; emit('change'); }
+  function setMusicVol(v) { v = Math.max(0, Math.min(1, Number(v))); state.musicVol = isNaN(v) ? 0.7 : v; emit('change'); }
   function setLang(l) { window.GAME_I18N.setLang(l); state.lang = l; emit('change'); }
   function setOnboarded(b) { state.onboarded = !!b; save(); }
   // item 2: sanitize a company name — strip tags/HTML, collapse whitespace, trim, cap to
@@ -3985,8 +4047,10 @@
     tick: tick, computeOffline: computeOffline, applyOffline: applyOffline,
     // persistence
     save: save, load: load, reset: reset, newGame: newGame, init: init,
+    exportSave: exportSave, importSave: importSave,
     // setters
-    setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
+    setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics,
+    setSfxVol: setSfxVol, setMusicVol: setMusicVol, setLang: setLang, setOnboarded: setOnboarded,
     setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
     setDifficulty: setDifficulty, diff: diff, seedRivals: seedRivals,
     // Phase 7 — variance layers (world seed / scenario / climate / lucky)
