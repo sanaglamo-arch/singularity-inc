@@ -986,6 +986,22 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .seg { display: flex; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
 .seg button { background: transparent; border: none; padding: 8px 18px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--fg-muted); min-height: 48px; transition: background 0.2s, color 0.2s; }
 .seg button.on { background: linear-gradient(100deg, var(--violet), var(--cyan)); color: #0a0a18; }
+/* volume sliders (Settings) */
+.vol-wrap { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+.vol-slider { -webkit-appearance: none; appearance: none; width: 130px; height: 6px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--violet), var(--cyan)); outline: none; cursor: pointer; }
+.vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: #f4f4ff; border: 2px solid var(--violet); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.vol-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #f4f4ff; border: 2px solid var(--violet); cursor: pointer; }
+.vol-slider:disabled { opacity: 0.4; }
+.vol-pct { font-size: 12px; color: var(--muted); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+/* save backup (export / import) */
+.backup-row { display: flex; gap: 10px; }
+.backup-row .wide { margin-top: 8px; }
+.save-box { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border); background: var(--surface); color: var(--fg, #e8e8f4);
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.4; resize: vertical;
+  word-break: break-all; }
 
 /* ---------- buy-mode bar (item 2: compact inline segmented control at the TOP of the
    generator list — scrolls with the page, sits right where you buy) ---------- */

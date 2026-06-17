@@ -227,6 +227,8 @@
     var cni = $('companyNameInput'); if (cni && document.activeElement !== cni) cni.value = G.state.companyName || '';
     $('langLabel').textContent = t('language');
     $('soundLabel').textContent = t('sound');
+    if ($('sfxVolLabel')) $('sfxVolLabel').textContent = t('sfx_volume');
+    if ($('musicVolLabel')) $('musicVolLabel').textContent = t('music_volume');
     $('musicLabel').textContent = t('music');
     var msg = $('musicSeg').children; msg[0].textContent = t('on'); msg[1].textContent = t('off');
     $('hapticsLabel').textContent = t('haptics');
@@ -240,6 +242,10 @@
     $('cosThemeLabel').textContent = t('cosmetics_theme');
     buildCosmetics();
     $('saveBtn').textContent = t('save_now');
+    if ($('backupTitle')) $('backupTitle').textContent = t('backup_title');
+    if ($('backupHint')) $('backupHint').textContent = t('backup_hint');
+    if ($('exportBtn')) $('exportBtn').textContent = t('save_export');
+    if ($('importBtn')) $('importBtn').textContent = t('save_import');
     $('resetBtn').textContent = t('reset_progress');
     $('creditsTxt').textContent = t('credits');
     $('versionTxt').textContent = t('version', { v: '1.0' });
@@ -1052,6 +1058,10 @@
 
   // ---------- alignment (multi-vector) ----------
   function vecColor(v) { return v > C.RISK.WARN_AT ? 'linear-gradient(90deg, var(--warn), var(--bad))' : 'linear-gradient(90deg, var(--good), var(--warn))'; }
+  // COLORBLIND-SAFE state glyphs (audit §E): the green/amber/red warning channel must NOT rely
+  // on hue alone. Each state carries a DISTINCT SHAPE — ✓ ok, ▲ caution, ⚠ critical — so the
+  // signal survives deutan/protan/tritan color vision. Used to prefix runway + meter readouts.
+  var STATE_GLYPH = { profit: '✓ ', green: '✓ ', amber: '▲ ', red: '⚠ ', low: '⚠ ', mid: '▲ ', high: '✓ ' };
   // ---------- 4 RELATIONSHIP METERS strip (icon + colored bar each) ----------
   // band → solid color (green good / amber mid / red low) — colorblind ask: color is
   // the secondary channel; the numeric % is always shown beside the icon.
@@ -1070,11 +1080,13 @@
     var ms = G.relationshipMeters(), html = '';
     for (var i = 0; i < ms.length; i++) {
       var m = ms[i], meta = REL_META[m.id] || { icon: '•', tip: '' }, col = relColor(m.band);
+      // colorblind-safe: a band GLYPH (shape) accompanies the colored value (low ⚠ / mid ▲ / high ✓)
+      var glyph = STATE_GLYPH[m.band] || '';
       html += '<div class="rel-row rel-' + m.band + '" data-tip="' + meta.tip + '">' +
         '<span class="rel-ic">' + meta.icon + '</span>' +
         '<span class="rel-name">' + t('meter_' + (m.id === 'approval' ? 'trust' : m.id)) + '</span>' +
         '<span class="rel-bar"><span class="rel-fill" style="width:' + m.val + '%;background:' + col + '"></span></span>' +
-        '<span class="rel-val" style="color:' + col + '">' + m.val + '</span>' +
+        '<span class="rel-val" style="color:' + col + '">' + glyph + m.val + '</span>' +
         '</div>';
     }
     $('relMeters').innerHTML = html;
@@ -1268,15 +1280,17 @@
     var state = 'green';
     if (hasProduct) {
       setText($('runwayLabel'), t('runway_label'));
-      var profitable = G.isProfitable();
-      var months = G.runwayMonths();
-      if (profitable) { setText($('runwayVal'), t('runway_profitable')); state = 'profit'; }
-      else {
+      if (G.isProfitable()) {
+        state = 'profit';
+        setText($('runwayVal'), STATE_GLYPH.profit + t('runway_profitable'));
+      } else {
+        var months = G.runwayMonths();
+        state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
         // plain-language relabel: runway shown in DAYS (locked glossary)
         var days = G.runwayDays();
         var dispD = days >= 9999 ? '999+' : Math.round(days);
-        setText($('runwayVal'), t('runway_days', { n: dispD }));
-        state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
+        // colorblind-safe: a STATE GLYPH (shape, not just hue) prefixes the value.
+        setText($('runwayVal'), STATE_GLYPH[state] + t('runway_days', { n: dispD }));
       }
     }
     setClass(bar, 'amber', state === 'amber');
@@ -2044,6 +2058,13 @@
     var hpg = $('hapticsSeg').children;
     hpg[0].classList.toggle('on', s.haptics);
     hpg[1].classList.toggle('on', !s.haptics);
+    // volume sliders: reflect saved value + disable when that channel is off (don't stomp a drag)
+    var sv = $('sfxVol');
+    if (sv && document.activeElement !== sv) { sv.value = Math.round((s.sfxVol != null ? s.sfxVol : 0.7) * 100); sv.disabled = !s.sound; }
+    if (sv && $('sfxVolPct')) $('sfxVolPct').textContent = Math.round((s.sfxVol != null ? s.sfxVol : 0.7) * 100) + '%';
+    var mv = $('musicVol');
+    if (mv && document.activeElement !== mv) { mv.value = Math.round((s.musicVol != null ? s.musicVol : 0.7) * 100); mv.disabled = !s.music; }
+    if (mv && $('musicVolPct')) $('musicVolPct').textContent = Math.round((s.musicVol != null ? s.musicVol : 0.7) * 100) + '%';
   }
 
   // ---------- progressive unlock plumbing ----------
@@ -2189,6 +2210,69 @@
     root.classList.remove('hidden');
   }
   function hideModal() { $('modalRoot').classList.add('hidden'); $('modalRoot').innerHTML = ''; }
+
+  // ---- SAVE EXPORT / IMPORT modals (idle-run insurance) ----
+  // Export: show the portable save string in a read-only box + a Copy button.
+  function openExportModal() {
+    var code = G.exportSave();
+    if (!code) { toast(t('save_export_fail'), 'bad'); return; }
+    showModal(
+      '<h3>' + t('save_export') + '</h3>' +
+      '<p class="muted small">' + t('save_export_hint') + '</p>' +
+      '<textarea id="exportBox" class="save-box" readonly rows="4"></textarea>' +
+      '<div class="row"><button class="secondary" id="exClose"></button>' +
+      '<button class="primary" id="exCopy"></button></div>'
+    );
+    var box = $('exportBox'); box.value = code;
+    $('exClose').textContent = t('close'); $('exCopy').textContent = t('copy');
+    box.addEventListener('focus', function () { box.select(); });
+    $('exClose').onclick = hideModal;
+    $('exCopy').onclick = function () {
+      box.focus(); box.select();
+      var done = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(code); done = true; } } catch (e) {}
+      if (!done) { try { done = document.execCommand('copy'); } catch (e) {} }
+      if (window.GAME_AUDIO && G.state.sound) window.GAME_AUDIO.buy();
+      toast(t(done ? 'copied_toast' : 'copy_manual'), done ? 'good' : '', { routine: true });
+    };
+  }
+  // Import: paste box + a confirm. On success, re-render everything from the loaded save.
+  function openImportModal() {
+    showModal(
+      '<h3>' + t('save_import') + '</h3>' +
+      '<p class="muted small">' + t('save_import_hint') + '</p>' +
+      '<textarea id="importBox" class="save-box" rows="4" placeholder="SINGv1:…"></textarea>' +
+      '<div class="row"><button class="secondary" id="imCancel"></button>' +
+      '<button class="primary" id="imOk"></button></div>'
+    );
+    $('imCancel').textContent = t('cancel_x') || '✕';
+    $('imOk').textContent = t('save_import');
+    $('imCancel').onclick = hideModal;
+    $('imOk').onclick = function () {
+      var raw = $('importBox').value;
+      var ok = G.importSave(raw);
+      if (!ok) { toast(t('save_import_fail'), 'bad'); return; }
+      hideModal();
+      // a fully different save is now live — rebuild static labels, audio, cosmetics, everything.
+      applyAudioSettings();
+      renderStatic(); applyCosmetics(); syncUnlockSeenSilently(); update();
+      if (window.GAME_AUDIO && G.state.sound) window.GAME_AUDIO.buy();
+      toast(t('save_import_ok'), 'good');
+    };
+  }
+  // apply the saved volume + on/off state to both audio engines (init + after import).
+  function applyAudioSettings() {
+    var s = G.state;
+    if (window.GAME_AUDIO) {
+      window.GAME_AUDIO.setEnabled(s.sound);
+      if (window.GAME_AUDIO.setVolume) window.GAME_AUDIO.setVolume(s.sfxVol != null ? s.sfxVol : 0.7);
+    }
+    if (window.GAME_MUSIC) {
+      if (window.GAME_MUSIC.setVolume) window.GAME_MUSIC.setVolume(s.musicVol != null ? s.musicVol : 0.7);
+      window.GAME_MUSIC.setEnabled(s.music);
+      if (s.music) window.GAME_MUSIC.start();
+    }
+  }
 
   // v17 — first-electricity-bill TEACH popup: explains WHAT it is, WHERE to pay (Bills view),
   // and the CONSEQUENCE of ignoring it (the −30% throttle). One-time; routes to pay-now.
@@ -2847,6 +2931,30 @@
     for (var hb = 0; hb < hpg.length; hb++) {
       (function (btn) { btn.addEventListener('click', function () { var on = btn.dataset.haptics === 'on'; G.setHaptics(on); if (on) buzz(15); }); })(hpg[hb]);
     }
+    // volume sliders — live: scale the audio/music master gain as you drag, persist on release.
+    var sfxSlider = $('sfxVol');
+    if (sfxSlider) {
+      sfxSlider.addEventListener('input', function () {
+        var v = Math.max(0, Math.min(1, (Number(sfxSlider.value) || 0) / 100));
+        G.setSfxVol(v);
+        if (window.GAME_AUDIO && window.GAME_AUDIO.setVolume) window.GAME_AUDIO.setVolume(v);
+        if ($('sfxVolPct')) $('sfxVolPct').textContent = Math.round(v * 100) + '%';
+      });
+      sfxSlider.addEventListener('change', function () { if (window.GAME_AUDIO && G.state.sound) window.GAME_AUDIO.buy(); G.save(); });
+    }
+    var musicSlider = $('musicVol');
+    if (musicSlider) {
+      musicSlider.addEventListener('input', function () {
+        var v = Math.max(0, Math.min(1, (Number(musicSlider.value) || 0) / 100));
+        G.setMusicVol(v);
+        if (window.GAME_MUSIC && window.GAME_MUSIC.setVolume) window.GAME_MUSIC.setVolume(v);
+        if ($('musicVolPct')) $('musicVolPct').textContent = Math.round(v * 100) + '%';
+      });
+      musicSlider.addEventListener('change', function () { G.save(); });
+    }
+    // save export / import (idle-player insurance against losing a long run)
+    if ($('exportBtn')) $('exportBtn').addEventListener('click', openExportModal);
+    if ($('importBtn')) $('importBtn').addEventListener('click', openImportModal);
     // ad buttons
     $('adBoostBtn').addEventListener('click', function () {
       window.GAME_ADS.showRewarded({
@@ -2931,8 +3039,7 @@
     // A brand-new save (no progress) keeps them so the journey unfolds live.
     var st = G.state;
     if (st.prestiges > 0 || st.taps > 0 || st.totalEarnedAllTime > 0 || st.onboarded) syncUnlockSeenSilently();
-    window.GAME_AUDIO.setEnabled(G.state.sound);
-    if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(G.state.music); if (G.state.music) window.GAME_MUSIC.start(); }
+    applyAudioSettings();
     applyCosmetics();
     startTicker();
     updateBuyModeBar();
