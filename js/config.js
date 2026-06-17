@@ -137,6 +137,21 @@
     ESCALATE_DUR_MULT: 1.6, ESCALATE_TRUST: 10
   };
 
+  // ---- PHASE 5: named INCIDENT events (DESIGN §4) ----------------------
+  // INCIDENTS are felt consequences of skimping on Safety: they roll PROBABILISTICALLY
+  // against Incident Risk (the highest risk vector) each cycle, gated by a cooldown so
+  // they never spam. Severity scales with act (PR embarrassment → lawsuit → company-ending).
+  // They reuse the decision modal + %-of-scale effect forms; each pushes a news headline.
+  var INCIDENTS_CFG = {
+    RISK_FLOOR: 55,        // no incident roll below this Incident-Risk level (skimping must be real)
+    CHANCE_AT_FLOOR: 0.02, // per-eligible-cycle chance at the floor …
+    CHANCE_AT_MAX: 0.16,   // … rising linearly to this at 100% risk
+    COOLDOWN_SEC: 150,     // global incident cooldown (anti-spam), shortens slightly with size
+    COOLDOWN_MIN: 80,
+    CHECK_EVERY_SEC: 5,    // only roll once every N seconds (a "cycle")
+    RISK_RELIEF: 18        // firing an incident bleeds a little risk off the top vector
+  };
+
   // ---- Tap -------------------------------------------------------------
   var TAP = { base: 2 };
 
@@ -1393,6 +1408,95 @@
     }
   ];
 
+  // ====================================================================
+  // PHASE 5 — INCIDENT POOL (DESIGN §4). Decision-shaped so they reuse the
+  // interrupt modal + applyEffect grammar + the per-option news headlines.
+  // They are NOT in the ambient DECISIONS lottery — the engine rolls them
+  // against Incident Risk (see updateIncidents). Each has two responses:
+  //   apologize/pause = own it → revenue/share hit now, contains the fallout
+  //   deny/gamble     = roll on regulators → trust + reg risk, may escalate
+  // Severity scales by `act`: early = PR + small flat fine; mid = lawsuit +
+  // investigation; late = a rare company-ending catastrophe. Grounded in real
+  // cases (Bing Sydney, Air Canada, Grok, Character.AI). The `teach` incident
+  // is the scripted first-scandal tutorial (fired by the engine, not rolled).
+  var INCIDENTS = [
+    // ---- TEACH-BY-SCANDAL: the scripted first incident (Bing Sydney) ----
+    // Cheap + survivable. Fires once, early, the first time risk crosses the
+    // teach threshold — then the Safety meter is revealed (see game.js).
+    {
+      id: 'inc_teach_sydney', incident: true, teach: true, act: [1, 2, 3, 4],
+      options: [
+        { id: 'apologize', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-60' }, meter: { trust: '-3' }, vec: { cap: -10 } } }
+      ]
+    },
+
+    // ---- EARLY: PR embarrassment + small fine (act 1-2) ----
+    {
+      id: 'inc_grok_meltdown', incident: true, act: [1, 2], severity: 'pr',
+      options: [
+        { id: 'apologize', tooltip_meters: ['marketShare', 'trust'],
+          effects: { resource: { cash: '-40' }, meter: { marketShare: '-2', trust: '+2' }, vec: { cap: -8 } } },
+        { id: 'deny', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-6' }, vec: { reg: 12, cap: 4 } } }
+      ]
+    },
+    {
+      id: 'inc_hallucinated_refund', incident: true, act: [1, 2], severity: 'pr',
+      options: [
+        { id: 'apologize', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cash: '-50' }, meter: { trust: '+1' }, vec: { sec: -6 } } },
+        { id: 'deny', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-5' }, vec: { reg: 10 } } }
+      ]
+    },
+
+    // ---- MID: lawsuit + investigation (act 2-3) ----
+    // Air Canada: a chatbot invented a refund policy; the airline was held liable.
+    {
+      id: 'inc_aircanada_suit', incident: true, act: [2, 3], severity: 'lawsuit',
+      options: [
+        { id: 'settle', tooltip_meters: ['cash', 'trust'],
+          effects: { resource: { cashPctVal: -0.05 }, meter: { trust: '+3' }, vec: { reg: -6 } } },
+        { id: 'fight', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-7' }, vec: { reg: 16 },
+                     schedule: { event: 'inc_aircanada_suit', delaySec: 120, chance: 0.4, callback: 'callback_incident' } } }
+      ]
+    },
+    {
+      id: 'inc_privacy_probe', incident: true, act: [2, 3], severity: 'lawsuit',
+      options: [
+        { id: 'cooperate', tooltip_meters: ['cash', 'risk'],
+          effects: { resource: { cashMonthsBurn: -1 }, meter: { trust: '+2' }, vec: { data: -12, reg: -8 } } },
+        { id: 'stonewall', tooltip_meters: ['trust', 'risk'],
+          effects: { meter: { trust: '-6' }, vec: { reg: 18, data: 6 } } }
+      ]
+    },
+
+    // ---- LATE / CONTAINMENT: a rare company-ending catastrophe (act 3-4) ----
+    // Character.AI: a teen's death tied to a chatbot. For players who never funded
+    // Safety, the unsafe path here is severe (huge %-of-valuation + trust collapse).
+    {
+      id: 'inc_chatbot_tragedy', incident: true, act: [3, 4], severity: 'catastrophe',
+      options: [
+        { id: 'recall', tooltip_meters: ['cash', 'marketShare', 'trust'],
+          effects: { resource: { cashPctVal: -0.08, modelGen: -1 }, meter: { marketShare: '-8', trust: '+5' }, vec: { cap: -20 } } },
+        { id: 'lawyer_up', tooltip_meters: ['valuation', 'trust', 'risk'],
+          effects: { meter: { valPct: -0.18, trust: '-14' }, vec: { reg: 24, cap: 8 },
+                     schedule: { event: 'inc_chatbot_tragedy', delaySec: 110, chance: 0.5, callback: 'callback_incident' } } }
+      ]
+    },
+    {
+      id: 'inc_rogue_agent', incident: true, act: [3, 4], severity: 'catastrophe',
+      options: [
+        { id: 'pull_plug', tooltip_meters: ['cash', 'marketShare', 'risk'],
+          effects: { resource: { cashMonthsBurn: -3 }, meter: { marketShare: '-6', trust: '+4' }, vec: { cap: -22, sec: -16 } } },
+        { id: 'cover_up', tooltip_meters: ['valuation', 'trust', 'risk'],
+          effects: { meter: { valPct: -0.2, trust: '-16' }, vec: { reg: 26, sec: 12 } } }
+      ]
+    }
+  ];
+
   // ---- Market / investing minigame -------------------------------------
   // R13 anti-printer rework: a BOUNDED RANDOM WALK (REVERT 0) — no mean-reversion
   // edge, so buy-low/sell-high is a coin-flip that loses to the fee on average. A
@@ -1643,7 +1747,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 13,         // + failure states (crisis machinery; safe migrate, grandfathered)
+    SAVE_VERSION: 14,         // Phase 5: Safety/Incident-Risk reframe + named incidents (safe migrate)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1684,6 +1788,8 @@
     TRUST: TRUST,
     CARDS: CARDS,
     DECISIONS: DECISIONS,
+    INCIDENTS: INCIDENTS,
+    INCIDENTS_CFG: INCIDENTS_CFG,
     DECISIONS_PACING: DECISIONS_PACING,
     DECISION_TIERS: DECISION_TIERS,
     DECISION_TIER_OVERLAP: DECISION_TIER_OVERLAP,

@@ -37,6 +37,11 @@
       incidentEndsAt: 0,     // ms; >0 means a crisis output-penalty is active
       incidentsThisRun: 0,
       incidentsTotal: 0,
+      // PHASE 5 — named-incident roll + teach-by-scandal bookkeeping
+      lastIncidentAt: 0,        // ms; global incident cooldown anchor
+      nextIncidentCheckAt: 0,   // ms; throttles the per-cycle roll
+      teachIncidentDone: false, // the scripted first scandal has fired
+      safetyRevealed: false,    // the Safety meter + explainer has been shown
       taps: 0,
       boostUntil: 0,         // ms
       eventId: null,         // active timed event id (or null)
@@ -1576,6 +1581,8 @@
   function decisionById(id) {
     var D = C.DECISIONS || [];
     for (var i = 0; i < D.length; i++) if (D[i].id === id) return D[i];
+    var I = C.INCIDENTS || [];   // PHASE 5: incidents reuse the decision modal/effect/news path
+    for (var j = 0; j < I.length; j++) if (I[j].id === id) return I[j];
     return null;
   }
   // effective weight = base × Π(matching weight_mods)
@@ -1815,6 +1822,72 @@
     // fallback remains only as a safety net if ever called before risk is unlocked.)
     if (riskUnlocked()) { if (!hasCrisisCard()) spawnCrisisCard(vector); }
     else { state.incidentEndsAt = Date.now() + C.RISK.INCIDENT_DURATION * 1000; state.incidentsThisRun++; state.incidentsTotal++; emit('incident', { active: true }); }
+  }
+  // ===== PHASE 5 — TEACH-BY-SCANDAL + NAMED INCIDENTS (DESIGN §4) =======
+  // incident lookups (separate from the ambient DECISIONS pool)
+  function incidentById(id) {
+    var I = C.INCIDENTS || [];
+    for (var i = 0; i < I.length; i++) if (I[i].id === id) return I[i];
+    return null;
+  }
+  // an incident is eligible if the player's current act is in its act list.
+  function incidentActEligible(ev) {
+    if (!ev || ev.teach || ev.weight === 0) return false;          // teach is scripted; weight-0 are callback-only
+    if (ev.incident !== true) return false;
+    if (ev.act && ev.act.indexOf(currentAct()) < 0) return false;  // severity scales by act band
+    return true;
+  }
+  // SUB-PART B — the first scandal IS the tutorial. The FIRST time Incident Risk
+  // crosses a low threshold (skimping is now tempting), fire the scripted Bing-Sydney
+  // incident, then reveal the Safety meter + the one plain-language explainer line.
+  function maybeTeachScandal() {
+    if (state.teachIncidentDone || state.safetyRevealed) return false;
+    if (!riskUnlocked()) return false;
+    if (highestVector().val < C.RISK.WARN_AT - 20) return false;    // ~55%: real, but survivable & early
+    var ev = incidentById('inc_teach_sydney');
+    if (!ev) { state.teachIncidentDone = true; state.safetyRevealed = true; return false; }
+    state.teachIncidentDone = true;
+    state.lastIncidentAt = Date.now();
+    state.incidentsThisRun++; state.incidentsTotal++;
+    highestBleed(C.INCIDENTS_CFG.RISK_RELIEF);
+    emitNews('crisis', ['safety_reveal_news']);
+    // surface the scripted incident modal; the Safety reveal follows on resolve (UI hook).
+    emit('decision', { kind: 'interrupt', id: ev.id, incident: true, teach: true });
+    return true;
+  }
+  // UI calls this when the teach-scandal reveal has been shown (so it shows once).
+  function markSafetyRevealed() { state.safetyRevealed = true; emit('change'); }
+  // bleed a little risk off the worst vector when an incident fires (the blow-up "vents" it).
+  function highestBleed(amt) {
+    var hv = highestVector();
+    if (hv.id) state.vec[hv.id] = Math.max(0, state.vec[hv.id] - amt);
+  }
+  // SUB-PART C — roll named incidents against Incident Risk, gated by cooldown.
+  // Higher risk → higher per-cycle chance. Severity is implicit in act-eligibility.
+  function updateIncidents() {
+    if (!riskUnlocked()) return;
+    var IC = C.INCIDENTS_CFG, now = Date.now();
+    // teach first: it must precede any rolled incident.
+    if (!state.teachIncidentDone) { maybeTeachScandal(); return; }
+    if (now < (state.nextIncidentCheckAt || 0)) return;
+    state.nextIncidentCheckAt = now + IC.CHECK_EVERY_SEC * 1000;
+    // don't stack on an active output-penalty incident or a pending crisis card.
+    if (incidentActive() || hasCrisisCard()) return;
+    var cdMs = Math.max(IC.COOLDOWN_MIN, IC.COOLDOWN_SEC - currentAct() * 12) * 1000;
+    if (now - (state.lastIncidentAt || 0) < cdMs) return;
+    var risk = highestVector().val;
+    if (risk < IC.RISK_FLOOR) return;
+    var f = Math.min(1, (risk - IC.RISK_FLOOR) / (100 - IC.RISK_FLOOR));
+    var chance = IC.CHANCE_AT_FLOOR + (IC.CHANCE_AT_MAX - IC.CHANCE_AT_FLOOR) * f;
+    if (Math.random() > chance) return;
+    var pool = (C.INCIDENTS || []).filter(incidentActEligible);
+    if (!pool.length) return;
+    var ev = pool[Math.floor(Math.random() * pool.length)];
+    state.lastIncidentAt = now;
+    state.incidentsThisRun++; state.incidentsTotal++;
+    highestBleed(IC.RISK_RELIEF);
+    emit('decision', { kind: 'interrupt', id: ev.id, incident: true });
+    checkAchievements(); emit('change');
   }
   function updateCards() {
     var now = Date.now(), changed = false;
@@ -2317,6 +2390,7 @@
       }
     }
 
+    updateIncidents();   // PHASE 5: teach-by-scandal + named incidents rolled vs Incident Risk
     if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
@@ -2539,6 +2613,9 @@
     C.RISK.VECTORS.forEach(function (v) { if (typeof s.vec[v] !== 'number') s.vec[v] = 0; });
     if (typeof s.auditReadyAt !== 'number') s.auditReadyAt = 0;
     delete s.risk;
+    // PHASE 5: grandfather advanced pre-Phase-5 saves past the teach-scandal window so a
+    // returning veteran isn't shown the beginner tutorial. (Newer saves carry these flags.)
+    if (fromVer < 14 && (s.modelGen || 0) >= 4) { s.teachIncidentDone = true; s.safetyRevealed = true; }
     // ---- v3: progression + prestige rework (SAFE: never break / never rob) ----
     // % start-cash needs a best-run baseline; seed it from the current run so returning
     // players aren't worse off than before.
@@ -2935,6 +3012,7 @@
     // decision engine (Phase 2)
     evalCond: evalCond, _evalCondTest: _evalCondTest,
     decisionById: decisionById, resolveDecision: resolveDecision, removeInbox: removeInbox,
+    incidentById: incidentById, markSafetyRevealed: markSafetyRevealed,
     pickDefaultOption: pickDefaultOption, decisionWeight: decisionWeight,
     // executive / managing-director ladder
     execTier: execTier, currentExec: currentExec, nextExecTier: nextExecTier, execTopReached: execTopReached,

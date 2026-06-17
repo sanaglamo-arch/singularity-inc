@@ -1283,14 +1283,15 @@
     var names = opt.tooltip_meters.map(function (m) { return t('meter_' + m) || m; });
     return '<div class="nc-meters">' + t('decision_meters', { m: names.join(' · ') }) + '</div>';
   }
-  function renderDecisionHTML(ev, cls, uid) {
+  function renderDecisionHTML(ev, cls, uid, incident) {
     var btns = ev.options.map(function (op) {
       return metersLine(op) +
         '<button class="cardchoice" data-ev="' + ev.id + '" data-op="' + op.id + '"' + (uid != null ? ' data-uid="' + uid + '"' : '') + '>' +
         t(ev.id + '_' + op.id) + '</button>';
     }).join('');
-    return '<div class="newscard ' + (cls || 'decision') + '">' +
-      '<div class="nc-tag">' + t(cls === 'bankable' ? 'tag_bankable' : 'tag_interrupt') + '</div>' +
+    var tag = incident ? t('tag_incident') : t(cls === 'bankable' ? 'tag_bankable' : 'tag_interrupt');
+    return '<div class="newscard ' + (incident ? 'crisis' : (cls || 'decision')) + '">' +
+      '<div class="nc-tag">' + tag + '</div>' +
       '<div class="nc-title">' + t(ev.id + '_t') + '</div>' +
       '<div class="nc-desc">' + t(ev.id + '_d') + '</div>' +
       '<div class="nc-choices">' + btns + '</div></div>';
@@ -1315,10 +1316,34 @@
   function showDecisionModal(ev, opts) {
     opts = opts || {};
     window.GAME_AUDIO.incident(); buzz([0, 30, 50, 30]);
-    window.GAME_FX.flash('rgba(139,92,246,0.25)');
+    // incidents flash red (a felt consequence), regular decisions stay purple.
+    window.GAME_FX.flash(opts.incident ? 'rgba(251,92,120,0.28)' : 'rgba(139,92,246,0.25)');
+    if (opts.incident && window.GAME_FX.incident) window.GAME_FX.incident();
     _interruptOpen = true;
-    showModal('<div class="crisis-modal">' + renderDecisionHTML(ev, 'decision') + '</div>');
-    wireDecisionButtons($('modalRoot'), function () { _interruptOpen = false; hideModal(); updateInboxBadge(); updateWorld(); });
+    var wrap = opts.incident ? 'crisis-modal cr-danger' : 'crisis-modal';
+    showModal('<div class="' + wrap + '">' + renderDecisionHTML(ev, 'decision', null, opts.incident) + '</div>');
+    wireDecisionButtons($('modalRoot'), function () {
+      _interruptOpen = false; hideModal(); updateInboxBadge(); updateWorld();
+      // SUB-PART B: the first scandal IS the tutorial — reveal the Safety lab afterwards.
+      if (opts.teach) showSafetyReveal();
+    });
+  }
+  // teach-by-scandal reveal: one plain-language explainer (DESIGN §4), then open Safety.
+  function showSafetyReveal() {
+    _interruptOpen = true;
+    var html = '<div class="crisis-modal">' +
+      '<div class="newscard decision">' +
+        '<div class="nc-tag">' + t('tab_alignment') + '</div>' +
+        '<div class="nc-title">' + t('safety_reveal_t') + '</div>' +
+        '<div class="nc-desc" style="white-space:pre-line">' + t('safety_reveal_d') + '</div>' +
+        '<div class="nc-choices"><button class="cardchoice" id="safetyRevealOk">' + t('safety_reveal_ok') + '</button></div>' +
+      '</div></div>';
+    showModal(html);
+    var ok = $('safetyRevealOk');
+    if (ok) ok.onclick = function () {
+      window.GAME_AUDIO.buy(); _interruptOpen = false; G.markSafetyRevealed(); hideModal();
+      location.hash = '#alignment'; switchTab('alignment'); update();
+    };
   }
   // paused only while the interrupt modal is genuinely on screen (robust against any
   // path that hides the modal without going through the resolve callback).
@@ -2066,7 +2091,7 @@
     G.on('decision', function (d) {
       if (d.kind === 'interrupt') {
         var ev = G.decisionById(d.id);
-        if (ev) showDecisionModal(ev, { callback: d.callback, callbackKey: d.callbackKey });
+        if (ev) showDecisionModal(ev, { callback: d.callback, callbackKey: d.callbackKey, incident: d.incident, teach: d.teach });
       } else if (d.kind === 'bankable') {
         updateInboxBadge(); window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); buzz(12);
         toast(t(d.id + '_t'), 'gold');
