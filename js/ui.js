@@ -866,11 +866,18 @@
     C.GENERATORS.forEach(function (g) { totalGens += s.gens[g.id]; });
     var maxGen = C.MODELGEN.length;
     var genLabel = s.modelGen >= maxGen ? t('stat_modelgen_agi') : (s.modelGen + ' / ' + maxGen);
+    // Phase 2 burn→runway readouts (only meaningful once a product exists)
+    var runwayStr = s.modelGen >= 1
+      ? (G.isProfitable() ? t('runway_profitable')
+         : t('runway_months', { n: G.runwayMonths() >= 100 ? '99+' : (G.runwayMonths() >= 10 ? Math.round(G.runwayMonths()) : G.runwayMonths().toFixed(1)) }))
+      : '—';
     var rows = [
       [t('stat_modelgen'), genLabel],
       [t('stat_compute'), fmt(s.compute)],
       [t('stat_compute_rate'), fmt(G.cps()) + '/s'],
       [t('stat_money_sec'), fmt(G.moneyRate()) + '/s'],
+      [t('stat_burn'), '$' + fmt(G.monthlyBurn())],
+      [t('stat_runway'), runwayStr],
       [t('stat_total_cash'), fmt(s.totalEarnedAllTime)],
       [t('stat_share'), (s.marketShare || 0).toFixed(1) + '%'],
       [t('stat_valuation'), fmt(G.valuation())],
@@ -1063,6 +1070,37 @@
     var tk = $('ticker');
     if (tk) setClass(tk, 'has-badge', anyBadge);
     updateInboxBadge();   // decision inbox count (Phase 2)
+  }
+
+  // ---------- Runway HUD (Phase 2 burn→runway headline) ----------
+  // "Runway: 14 mo" with green(>6mo)/amber(3-6mo)/red(<3mo) states (or "Profitable" when
+  // net burn ≤ 0), plus a small "−$X/mo burn · +$Y/mo revenue" line. Hidden until v1 ships
+  // (no burn pressure in the garage). Color thresholds match DESIGN §1 telegraphing.
+  function updateRunway() {
+    var bar = $('runwayBar'); if (!bar) return;
+    var s = G.state;
+    // surface once a product exists (revenue/burn both meaningful) — pre-product garage stays clean
+    if (s.modelGen < 1) { setClass(bar, 'hidden', true); return; }
+    setClass(bar, 'hidden', false);
+    setText($('runwayLabel'), t('runway_label'));
+    var burn = G.monthlyBurn(), rev = G.monthlyRevenue();
+    var profitable = G.isProfitable();
+    var months = G.runwayMonths();
+    // headline value + color state
+    var state = 'green';
+    if (profitable) { setText($('runwayVal'), t('runway_profitable')); state = 'profit'; }
+    else {
+      var disp = months >= 100 ? '99+' : (months >= 10 ? Math.round(months) : months.toFixed(1));
+      setText($('runwayVal'), t('runway_months', { n: disp }));
+      state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
+    }
+    setClass(bar, 'amber', state === 'amber');
+    setClass(bar, 'red', state === 'red');
+    setClass(bar, 'profit', state === 'profit');
+    // burn vs revenue flow line (readable, compact)
+    setHTML($('runwayFlow'),
+      '<span class="rw-burn">−$' + fmt(burn) + t('per_mo_suffix') + '</span> · ' +
+      '<span class="rw-rev">+$' + fmt(rev) + t('per_mo_suffix') + '</span>');
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -1424,6 +1462,7 @@
     frameCompute = G.computeRate();
     frameMoney = G.moneyRate();
     updateTop();
+    updateRunway();
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); updateExec(); }

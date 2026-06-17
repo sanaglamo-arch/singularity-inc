@@ -150,6 +150,33 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 #raceBadge { right: 14px; max-width: 46%; z-index: 5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(90deg, #34d399, #22d3ee); }
 #raceBadge.threat { background: linear-gradient(90deg, var(--rose), #ff8aa0); color: #2a0710; }
 
+/* ---------- runway HUD (Phase 2 burn→runway headline) ---------- */
+#runwayBar {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 5px 16px 6px; background: rgba(8,8,18,0.42); border-bottom: 1px solid var(--glass-border);
+  border-left: 3px solid var(--green);   /* color-state accent (recolored by state class) */
+}
+#runwayBar .rw-main { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+#runwayLabel { font-family: var(--font-display); font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--fg-muted); white-space: nowrap; }
+#runwayVal { font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: 0.4px; color: var(--green); white-space: nowrap; }
+#runwayFlow { font-size: 11px; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; letter-spacing: 0.2px; }
+#runwayFlow .rw-burn { color: var(--rose); }
+#runwayFlow .rw-rev { color: var(--green); }
+/* color states */
+#runwayBar.amber { border-left-color: var(--gold); }
+#runwayBar.amber #runwayVal { color: var(--gold); }
+#runwayBar.red { border-left-color: var(--rose); }
+#runwayBar.red #runwayVal { color: var(--rose); }
+#runwayBar.red { animation: rwpulse 1.6s ease-in-out infinite; }
+#runwayBar.profit { border-left-color: var(--cyan); }
+#runwayBar.profit #runwayVal { color: var(--cyan); }
+@keyframes rwpulse { 0%,100% { background: rgba(8,8,18,0.42); } 50% { background: rgba(80,12,28,0.42); } }
+@media (max-width: 380px) {
+  #runwayLabel { font-size: 8.5px; letter-spacing: 0.8px; }
+  #runwayVal { font-size: 14px; }
+  #runwayFlow { font-size: 10px; }
+}
+
 /* ---------- act bar + intro ---------- */
 #actBar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 4px 16px 5px; background: rgba(8,8,18,0.4); border-bottom: 1px solid var(--glass-border); }
 #actLabel { font-family: var(--font-display); font-size: 9.5px; letter-spacing: 1.4px; color: var(--violet-2); white-space: nowrap; text-transform: uppercase; }

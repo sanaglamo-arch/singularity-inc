@@ -19,6 +19,14 @@
 
     cash: 'Cash',
     per_sec: '{v}/sec',
+    per_mo_suffix: '/mo',
+    // Runway HUD (Phase 2 burn→runway)
+    runway_label: 'Runway',
+    runway_months: '{n} mo',
+    runway_profitable: 'Profitable',
+    stat_runway: 'Runway',
+    stat_burn: 'Burn / mo',
+    stat_net_burn: 'Net burn / mo',
     tap_button: 'TRAIN',
     tap_hint: 'Tap to train your model',
     earn_per_sec: 'Revenue: {v}/sec',
@@ -852,6 +860,14 @@
 
     cash: 'Деньги',
     per_sec: '{v}/сек',
+    per_mo_suffix: '/мес',
+    // Runway HUD (Phase 2 burn→runway)
+    runway_label: 'Запас',
+    runway_months: '{n} мес',
+    runway_profitable: 'Прибыль',
+    stat_runway: 'Запас хода',
+    stat_burn: 'Расход / мес',
+    stat_net_burn: 'Чистый расход / мес',
     tap_button: 'ОБУЧАТЬ',
     tap_hint: 'Жми, чтобы обучать модель',
     earn_per_sec: 'Доход: {v}/сек',
