@@ -207,6 +207,29 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 .crisis-modal .newscard { margin: 0; }
 .flavor-line { font-size: 12px; color: var(--fg-muted); padding: 5px 0; border-bottom: 1px solid var(--glass-border); }
 
+/* ---------- Decision engine (Phase 2) ---------- */
+/* interrupt + bankable decision cards reuse .newscard; this tints the DECISION tag */
+.newscard.decision .nc-tag { background: var(--violet-2); color: #08122a; }
+.newscard.bankable .nc-tag { background: var(--gold); color: #2a1e04; }
+.nc-meters { font-size: 11px; color: var(--fg-muted); margin: 4px 0 2px; line-height: 1.35; }
+/* topbar inbox badge — compact pill in the flex flow (no overlap; safe @360) */
+#inboxBadge {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px; padding: 4px 9px; border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-border); background: linear-gradient(90deg, var(--gold), #f59e0b);
+  color: #2a1e04; font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  cursor: pointer; box-shadow: var(--shadow-1); line-height: 1;
+}
+#inboxBadge .ib-ico { font-size: 12px; }
+#inboxBadge:active { transform: scale(0.96); }
+/* inbox list (modal) */
+.inbox-list { display: flex; flex-direction: column; gap: 10px; max-height: 62vh; overflow-y: auto; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; }
+.inbox-item { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 11px 13px; box-shadow: var(--inset-hi); }
+.inbox-item .ii-title { font-weight: 700; font-size: 14px; }
+.inbox-item .ii-auto { font-size: 11px; color: var(--fg-muted); margin: 3px 0 8px; }
+.inbox-item .ii-open { width: 100%; min-height: 44px; }
+.inbox-empty { text-align: center; color: var(--fg-muted); font-size: 13px; padding: 18px 0; }
+
 .mkrow { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 11px 13px; margin-bottom: 10px; box-shadow: var(--inset-hi); }
 .mk-name { font-weight: 600; font-size: 13px; }
 .mk-sym { font-family: var(--font-display); font-size: 10px; color: var(--violet-2); margin-left: 4px; }

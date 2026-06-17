@@ -895,6 +895,7 @@
                 || (rb && !rb.classList.contains('hidden'));
     var tk = $('ticker');
     if (tk) setClass(tk, 'has-badge', anyBadge);
+    updateInboxBadge();   // decision inbox count (Phase 2)
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -930,6 +931,88 @@
     if (!crisis) return;
     showModal('<div class="crisis-modal">' + renderCardHTML(crisis) + '</div>');
     wireCardButtons($('modalRoot'));
+  }
+
+  // ---------- Decision engine surfacing (Phase 2, Sub-part D) ----------
+  // render one decision event as a card. `cls` styles the tag (decision/bankable).
+  function metersLine(opt) {
+    if (!opt.tooltip_meters || !opt.tooltip_meters.length) return '';
+    var names = opt.tooltip_meters.map(function (m) { return t('meter_' + m) || m; });
+    return '<div class="nc-meters">' + t('decision_meters', { m: names.join(' · ') }) + '</div>';
+  }
+  function renderDecisionHTML(ev, cls, uid) {
+    var btns = ev.options.map(function (op) {
+      return metersLine(op) +
+        '<button class="cardchoice" data-ev="' + ev.id + '" data-op="' + op.id + '"' + (uid != null ? ' data-uid="' + uid + '"' : '') + '>' +
+        t(ev.id + '_' + op.id) + '</button>';
+    }).join('');
+    return '<div class="newscard ' + (cls || 'decision') + '">' +
+      '<div class="nc-tag">' + t(cls === 'bankable' ? 'tag_bankable' : 'tag_interrupt') + '</div>' +
+      '<div class="nc-title">' + t(ev.id + '_t') + '</div>' +
+      '<div class="nc-desc">' + t(ev.id + '_d') + '</div>' +
+      '<div class="nc-choices">' + btns + '</div></div>';
+  }
+  function wireDecisionButtons(container, onResolve) {
+    var bs = container.querySelectorAll('.cardchoice[data-ev]');
+    for (var i = 0; i < bs.length; i++) {
+      (function (b) {
+        b.addEventListener('click', function () {
+          var uid = b.dataset.uid != null ? parseInt(b.dataset.uid, 10) : null;
+          if (G.resolveDecision(b.dataset.ev, b.dataset.op, uid)) {
+            window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(139,92,246,0.20)');
+            if (onResolve) onResolve();
+          }
+        });
+      })(bs[i]);
+    }
+  }
+  // INTERRUPT: pop a modal immediately (regardless of current tab).
+  // While it's open we pause idle gain (a clean gate read by the main loop).
+  var _interruptOpen = false;
+  function showDecisionModal(ev, opts) {
+    opts = opts || {};
+    window.GAME_AUDIO.incident(); buzz([0, 30, 50, 30]);
+    window.GAME_FX.flash('rgba(139,92,246,0.25)');
+    _interruptOpen = true;
+    showModal('<div class="crisis-modal">' + renderDecisionHTML(ev, 'decision') + '</div>');
+    wireDecisionButtons($('modalRoot'), function () { _interruptOpen = false; hideModal(); updateInboxBadge(); updateWorld(); });
+  }
+  // paused only while the interrupt modal is genuinely on screen (robust against any
+  // path that hides the modal without going through the resolve callback).
+  function isPaused() {
+    if (!_interruptOpen) return false;
+    var m = $('modalRoot');
+    if (!m || m.classList.contains('hidden')) { _interruptOpen = false; return false; }
+    return true;
+  }
+  // INBOX badge (bankable count) — lives in the topbar.
+  function updateInboxBadge() {
+    var b = $('inboxBadge'); if (!b) return;
+    var n = (G.state.inbox || []).length;
+    setClass(b, 'hidden', n === 0);
+    setText($('inboxCount'), n);
+  }
+  // INBOX list modal — each pending bankable decision is resolvable inline.
+  function showInboxModal() {
+    var inbox = G.state.inbox || [];
+    var now = Date.now();
+    var items = inbox.map(function (it) {
+      var ev = G.decisionById(it.id); if (!ev) return '';
+      var left = Math.max(0, (it.autoAt - now) / 1000);
+      return '<div class="inbox-item" data-uid="' + it.uid + '">' +
+        '<div class="ii-title">' + t(it.id + '_t') + '</div>' +
+        '<div class="ii-auto">' + t('inbox_auto', { t: FMT.fmtTime(left) }) + '</div>' +
+        renderDecisionHTML(ev, 'bankable', it.uid) +
+        '</div>';
+    }).join('');
+    if (!items) items = '<div class="inbox-empty">' + t('inbox_empty') + '</div>';
+    showModal('<h3>' + t('inbox_title') + '</h3><div class="inbox-list">' + items + '</div>' +
+      '<div class="row"><button class="primary" id="inboxClose">✕</button></div>');
+    wireDecisionButtons($('modalRoot'), function () {
+      updateInboxBadge();
+      if ((G.state.inbox || []).length) showInboxModal(); else { hideModal(); updateWorld(); }
+    });
+    if ($('inboxClose')) $('inboxClose').onclick = hideModal;
   }
   function sparkline(hist) {
     if (!hist || hist.length < 2) return '';
@@ -1519,6 +1602,28 @@
       if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); buzz([0,40,60,40]); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
     });
+    // ---------- Decision engine surfacing (Phase 2, Sub-part D) ----------
+    G.on('decision', function (d) {
+      if (d.kind === 'interrupt') {
+        var ev = G.decisionById(d.id);
+        if (ev) showDecisionModal(ev, { callback: d.callback, callbackKey: d.callbackKey });
+      } else if (d.kind === 'bankable') {
+        updateInboxBadge(); window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); buzz(12);
+        toast(t(d.id + '_t'), 'gold');
+      } else if (d.kind === 'ambient') {
+        window.GAME_FX.flash('rgba(34,211,238,0.10)');
+      } else if (d.kind === 'auto') {
+        updateInboxBadge(); toast(t(d.id + '_t'), '');
+      }
+    });
+    // a decision that auto-resolved or any new ticker line nudges the ticker copy
+    G.on('newsline', function (d) {
+      var el2 = $('tickerText');
+      if (el2 && d && d.line) { el2.textContent = d.line; el2.style.animation = 'none'; void el2.offsetWidth; el2.style.animation = ''; }
+    });
+    // open the inbox from the topbar badge
+    var inboxBadge = $('inboxBadge');
+    if (inboxBadge) inboxBadge.addEventListener('click', function () { window.GAME_AUDIO.buy(); showInboxModal(); });
     // R9: act intros + ending cinematics
     G.on('act', function (d) { showActIntroDeferred(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
@@ -1812,5 +1917,5 @@
     if (currentTab !== 'company') { switchTab('company'); return true; }
     return false;
   }
-  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back };
+  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back, isPaused: isPaused };
 })();

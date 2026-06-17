@@ -91,10 +91,15 @@
     lastT = ts;
     lastActive = Date.now();
     if (dt > C.SETTINGS.TICK_MAX_DELTA) dt = C.SETTINGS.TICK_MAX_DELTA; // clamp (offline handles big gaps)
+    // Pause idle gain while an interrupt decision modal is open (Phase 2 Sub-part D):
+    // the sim is frozen so a decision truly demands attention; UI still refreshes.
+    var paused = window.GAME_UI && window.GAME_UI.isPaused && window.GAME_UI.isPaused();
     if (!hidden) {
-      acc += dt;
-      var guard = 0;
-      while (acc >= STEP && guard++ < 20) { window.GAME.tick(STEP); acc -= STEP; }
+      if (!paused) {
+        acc += dt;
+        var guard = 0;
+        while (acc >= STEP && guard++ < 20) { window.GAME.tick(STEP); acc -= STEP; }
+      } else { acc = 0; }   // drop accumulated time so we don't fast-forward on resume
       uiAcc += dt;
       if (uiAcc >= UI_STEP) { uiAcc = 0; window.GAME_UI.update(); }
     }
