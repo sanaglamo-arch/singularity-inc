@@ -61,22 +61,64 @@
   // Toasts are QUEUED with a visible cap so a burst (many achievements/milestones at
   // once, e.g. a big offline jump or a save-load that retroactively awards) never stacks
   // and buries the UI. At most TOAST_MAX show together; the rest appear in sequence.
-  var _toastQ = [], _toastShown = 0;
-  var TOAST_MAX = 3, TOAST_MS = 3000;
-  function toast(msg, kind) {
-    _toastQ.push({ msg: msg, kind: kind || '' });
-    if (_toastQ.length > 30) _toastQ.splice(0, _toastQ.length - 30); // safety: never let it grow unbounded
+  //
+  // FLOOD CONTROL (item 1): tapping hire/research/buy rapidly used to queue N identical
+  // ROUTINE toasts and create a 15-20s backlog. Now:
+  //  (a) COALESCE — an identical (msg+kind) toast that's already visible or queued is not
+  //      re-added; instead its count bumps ("×4") and its timer refreshes.
+  //  (b) CAP the queue small; when flooded, drop the OLDEST ROUTINE (buy/hire/build) toast
+  //      so routine feedback can never back up.
+  //  (c) IMPORTANT toasts (achievements/decisions/milestones/callbacks) are never dropped.
+  var _toastQ = [];        // pending {msg,kind,routine,count}
+  var _toastLive = [];     // visible {item, node, countEl, timer}
+  var TOAST_MAX = 3, TOAST_MS = 3000, TOAST_Q_MAX = 4;
+  function bumpCount(rec) {
+    rec.item.count++;
+    if (!rec.countEl) { rec.countEl = el('span', 'toast-x'); rec.node.appendChild(rec.countEl); }
+    rec.countEl.textContent = '×' + rec.item.count;
+    if (rec.timer) { clearTimeout(rec.timer); }
+    rec.node.classList.remove('flash'); void rec.node.offsetWidth; rec.node.classList.add('flash');
+    armToastTimer(rec);
+  }
+  function armToastTimer(rec) {
+    rec.timer = setTimeout(function () {
+      if (rec.node.parentNode) rec.node.parentNode.removeChild(rec.node);
+      var i = _toastLive.indexOf(rec); if (i >= 0) _toastLive.splice(i, 1);
+      pumpToasts();
+    }, TOAST_MS);
+  }
+  function toast(msg, kind, opts) {
+    kind = kind || '';
+    var routine = !!(opts && opts.routine);
+    // (a) coalesce against an already-visible identical toast
+    for (var i = 0; i < _toastLive.length; i++) {
+      var rec = _toastLive[i];
+      if (rec.item.msg === msg && rec.item.kind === kind) { bumpCount(rec); return; }
+    }
+    // (a) coalesce against an already-queued identical toast
+    for (var j = 0; j < _toastQ.length; j++) {
+      if (_toastQ[j].msg === msg && _toastQ[j].kind === kind) { _toastQ[j].count++; pumpToasts(); return; }
+    }
+    _toastQ.push({ msg: msg, kind: kind, routine: routine, count: 1 });
+    // (b) cap the queue; drop oldest ROUTINE first, then oldest of anything as a hard safety
+    while (_toastQ.length > TOAST_Q_MAX) {
+      var ri = -1;
+      for (var k = 0; k < _toastQ.length; k++) { if (_toastQ[k].routine) { ri = k; break; } }
+      _toastQ.splice(ri >= 0 ? ri : 0, 1);
+    }
     pumpToasts();
   }
   function pumpToasts() {
     var root = $('toastRoot'); if (!root) return;
-    while (_toastShown < TOAST_MAX && _toastQ.length) {
+    while (_toastLive.length < TOAST_MAX && _toastQ.length) {
       var it = _toastQ.shift();
-      var e = el('div', 'toast' + (it.kind ? ' ' + it.kind : ''), it.msg);
-      root.appendChild(e); _toastShown++;
-      (function (node) {
-        setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); _toastShown--; pumpToasts(); }, TOAST_MS);
-      })(e);
+      var e = el('div', 'toast' + (it.kind ? ' ' + it.kind : ''));
+      var label = el('span', 'toast-msg', it.msg); e.appendChild(label);
+      root.appendChild(e);
+      var rec = { item: it, node: e, countEl: null, timer: null };
+      _toastLive.push(rec);
+      if (it.count > 1) { e.appendChild(rec.countEl = el('span', 'toast-x')); rec.countEl.textContent = '×' + it.count; }
+      armToastTimer(rec);
     }
   }
   function floatText(x, y, txt, cls) {
@@ -1627,7 +1669,7 @@
     // R9: act intros + ending cinematics
     G.on('act', function (d) { showActIntroDeferred(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
-    if ($('raceOpenBtn')) $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); toast(t('race_opensource_done'), 'good'); updateStandings(); } });
+    if ($('raceOpenBtn')) $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); toast(t('race_opensource_done'), 'good', { routine: true }); updateStandings(); } });
 
     // alignment buy + reactive audit
     $('buyAlignBtn').addEventListener('click', function () { if (G.buyAlignment()) window.GAME_AUDIO.buy(); });
@@ -1677,10 +1719,10 @@
       if (d.kind === 'build') {
         window.GAME_AUDIO.buildDone && window.GAME_AUDIO.buildDone(); buzz([0, 18, 40, 26]);
         window.GAME_FX.flash('rgba(34,211,238,0.16)');
-        toast(t('build_done_full', { n: d.n, p: Math.round((C.DATACENTER.bonus || 0) * 100) }), 'gold');
+        toast(t('build_done_full', { n: d.n, p: Math.round((C.DATACENTER.bonus || 0) * 100) }), 'gold', { routine: true });
       } else if (d.kind === 'research') {
         window.GAME_AUDIO.researchDone && window.GAME_AUDIO.researchDone(); buzz([0, 14, 34, 22]);
-        toast(t('research_done_full', { n: d.n, p: Math.round((C.RESEARCH2.computeBonus || 0) * 100) }), 'gold');
+        toast(t('research_done_full', { n: d.n, p: Math.round((C.RESEARCH2.computeBonus || 0) * 100) }), 'gold', { routine: true });
       }
     });
     // subtle 25/50/75% training-progress pings on long runs (item 2)
@@ -1700,7 +1742,7 @@
       if (G.hireResearcher()) {
         // distinct welcoming cue + clear toast — hiring speeds every parallel timer (item 4)
         window.GAME_AUDIO.hireDone && window.GAME_AUDIO.hireDone(); buzz([0, 12, 28, 18]);
-        toast(t('hire_done_toast', { p: (C.PROCESS.RESEARCHER_SPEED_PER * 100).toFixed(1) }), 'gold');
+        toast(t('hire_done_toast', { p: (C.PROCESS.RESEARCHER_SPEED_PER * 100).toFixed(1) }), 'gold', { routine: true });
         updateTeam();
       } else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
     });
@@ -1799,7 +1841,7 @@
       });
     });
     // save / reset
-    $('saveBtn').addEventListener('click', function () { G.save(); toast(t('saved_toast')); });
+    $('saveBtn').addEventListener('click', function () { G.save(); toast(t('saved_toast'), '', { routine: true }); });
     $('resetBtn').addEventListener('click', function () {
       showModal('<div class="ob-icon" style="color:var(--rose)">' + ic('ic_risk') + '</div><p>' + t('reset_confirm') + '</p>' +
         '<div class="row"><button class="secondary" id="rCancel">✕</button>' +
