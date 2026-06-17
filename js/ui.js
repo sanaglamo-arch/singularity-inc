@@ -2071,7 +2071,7 @@
       '<p class="muted small">' + t('billteach_consequence') + '</p>' +
       '<div class="row">' +
       '<button class="primary" id="billPayNow">' + t('billteach_pay') + '</button>' +
-      '<button class="ghost" id="billLater">' + t('billteach_later') + '</button>' +
+      '<button class="secondary" id="billLater">' + t('billteach_later') + '</button>' +
       '</div>'
     );
     window.GAME_FX.flash('rgba(245,200,66,0.16)');
@@ -2149,6 +2149,9 @@
   }
   // DEV/QA hook: render the away report from a supplied offline object (screenshots/tests).
   window.__showAwayTest = function (off) { showAwayReport(off); };
+  // DEV/QA hooks: render the offline summary + first-bill teach popup for screenshots/tests.
+  window.__showOfflineTest = function (off) { showOffline(off); };
+  window.__showBillTeachTest = function (amt) { showBillTeach(amt); };
   // show the daily check-in once any offline modal has been dismissed (never clobber it)
   function maybeShowDaily() {
     if (G.dailyAvailable() && G.state.onboarded) setTimeout(showDaily, 250);

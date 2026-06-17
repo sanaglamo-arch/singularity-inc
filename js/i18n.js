@@ -33,7 +33,7 @@
     // always-on finance summary (income · costs · net · runway). Tap for the per-line breakdown.
     finance_income: '+${y}/mo income',
     finance_costs: '−${x}/mo costs',
-    finance_costs_parts: 'salaries·electricity·compute·datacenters',
+    finance_costs_parts: 'salaries·compute·datacenters',
     finance_net: 'net {sign}${z}/mo',
     finance_runway: 'Runway {n} mo',
     finance_runway_profit: 'Profitable',
@@ -1183,7 +1183,7 @@
     day_counter: 'День {n}',
     finance_income: '+${y}/мес доход',
     finance_costs: '−${x}/мес расход',
-    finance_costs_parts: 'зарплаты·электро·компьют·датацентры',
+    finance_costs_parts: 'зарплаты·компьют·датацентры',
     finance_net: 'итог {sign}${z}/мес',
     finance_runway: 'Runway {n} мес',
     finance_runway_profit: 'Прибыльно',
