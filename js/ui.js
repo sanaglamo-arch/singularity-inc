@@ -385,6 +385,12 @@
     var s = G.state;
     setText($('computeVal'), fmt(s.compute));
     setText($('computeRate'), '+' + fmt(frameCompute) + '/s');
+    // HOOK: before the first product ships, a screen-edge glow climbs with progress toward
+    // the v1 compute threshold — a rising "you're almost there" pressure for the first dopamine.
+    var gNext = C.MODELGEN[s.modelGen];
+    var v1on = (s.modelGen < 1 && gNext) ? Math.max(0, Math.min(1, s.compute / gNext.computeReq)) : 0;
+    var vq = Math.round(v1on * 20) / 20;
+    if (vq !== _lastV1) { _lastV1 = vq; document.documentElement.style.setProperty('--v1', vq.toFixed(2)); }
     setText($('shareVal'), (Math.round(s.marketShare * 10) / 10) + '%');
     setText($('valVal'), '$' + fmt(G.valuation()));
     // Stage-1 garage cleanliness: market-share, valuation and datacenter builds only
@@ -1880,7 +1886,7 @@
   }
 
   // ---------- main per-frame update ----------
-  var frameCps = 0, frameGM = 1, frameCompute = 0, frameMoney = 0, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
+  var frameCps = 0, frameGM = 1, frameCompute = 0, frameMoney = 0, _lastInten = -1, _lastHeat = -1, _lastV1 = -1, _lastCardSig = null;
   var _runwayFlow = { burn: 0, rev: 0 };   // latest burn/rev for the runway-strip tap detail
   function update() {
     frameCps = G.cps();           // compute the hottest values ONCE per frame
@@ -2385,15 +2391,28 @@
     });
     // tap
     var tapBtn = $('tapBtn');
+    var _tapN = 0;   // throttle counter for hot-streak shockwaves
     function doTap(clientX, clientY) {
       var v = G.tap();
-      window.GAME_AUDIO.tap();
-      var cls = G.clickFrenzyActive() ? 'crit' : (G.state.comboHeat > 0.6 ? 'big' : '');
+      var heat = G.state.comboHeat || 0;
+      // HOOK (first 90s): the tap is a slot machine. Pitch rises with the overclock combo,
+      // the burst grows hotter, and a hot streak fires shockwaves — all scaling with `heat`.
+      window.GAME_AUDIO.tap(heat);
+      var cls = G.clickFrenzyActive() ? 'crit' : (heat > 0.6 ? 'big' : '');
       floatText(clientX, clientY, '+' + fmt(v), cls);
-      window.GAME_FX.tapBurst(clientX, clientY);
-      window.GAME_FX.ripple(clientX, clientY, 130);
-      buzz(8);
+      window.GAME_FX.tapBurst(clientX, clientY, heat);
+      window.GAME_FX.ripple(clientX, clientY, 120 + heat * 90);
+      // hot-streak shockwave ring — amber, intensifying. Throttled (every few hot taps)
+      // so it punctuates the climb without flooding the FX root.
+      if (heat > 0.5 && (_tapN = (_tapN + 1) % 3) === 0) {
+        var amp = 0.45 + heat * 0.4;
+        window.GAME_FX.shockwave(clientX, clientY, 'rgba(251,191,36,' + amp.toFixed(2) + ')', 220 + heat * 220);
+      }
+      buzz(6 + Math.round(heat * 10));
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
+      // pop the live Power/sec counter so the climb is VISIBLE on every tap
+      var crEl = $('computeRate');
+      if (crEl) { crEl.classList.remove('pop'); void crEl.offsetWidth; crEl.classList.add('pop'); }
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
 
@@ -2661,7 +2680,15 @@
       var name = g ? t(g.id) : '';
       window.GAME_AUDIO.prestige(); buzz([0,30,40,30]);
       var cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
-      window.GAME_FX.celebrate(cx, cy, name, true);
+      // v1 SPECTACLE — the first dopamine peak (~90s in). Full ritual cinematic (not just a
+      // toast) + an "on the board" beat. The engine already pushed a rival's sneer to the ticker.
+      if (d.first) {
+        window.GAME_FX.ritual({ kind: 'prestige', title: t('v1_ritual_title'), subtitle: t('v1_ritual_sub') });
+        window.GAME_FX.confetti(50);
+        setTimeout(function () { toast(t('v1_board_toast', { co: coName() }), 'gold'); }, 900);
+      } else {
+        window.GAME_FX.celebrate(cx, cy, name, true);
+      }
       // AGI finale has its own cinematic (the 'ending' event). For every other generation,
       // show a clear SUMMARY of what shipping it gave — the heart of the no-reset loop.
       // DEFER the modal ~1.2s so the celebratory shockwave + confetti play VISIBLY over the

@@ -943,7 +943,16 @@
     state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     checkAchievements();
     emitNews('milestone', ['nh_gen_1', 'nh_gen_2'], { name: g ? t_safe(g.id) : '', n: state.modelGen });
-    emit('generation', { gen: state.modelGen, id: g ? g.id : null });
+    // v1 SPECTACLE (first model only): a rival sneers at you in the ticker — "you're on the
+    // board" beat. Picks a live rival; the UI fires the ritual cinematic on the same event.
+    if (state.modelGen === 1) {
+      var react = activeRivals();
+      if (react.length) {
+        var rr = react[(Math.random() * react.length) | 0];
+        emitNews('rival', ['v1_rival_react'], { rival: rivalName(rr.id) });
+      }
+    }
+    emit('generation', { gen: state.modelGen, id: g ? g.id : null, first: state.modelGen === 1 });
     if (state.modelGen >= C.MODELGEN.length) triggerFinale(determineEnding(), true); // AGI — you won
     emit('change');
     return true;

@@ -39,7 +39,17 @@
     }
   }
 
-  function tapBurst(x, y) { spawn(x, y, 'radial-gradient(circle,#ffe9a8,#ffd86b)', 8, 70, 0.8); }
+  // tap burst scales with the overclock combo `heat` (0..1): more particles + wider
+  // spread + hotter color as the streak climbs — the slot-machine feel (hook, first 90s).
+  function tapBurst(x, y, heat) {
+    var h = (typeof heat === 'number' && heat > 0) ? (heat > 1 ? 1 : heat) : 0;
+    var count = Math.round(8 + h * 14);          // 8 cold → 22 fully overclocked
+    var spread = 70 + h * 70;
+    var col = h > 0.5
+      ? 'radial-gradient(circle,#fff3c4,#fb9c3c)'  // hot amber on a streak
+      : 'radial-gradient(circle,#ffe9a8,#ffd86b)';
+    spawn(x, y, col, count, spread, 0.8);
+  }
   function buyBurst(x, y) { spawn(x, y, 'radial-gradient(circle,#bfe9ff,#5cc8ff)', 12, 90, 0.85); }
   function milestoneBurst(x, y) { spawn(x, y, 'radial-gradient(circle,#d7c4ff,#7c5cff)', 18, 120, 1.0); }
 

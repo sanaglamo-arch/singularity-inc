@@ -1118,6 +1118,11 @@
     sm_global1: 'Foom Protocol', sm_rp: 'Open Research', sm_tap: 'Neural Interface', sm_risk: 'Aligned by Design',
     sm_offline: 'Autonomous Agents', sm_global2: 'Compute Overhang', sm_core: 'Self-Replication', sm_global3: 'Intelligence Explosion',
     ritual_model: 'MODEL RELEASED',
+    // v1 SPECTACLE (the first dopamine peak, ~90s in): full ritual + "you're on the board"
+    v1_ritual_title: 'YOU SHIPPED v1',
+    v1_ritual_sub: 'Your first AI model is live. You\'re on the board.',
+    v1_board_toast: '🏆 {co} is on the board — you\'re officially in the race!',
+    v1_rival_react: '😈 {rival}: "Cute. A new lab shipped v1. We were doing this in our sleep."',
     nudge_tap: 'Tap TRAIN to earn your first cash!',
     nudge_buyfirst: 'Now buy your first {name}.',
     nudge_train: 'Train {name} — ready to ship!', nudge_train_need: 'Grow compute to train {name} ({v} needed).',
@@ -2250,6 +2255,11 @@
     sm_global1: 'Протокол Foom', sm_rp: 'Открытые исследования', sm_tap: 'Нейроинтерфейс', sm_risk: 'Безопасность в основе',
     sm_offline: 'Автономные агенты', sm_global2: 'Навес вычислений', sm_core: 'Саморепликация', sm_global3: 'Интеллектуальный взрыв',
     ritual_model: 'МОДЕЛЬ ВЫПУЩЕНА',
+    // v1 SPECTACLE (первый пик дофамина, ~90с): полный ритуал + «ты на табло»
+    v1_ritual_title: 'ТЫ ВЫПУСТИЛ v1',
+    v1_ritual_sub: 'Твоя первая ИИ-модель в строю. Ты на табло.',
+    v1_board_toast: '🏆 {co} на табло — ты официально в гонке!',
+    v1_rival_react: '😈 {rival}: «Мило. Новая лаба выпустила v1. Мы такое делали во сне».',
     nudge_tap: 'Жми ОБУЧАТЬ, чтобы заработать первые деньги!',
     nudge_buyfirst: 'Теперь купи первый: {name}.',
     nudge_train: 'Обучи {name} — готово к выпуску!', nudge_train_need: 'Наращивай компьют для {name} (нужно {v}).',

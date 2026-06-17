@@ -541,7 +541,21 @@ h2:first-child { margin-top: 4px; }
   background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 7px 7px; }
 #resRow .rlabel { font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-muted); display: inline-flex; align-items: center; white-space: nowrap; }
 #resRow .rval { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#resRow .rsub { font-size: 10px; color: var(--green); white-space: nowrap; }
+#resRow .rsub { font-size: 10px; color: var(--green); white-space: nowrap; display: inline-block; }
+/* HOOK: the live Power/sec counter visibly POPS on each tap so the climb is felt */
+#computeRate.pop { animation: ratePop 240ms var(--ease-spring); }
+@keyframes ratePop { 0% { transform: scale(1.45); color: #fff3c4; } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+/* HOOK: screen-edge glow that intensifies as you approach the first v1 release.
+   --v1 (0..1) is set by JS = progress toward the v1 compute threshold (pre-product only). */
+#v1Glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 44; opacity: var(--v1, 0);
+  transition: opacity 320ms ease-out;
+  box-shadow: inset 0 0 60px 8px rgba(34,211,238,0.32), inset 0 0 140px 30px rgba(139,92,246,0.18);
+  animation: v1Breathe 2.6s ease-in-out infinite;
+}
+@keyframes v1Breathe { 0%,100% { filter: brightness(0.9); } 50% { filter: brightness(1.25); } }
+@media (prefers-reduced-motion: reduce) { #v1Glow { animation: none; } #computeRate.pop { animation: none; } }
 #resRow .res:nth-child(2) .rval { color: var(--violet-2); }
 #resRow .res:nth-child(3) .rval { color: var(--gold); }
 #modelHead { display: flex; align-items: center; justify-content: space-between; margin: 11px 0 8px; }

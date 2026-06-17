@@ -53,8 +53,16 @@
   window.GAME_AUDIO = {
     setEnabled: function (b) { enabled = !!b; if (enabled) ensure(); },
     isEnabled: function () { return enabled; },
-    // soft, slightly detuned click — pleasant on rapid taps, never piercing
-    tap: function () { voice(360 + Math.random() * 50, 0.07, 'triangle', 0.045, { attack: 0.004 }); },
+    // soft, slightly detuned click — pleasant on rapid taps, never piercing.
+    // heat (0..1, the overclock combo) RAISES the pitch so a hot streak literally
+    // climbs in tone — the slot-machine "almost there" feel (hook, first 90s).
+    tap: function (heat) {
+      var h = (typeof heat === 'number' && heat > 0) ? Math.max(0, Math.min(1, heat)) : 0;
+      var base = 360 + h * 520;                 // 360Hz cold → ~880Hz fully overclocked
+      voice(base + Math.random() * 50, 0.07, 'triangle', 0.045, { attack: 0.004 });
+      // at high heat add a shimmer octave so the streak SPARKLES, not just rises
+      if (h > 0.55) voice(base * 2, 0.05, 'sine', 0.02 * h, { attack: 0.003 });
+    },
     // two-note confirm
     buy: function () { voice(540, 0.09, 'sine', 0.055); setTimeout(function () { voice(720, 0.10, 'sine', 0.045); }, 55); },
     // ascending arpeggio sting with octave shimmer
