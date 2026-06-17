@@ -1035,6 +1035,33 @@
 
   // ---------- alignment (multi-vector) ----------
   function vecColor(v) { return v > C.RISK.WARN_AT ? 'linear-gradient(90deg, var(--warn), var(--bad))' : 'linear-gradient(90deg, var(--good), var(--warn))'; }
+  // ---------- 4 RELATIONSHIP METERS strip (icon + colored bar each) ----------
+  // band → solid color (green good / amber mid / red low) — colorblind ask: color is
+  // the secondary channel; the numeric % is always shown beside the icon.
+  var REL_META = {
+    approval: { icon: '👥', tip: 'tip_m_approval' },
+    gov:      { icon: '🏛', tip: 'tip_m_gov' },
+    industry: { icon: '🤝', tip: 'tip_m_industry' },
+    morale:   { icon: '🧑‍🔬', tip: 'tip_m_morale' }
+  };
+  function relColor(band) { return band === 'low' ? 'var(--rose)' : (band === 'mid' ? 'var(--gold)' : 'var(--green)'); }
+  function updateRelMeters(wu) {
+    var panel = $('relMetersPanel'); if (!panel) return;
+    setClass(panel, 'hidden', !wu);
+    if (!wu) return;
+    setText($('relMetersTitle'), t('rel_meters_title'));
+    var ms = G.relationshipMeters(), html = '';
+    for (var i = 0; i < ms.length; i++) {
+      var m = ms[i], meta = REL_META[m.id] || { icon: '•', tip: '' }, col = relColor(m.band);
+      html += '<div class="rel-row rel-' + m.band + '" data-tip="' + meta.tip + '">' +
+        '<span class="rel-ic">' + meta.icon + '</span>' +
+        '<span class="rel-name">' + t('meter_' + (m.id === 'approval' ? 'trust' : m.id)) + '</span>' +
+        '<span class="rel-bar"><span class="rel-fill" style="width:' + m.val + '%;background:' + col + '"></span></span>' +
+        '<span class="rel-val" style="color:' + col + '">' + m.val + '</span>' +
+        '</div>';
+    }
+    $('relMeters').innerHTML = html;
+  }
   // cheap: just the company-tab mini risk bar (no offscreen alignment-tab DOM)
   function updateRiskMini() {
     var hv = G.highestVector(), pct = hv.val;
@@ -1888,6 +1915,7 @@
       setClass(th, 'hidden', !wu);
       if (wu) { var tr = G.state.trust; setText($('trustVal'), Math.round(tr)); setClass(th, 'low', tr < 35); setClass(th, 'high', tr >= 75); }
     }
+    updateRelMeters(wu);   // 4 relationship meters strip (World tab)
     // risk mini bar only exists once risks of scale are unlocked (Stage 5)
     var rm = $('riskMini'); if (rm) setClass(rm, 'hidden', !G.riskUnlocked());
     // guided first model-release CTA (Stage 4)

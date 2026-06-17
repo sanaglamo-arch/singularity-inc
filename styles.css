@@ -914,6 +914,17 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .vmeta { margin-top: 4px; }
 .vmeta .vup { color: var(--rose); font-weight: 700; }
 .vmeta .vdn { color: var(--green); font-weight: 700; }
+
+/* ---------- 4 relationship meters strip (World tab) ---------- */
+#relMetersPanel { margin-bottom: 14px; }
+#relMetersHead { font-size: 13px; font-weight: 700; font-family: var(--font-display); margin-bottom: 9px; color: var(--fg); }
+#relMeters { display: flex; flex-direction: column; gap: 9px; }
+.rel-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.rel-ic { width: 18px; flex: 0 0 auto; font-size: 14px; text-align: center; line-height: 1; }
+.rel-name { flex: 0 0 92px; min-width: 0; font-size: 11.5px; font-weight: 600; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rel-bar { flex: 1 1 auto; min-width: 0; height: 8px; background: var(--surface-2); border-radius: var(--radius-pill); overflow: hidden; border: 1px solid var(--glass-border); }
+.rel-fill { display: block; height: 100%; border-radius: var(--radius-pill); transition: width 0.3s var(--ease), background 0.3s; }
+.rel-val { flex: 0 0 28px; text-align: right; font-family: var(--font-display); font-weight: 700; font-size: 12.5px; }
 #auditBtn { width: 100%; margin-top: 10px; border: 1px solid var(--glass-border); background: var(--surface-2); color: var(--fg); border-radius: var(--radius-sm); padding: 12px; font-weight: 600; cursor: pointer; min-height: 48px; transition: transform 0.08s var(--ease-spring), background 0.2s; }
 #auditBtn:active:not(:disabled) { transform: scale(0.98); background: var(--surface); }
 #auditBtn:disabled { opacity: 0.5; cursor: not-allowed; }
