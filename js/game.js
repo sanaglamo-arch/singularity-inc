@@ -289,6 +289,54 @@
   // ensure a climate exists (old saves / corruption) without re-rolling a scenario.
   function ensureClimate() { if (!state.climate || typeof state.climate !== 'object') state.climate = freshClimate(null); }
 
+  // SUB-PART B — economy modulators. Each reads one climate axis and returns a
+  // multiplier the relevant economy fn folds in. All gentle (per-axis PER caps),
+  // and the axes themselves were rolled × varianceMult, so Easy stays calm and
+  // Impossible swings. Every effect is industry-wide (hits rivals' world too).
+  function climateFundMult() { return 1 + climateAxis('funding') * C.CLIMATE.FUND_VAL_PER; }       // boom raises rounds
+  function climateComputeMult() { return 1 - climateAxis('compute') * C.CLIMATE.COMPUTE_PRICE_PER; } // +axis = cheaper compute
+  function climateRevenueMult() { return 1 + climateAxis('hype') * C.CLIMATE.REVENUE_HYPE_PER; }    // hype lifts adoption
+  // angry regulators (reg>0) add a small per-second creep to the regulatory risk vector.
+  function climateRegRiskPerSec() { var r = climateAxis('reg'); return r > 0 ? r * C.CLIMATE.REG_RISK_PER : 0; }
+  // booms + hype make rivals a touch more aggressive (livelier race in good times).
+  function climateAggroMult() { return 1 + Math.max(0, (climateAxis('funding') + climateAxis('hype')) / 2) * C.CLIMATE.AGGRO_PER; }
+
+  // the live drift: a bounded random walk per axis, pulled toward the per-game
+  // equilibrium (mean reversion → no runaway). Crossing a labelled band threshold
+  // telegraphs a one-line headline (cooldowned per axis, so it never spams).
+  function updateClimate() {
+    ensureClimate();
+    var cl = state.climate, CL = C.CLIMATE, now = Date.now();
+    if (!cl.nextAt) { cl.nextAt = now + CL.DRIFT_EVERY_SEC * 1000; return; }
+    if (now < cl.nextAt) return;
+    cl.nextAt = now + CL.DRIFT_EVERY_SEC * 1000;
+    var vm = varMult();
+    CL.AXES.forEach(function (ax) {
+      var v = (typeof cl[ax] === 'number' && isFinite(cl[ax])) ? cl[ax] : 0;
+      var eq = (cl.eq && typeof cl.eq[ax] === 'number') ? cl.eq[ax] : 0;
+      var noise = (Math.random() * 2 - 1) * CL.NOISE * vm;   // amplitude × varianceMult (Sub-part E)
+      var pull = (eq - v) * CL.REVERT;                       // mean reversion toward equilibrium
+      v = Math.max(-CL.CLAMP, Math.min(CL.CLAMP, v + noise + pull));
+      cl[ax] = v;
+      // band label: 'hi' above BAND_HI, 'lo' below BAND_LO, else 'mid'. Telegraph a SHIFT.
+      var band = v >= CL.BAND_HI ? 'hi' : (v <= CL.BAND_LO ? 'lo' : 'mid');
+      var prev = cl.lastBand ? cl.lastBand[ax] : undefined;
+      if (band !== prev) {
+        if (band !== 'mid' && climateNewsReady(ax, now)) { climateShiftNews(ax, band); cl.lastNewsAt[ax] = now; }
+        cl.lastBand[ax] = band;
+      }
+    });
+  }
+  function climateNewsReady(ax, now) {
+    var last = (state.climate.lastNewsAt && state.climate.lastNewsAt[ax]) || 0;
+    return (now - last) >= C.CLIMATE.SHIFT_NEWS_COOLDOWN_SEC * 1000;
+  }
+  function climateShiftNews(ax, band) {
+    var KEY = { funding: 'fund', compute: 'comp', hype: 'hype', reg: 'reg' };
+    var k = 'nh_climate_' + (KEY[ax] || ax) + '_' + band;
+    emitNews('regulatory', [k]);
+  }
+
   // active (not-yet-acquired) rivals — the live field
   function activeRivals() { return (state.rivals || []).filter(function (r) { return !r.acquired; }); }
   // localized display name for a rival id (live roster name first; falls back to i18n/id)
@@ -534,7 +582,11 @@
   // the opposing force; runway = cash / netBurn, in MONTHS, is the headline.
   // ===================================================================
   function diffBurnMult() { var m = diff('burnMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
-  function diffComputePriceMult() { var m = diff('computePriceMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
+  function diffComputePriceMult() {
+    var m = diff('computePriceMult'); m = (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1;
+    var c = climateComputeMult();   // PHASE 7: compute glut (cheaper) / crunch (pricier)
+    return m * (isFinite(c) && c > 0 ? c : 1);
+  }
   // a compute-capacity proxy = compute/sec your generators produce (the same number the
   // valuation/asset universe uses). Exponential in generator tiers ⇒ exponential burn.
   function computeCapacity() { return cps(); }
@@ -567,7 +619,7 @@
   // the same units as burn). moneyRate already weaves product capability (genRevenueMult) ×
   // marketShare × trust; here we also apply diff('revenueMult') so the difficulty lever bites.
   function diffRevenueMult() { var m = diff('revenueMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
-  function revenuePerSec() { return moneyRate() * diffRevenueMult(); }
+  function revenuePerSec() { return moneyRate() * diffRevenueMult() * climateRevenueMult(); } // PHASE 7: hype tailwind
   function monthlyRevenue() { return revenuePerSec() * C.BURN.MONTH_SEC; }
   // per-second cash drain from burn (monthly → per-second).
   function burnPerSec() { return monthlyBurn() / C.BURN.MONTH_SEC; }
@@ -671,7 +723,7 @@
   function fundingPayout(r) {
     if (!r) return 0;
     var months = (typeof r.months === 'number') ? r.months : 12;
-    var byBurn = monthlyBurn() * months * (diff('fundValMult') || 1);
+    var byBurn = monthlyBurn() * months * (diff('fundValMult') || 1) * climateFundMult(); // PHASE 7: funding boom/winter
     var byRev = moneyRate() * r.secs;        // legacy floor: a few minutes of revenue
     var floor = GEN[0].baseCost * 40;        // ~a handful of starter generators (cold-start)
     return Math.max(byBurn, byRev, floor);
@@ -2043,7 +2095,7 @@
     var agiMult = diff('rivalAGIspeedMult');   // HOOK: difficulty scales rival AGI creep
     if (typeof agiMult !== 'number' || !isFinite(agiMult)) agiMult = 1;
     // SUB-PART A — archetype trajectories: aggression + AGI-speed scale HOW hard rivals push.
-    var aggro = diffNum('rivalAggroMult', 1);  // HOOK (was dormant): rival lifecycle aggression
+    var aggro = diffNum('rivalAggroMult', 1) * climateAggroMult();  // HOOK: rival aggression × PHASE 7 boom climate
     var trajMult = aggro * (0.6 + 0.4 * agiMult); // harder difficulty = livelier share dynamics
     activeRivals().forEach(function (r) {
       // share creeps up, tapering toward the cap (so you can always overtake by shipping)
@@ -2538,6 +2590,8 @@
   function tick(dt) {
     if (dt <= 0) return;
 
+    updateClimate();   // PHASE 7: macro market climate drifts + telegraphs shifts (modulates economy below)
+
     // GDD v3 continuous meta: generators produce COMPUTE; your shipped product
     // produces MONEY (∝ infra × generation × share). No more cash-from-generators.
     state.compute += computeRate() * dt;
@@ -2566,9 +2620,11 @@
     // Before that, "risks of scale" simply do not exist (clean early game).
     if (riskUnlocked()) {
       var prevIncident = incidentActive();
+      var regCreep = climateRegRiskPerSec();   // PHASE 7: angry-regulator climate adds reg-risk creep
       for (var vi = 0; vi < C.RISK.VECTORS.length; vi++) {
         var vid = C.RISK.VECTORS[vi];
-        state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + vectorNet(vid) * dt));
+        var net = vectorNet(vid) + (vid === 'reg' ? regCreep : 0);
+        state.vec[vid] = Math.max(0, Math.min(C.RISK.MAX, state.vec[vid] + net * dt));
       }
       // crisis: a maxed vector fires a crisis, but only once per (stage-scaled) cooldown
       // so they're tense, not spammy. On cooldown a maxed vector is pinned (visible danger).
@@ -3228,6 +3284,8 @@
     rollWorld: rollWorld, ensureClimate: ensureClimate, climateAxis: climateAxis, varMult: varMult,
     scenarioId: function () { return state.scenario; }, worldSeed: function () { return state.worldSeed; },
     climateState: function () { return state.climate; },
+    climateFundMult: climateFundMult, climateComputeMult: climateComputeMult,
+    climateRevenueMult: climateRevenueMult, climateAggroMult: climateAggroMult, updateClimate: updateClimate,
     rivalName: rivalName, activeRivals: activeRivals, rivalById: rivalById,
     updateRivalLifecycle: updateRivalLifecycle, spawnEntrant: spawnEntrant,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
