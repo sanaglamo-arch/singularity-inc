@@ -123,8 +123,6 @@
     buildMarket();
     buildEndings();
     // legacy prestige/singularity DOM removed in GDD v3 — guard every reference
-    if ($('artifactsTitle')) $('artifactsTitle').innerHTML = t('artifacts_title') + infoBtn('tip_artifacts');
-    if ($('techTitle')) $('techTitle').innerHTML = t('tech_title') + infoBtn('tip_tech');
     if ($('singTitle')) $('singTitle').innerHTML = t('singularity_title') + infoBtn('tip_cores');
     if ($('singDesc')) $('singDesc').textContent = t('singularity_desc', { p: Math.round(C.SINGULARITY.CORE_BONUS * 100) });
     if ($('metaTitle')) $('metaTitle').textContent = t('meta_title');
@@ -676,7 +674,7 @@
     return lbl + ' ×' + mu.value;
   }
   function buildMeta() {
-    var list = $('metaList'); list.innerHTML = '';
+    var list = $('metaList'); if (!list) return; list.innerHTML = '';
     C.SINGULARITY.meta.forEach(function (mu) {
       var card = el('div', 'pcard'); card.dataset.mid = mu.id;
       card.innerHTML =
