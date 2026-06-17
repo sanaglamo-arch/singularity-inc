@@ -253,11 +253,15 @@
         '</div>' +
         '<div class="ownedBadge hidden">0</div>';
       card.addEventListener('click', function (e) {
+        var gm = G.globalMult(), before = G.genOutput(g.id) * gm;
         if (G.buyGen(g.id)) {
           window.GAME_AUDIO.buy(); buzz(12);
           window.GAME_FX.cardFlash(card);
           var r = card.getBoundingClientRect();
           window.GAME_FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
+          // small floating "+X/sec" over the card showing the compute/sec this buy added (item 5)
+          var gain = G.genOutput(g.id) * G.globalMult() - before;
+          if (isFinite(gain) && gain > 0) window.GAME_FX.popText(r.left + r.width / 2, r.top + 14, '+' + fmt(gain) + t('per_sec_suffix'), 'good');
         }
       });
       list.appendChild(card);
@@ -1636,7 +1640,9 @@
     if (fundingBtn) fundingBtn.addEventListener('click', function () {
       var round = G.nextFundingRound(); if (!round) return;
       var before = G.state.cash;
-      if (G.takeFunding()) { window.GAME_AUDIO.prestige(); buzz([0,25,40,25]); window.GAME_FX.flash('rgba(251,191,36,0.22)'); updateModelPanel(); }
+      // funding gets its OWN distinct rising jingle + a soft GREEN 'good news' flash
+      // (not the cyan/violet/rose used elsewhere) — money flowing in feels good (item 5).
+      if (G.takeFunding()) { window.GAME_AUDIO.funding ? window.GAME_AUDIO.funding() : window.GAME_AUDIO.prestige(); buzz([0,25,40,25]); window.GAME_FX.flash('rgba(52,211,153,0.32)'); updateModelPanel(); }
     });
     G.on('funding', function (d) {
       var r = null; for (var i = 0; i < C.FUNDING.length; i++) if (C.FUNDING[i].id === d.id) r = C.FUNDING[i];
@@ -1750,6 +1756,11 @@
       if (!G.state.seen.u_milestone) { G.state.seen.u_milestone = true; toast(t('hint_milestone'), 'gold'); G.save(); }
       var major = d.milestone >= 25;
       if (major && window.GAME_AUDIO.milestone) window.GAME_AUDIO.milestone(); else window.GAME_AUDIO.achievement(); buzz(major?[0,20,40,25]:18);
+      // x2 toast now shows the actual output DELTA the doubling just unlocked. At the moment
+      // the milestone fires, genOutput already reflects the doubled state, so the gain = half
+      // of the new contribution (compute/sec). (item 5)
+      var gain = (G.genOutput(d.id) * G.globalMult()) / 2;
+      if (isFinite(gain) && gain > 0) toast(t('milestone_delta', { v: fmt(gain) }), 'gold');
       var r = genRefs[d.id];
       var b = r && r.el ? r.el.getBoundingClientRect() : null;
       var x = b ? b.left + b.width / 2 : window.innerWidth / 2;
@@ -1815,7 +1826,17 @@
       '<div class="awrow done"><span class="awk">' + t('cash') + '</span><span class="awv">+' + fmt(r.cash) + '</span></div></div>' +
       '<div class="row"><button class="primary" id="dailyOk">' + t('offline_collect') + '</button></div>'
     );
-    $('dailyOk').onclick = hideModal;
+    $('dailyOk').onclick = function () {
+      hideModal();
+      // streak-milestone celebration with a flame badge at day 7/14/30 (item 5)
+      if (r.streak === 7 || r.streak === 14 || r.streak === 30) {
+        setTimeout(function () {
+          window.GAME_FX.confetti && window.GAME_FX.confetti(40);
+          window.GAME_AUDIO.milestone && window.GAME_AUDIO.milestone();
+          toast('🔥 ' + t('streak_milestone', { n: r.streak }), 'gold');
+        }, 250);
+      }
+    };
   }
 
   // Android hardware BACK: close a tooltip/modal, else return to Lab, else let the OS handle it.

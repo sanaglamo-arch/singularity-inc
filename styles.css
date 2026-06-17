@@ -763,6 +763,7 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .float { position: absolute; font-family: var(--font-display); font-weight: 800; color: var(--gold); font-size: 20px; text-shadow: 0 0 14px var(--glow-gold), 0 2px 6px rgba(0,0,0,0.6); animation: floatUp 0.95s var(--ease) forwards; }
 .float.big { font-size: 27px; color: var(--violet-2); text-shadow: 0 0 16px var(--glow-violet); }
 .float.crit { font-size: 30px; color: var(--cyan); text-shadow: 0 0 18px var(--glow-cyan); }
+.float.good { font-size: 16px; color: #34d399; text-shadow: 0 0 12px rgba(52,211,153,0.7), 0 2px 6px rgba(0,0,0,0.6); }
 @keyframes floatUp { 0% { opacity: 0; transform: translateY(4px) scale(0.8); } 18% { opacity: 1; transform: translateY(-6px) scale(1.12); } 100% { transform: translateY(-76px) scale(1); opacity: 0; } }
 .particle { position: absolute; border-radius: 50%; pointer-events: none; will-change: transform, opacity; box-shadow: 0 0 8px rgba(255,255,255,0.6); animation-name: particleFly; animation-timing-function: cubic-bezier(.2,.6,.3,1); animation-fill-mode: forwards; }
 @keyframes particleFly { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }

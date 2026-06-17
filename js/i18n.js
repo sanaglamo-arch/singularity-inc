@@ -460,6 +460,10 @@
     boost_use: '⚡ Use Boost ×{n} — 2× speed, 2h', boost_label: 'Boosts',
     milestone_unicorn: '🦄 UNICORN! Your lab just crossed a $1B valuation.',
     milestone_decacorn: '🚀 DECACORN! $10B valuation — a frontier lab now.',
+    // cheap juice (item 5)
+    milestone_delta: '×2! +{v}/sec compute',
+    per_sec_suffix: '/sec',
+    streak_milestone: '{n}-day streak! On fire.',
     agi_rank: 'AGI race: #{n} of {total}',
     daily_title: 'Daily check-in', daily_streak: 'Day {n} streak', tip_boost: 'Boosts speed up ALL your timers (training, builds, research) ×2 for 2 hours. Earn them from daily check-ins, achievements, and returning after time away.',
     finale_beaten: 'BEATEN TO AGI', legacy_btn: "Founder's Legacy · +{p}% forever", legacy_btn_short: 'Begin',
@@ -926,6 +930,10 @@
     boost_use: '⚡ Буст ×{n} — 2× скорость, 2ч', boost_label: 'Бусты',
     milestone_unicorn: '🦄 ЮНИКОРН! Оценка лаборатории превысила $1млрд.',
     milestone_decacorn: '🚀 ДЕКАКОРН! Оценка $10млрд — теперь ты передовая лаборатория.',
+    // дешёвый сок (item 5)
+    milestone_delta: '×2! +{v}/сек компьюта',
+    per_sec_suffix: '/сек',
+    streak_milestone: 'Серия {n} дней! Ты в огне.',
     agi_rank: 'Гонка к AGI: #{n} из {total}',
     daily_title: 'Ежедневный вход', daily_streak: 'Серия: день {n}', tip_boost: 'Бусты ускоряют ВСЕ твои таймеры (обучение, стройку, исследования) ×2 на 2 часа. Получай их за ежедневные входы, достижения и возвращение после паузы.',
     finale_beaten: 'ОБОГНАЛИ К AGI', legacy_btn: 'Наследие основателя · +{p}% навсегда', legacy_btn_short: 'Начать',
