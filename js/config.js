@@ -428,7 +428,8 @@
     ACT_SPEEDUP: 0.12,      // each act shortens the interval by this fraction (later acts = busier)
     QUIET_FLOOR: 45,        // hard minimum gap between ANY two decisions (a breathing floor)
     CATEGORY_COOLDOWN: 90,  // per-category cooldown (no two of one category back-to-back, sec)
-    NO_REPEAT_SEC: 60       // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
+    NO_REPEAT_SEC: 60,      // global "no repeat within a day" — per-event re-fire floor (1 day = DAY_SEC)
+    BANKABLE_AUTO_SEC: 240  // a bankable decision auto-resolves (default option) after this if ignored
   };
   var DECISIONS = [
     // --- TEST 1 (interrupt): legal data dilemma — buy-vs-pirate + a delayed lawsuit (§4 example) ---

@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [], decision: [], newsline: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -82,6 +82,13 @@
       vars: {},              // numeric accumulators: set_var (e.g. alignment_debt)
       scheduled: [],         // queued future events: { event, fireAt(ms), chance } — fired in tick()
       buffs: [],             // timed multipliers: { key, mult, endsAt(ms) } — expired in tick()
+      // ===== Decision engine (Phase 2) =====
+      eventCooldowns: {},    // event id -> last-fired epoch ms (cooldown_sec + no-repeat floor)
+      eventsFired: {},       // event id -> true (for `once` events)
+      categoryCooldowns: {}, // category -> last-fired epoch ms (anti-clustering)
+      eventBag: {},          // category -> shuffle-bag of remaining event ids (anti-repeat)
+      inbox: [],             // pending `bankable` decisions: { uid, id, addedAt, autoAt }
+      nextDecisionAt: 0,     // epoch ms of the next pacing roll
       lastCrisisAt: 0,       // crisis cooldown anchor (ms)
       nextNewsAt: 0,
       newsLog: [],           // recent headline strings for the News feed
@@ -1095,6 +1102,143 @@
     return { pass: pass, fail: fail, log: log };
   }
 
+  // ----- Sub-part C: the pacing engine (a real-time decision lottery) -----
+  function decisionById(id) {
+    var D = C.DECISIONS || [];
+    for (var i = 0; i < D.length; i++) if (D[i].id === id) return D[i];
+    return null;
+  }
+  // effective weight = base × Π(matching weight_mods)
+  function decisionWeight(ev) {
+    var w = ev.weight || 0;
+    if (ev.weight_mods) for (var i = 0; i < ev.weight_mods.length; i++) {
+      var wm = ev.weight_mods[i];
+      if (evalCond(wm.when)) w *= (typeof wm.factor === 'number' ? wm.factor : 1);
+    }
+    return w;
+  }
+  function decNoRepeatMs() { return (C.DECISIONS_PACING.NO_REPEAT_SEC || C.DAY_SEC) * 1000; }
+  // is an event currently eligible to roll in the ambient pool?
+  function decisionEligible(ev, now) {
+    if (!ev || ev.priority === 'scheduled' || ev.weight <= 0) return false;  // scheduled-only / zero-weight never roll
+    if (ev.once && state.eventsFired[ev.id]) return false;
+    if (ev.act && ev.act.indexOf(currentAct()) < 0) return false;
+    var last = state.eventCooldowns[ev.id] || 0;
+    if (now - last < Math.max((ev.cooldown_sec || 0) * 1000, decNoRepeatMs())) return false; // per-event cooldown + no-repeat floor
+    var catLast = state.categoryCooldowns[ev.category] || 0;
+    if (now - catLast < (C.DECISIONS_PACING.CATEGORY_COOLDOWN || 0) * 1000) return false;     // anti-cluster
+    if (!evalCond(ev.trigger)) return false;
+    return true;
+  }
+  // weighted shuffle-bag draw across the eligible pool. The "bag" prevents the same
+  // event clustering: once drawn an event is recorded in eventCooldowns (its re-fire
+  // floor), so the weighted lottery naturally rotates without immediate repeats.
+  function drawDecision(now) {
+    var pool = (C.DECISIONS || []).filter(function (ev) { return decisionEligible(ev, now); });
+    if (!pool.length) return null;
+    var total = 0, weights = pool.map(function (ev) { var w = decisionWeight(ev); total += w; return w; });
+    if (total <= 0) return null;
+    var roll = Math.random() * total, acc = 0;
+    for (var i = 0; i < pool.length; i++) { acc += weights[i]; if (roll <= acc) return pool[i]; }
+    return pool[pool.length - 1];
+  }
+  // Act-scaled interval: later acts shorten the gap (busier endgame).
+  function decisionInterval() {
+    var P = C.DECISIONS_PACING;
+    var base = P.INTERVAL_MIN + Math.random() * (P.INTERVAL_MAX - P.INTERVAL_MIN);
+    var speed = Math.max(0.4, 1 - currentAct() * (P.ACT_SPEEDUP || 0));   // never below 40% of base
+    return Math.max(P.QUIET_FLOOR, base * speed);
+  }
+  // The pacer: rolls on its own cadence, draws one event, fires it by priority.
+  // Wired into tick(). Returns true if a decision fired (for tests).
+  function updateDecisions(now) {
+    if (!C.DECISIONS || !C.DECISIONS.length) return false;
+    now = now || Date.now();
+    if (state.playtime < (C.DECISIONS_PACING.FIRST_DELAY || 0)) return false;
+    if (!state.nextDecisionAt) { state.nextDecisionAt = now + decisionInterval() * 1000; return false; }
+    if (now < state.nextDecisionAt) return false;
+    state.nextDecisionAt = now + decisionInterval() * 1000;   // reschedule regardless (quiet rolls still pace)
+    var ev = drawDecision(now);
+    if (!ev) return false;                                     // empty pool → quiet beat
+    fireDecision(ev, now);
+    return true;
+  }
+  // Record a fire (cooldowns + once-flag), then surface by priority (Sub-part D).
+  function fireDecision(ev, now) {
+    now = now || Date.now();
+    state.eventCooldowns[ev.id] = now;
+    state.categoryCooldowns[ev.category] = now;
+    if (ev.once) state.eventsFired[ev.id] = true;
+    surfaceDecision(ev, now);
+  }
+  // Sub-part D: three priorities / surfacing.
+  function surfaceDecision(ev, now, opts) {
+    now = now || Date.now();
+    opts = opts || {};
+    if (ev.priority === 'ambient') {
+      // auto-apply a small default effect; news ticker line only.
+      var optA = pickDefaultOption(ev);
+      if (optA) applyEffect(optA.effects);
+      pushNews(t_safe(ev.id + '_t'));
+      emit('decision', { kind: 'ambient', id: ev.id });
+      checkAchievements(); emit('change');
+      return;
+    }
+    if (ev.priority === 'bankable') {
+      var autoMs = (C.DECISIONS_PACING.BANKABLE_AUTO_SEC || 240) * 1000;
+      state.inbox.push({ uid: _uid++, id: ev.id, addedAt: now, autoAt: now + autoMs });
+      emit('decision', { kind: 'bankable', id: ev.id });
+      emit('change');
+      return;
+    }
+    // interrupt (and scheduled callbacks): pop a modal immediately.
+    emit('decision', { kind: 'interrupt', id: ev.id, callback: !!opts.callback, callbackKey: opts.callbackKey });
+  }
+  // default option = explicit default_option, else first option (least-risky by convention).
+  function pickDefaultOption(ev) {
+    if (!ev || !ev.options || !ev.options.length) return null;
+    if (ev.default_option) for (var i = 0; i < ev.options.length; i++) if (ev.options[i].id === ev.default_option) return ev.options[i];
+    return ev.options[0];
+  }
+  // resolve a decision option (interrupt modal click / inbox click / auto-resolve).
+  // Reuses applyEffect. uid (when given) removes the matching inbox entry.
+  function resolveDecision(eventId, optionId, uid) {
+    var ev = decisionById(eventId); if (!ev) return false;
+    var opt = null; for (var i = 0; i < ev.options.length; i++) if (ev.options[i].id === optionId) opt = ev.options[i];
+    if (!opt) return false;
+    applyEffect(opt.effects);
+    if (uid != null) removeInbox(uid);
+    checkAchievements(); emit('change');
+    return true;
+  }
+  function removeInbox(uid) {
+    for (var i = state.inbox.length - 1; i >= 0; i--) if (state.inbox[i].uid === uid) { state.inbox.splice(i, 1); return true; }
+    return false;
+  }
+  // auto-resolve overdue inbox items with their default option (Sub-part D soft timer).
+  function updateInbox(now) {
+    if (!state.inbox || !state.inbox.length) return;
+    now = now || Date.now();
+    for (var i = state.inbox.length - 1; i >= 0; i--) {
+      var it = state.inbox[i];
+      if (it.autoAt && now >= it.autoAt) {
+        var ev = decisionById(it.id), opt = pickDefaultOption(ev);
+        state.inbox.splice(i, 1);
+        if (ev && opt) { applyEffect(opt.effects); emit('decision', { kind: 'auto', id: it.id, option: opt.id }); }
+      }
+    }
+    checkAchievements();
+  }
+  // small helpers for surfacing
+  function t_safe(key) { try { return window.GAME_I18N.t(key); } catch (e) { return key; } }
+  function pushNews(line) {
+    if (!line) return;
+    state.newsLog = state.newsLog || [];
+    state.newsLog.unshift(line);
+    if (state.newsLog.length > 12) state.newsLog.pop();
+    emit('newsline', { line: line });
+  }
+
   function cardTemplate(card) {
     var arr = card.kind === 'crisis' ? C.CARDS.crises : C.CARDS.news;
     for (var i = 0; i < arr.length; i++) if (arr[i].id === card.id) return arr[i];
@@ -1460,7 +1604,9 @@
       for (var bi = state.buffs.length - 1; bi >= 0; bi--) if (state.buffs[bi].endsAt <= now) state.buffs.splice(bi, 1);
     }
   }
-  // fire any due scheduled events (Phase 1 stub: emit + toast; real handling in Phase 2)
+  // Sub-part E: fire any due scheduled events — a delayed consequence SPAWNS its
+  // target decision/effect with a "they remembered" callback toast referencing the
+  // original choice ("The lawsuit you risked has arrived.").
   function updateScheduled() {
     if (!state.scheduled || !state.scheduled.length) return;
     var now = Date.now();
@@ -1468,7 +1614,19 @@
       var s = state.scheduled[i];
       if (s.fireAt > now) continue;
       state.scheduled.splice(i, 1);
-      if (Math.random() <= (typeof s.chance === 'number' ? s.chance : 1)) {
+      if (Math.random() > (typeof s.chance === 'number' ? s.chance : 1)) continue;  // chance gate (save-scum guard)
+      var ev = decisionById(s.event);
+      if (ev) {
+        // the callback toast tags the original gamble before the decision surfaces
+        var cbKey = s.callbackKey || (ev.category === 'legal' ? 'callback_lawsuit' : 'scheduled_fired');
+        emit('toast', { key: cbKey });
+        // record the fire (so its own cooldowns apply) and surface as a callback
+        state.eventCooldowns[ev.id] = now;
+        if (ev.category) state.categoryCooldowns[ev.category] = now;
+        surfaceDecision(ev, now, { callback: true, callbackKey: cbKey });
+        emit('scheduled', { event: s.event, decision: true });
+      } else {
+        // legacy / unknown scheduled key: keep the Phase-1 behavior (no crash)
         emit('scheduled', { event: s.event });
         emit('toast', { key: 'scheduled_fired', vars: { event: s.event } });
       }
@@ -1567,7 +1725,9 @@
     if (state.modelGen >= 2) updateEvents();  // world/industry events: after shipping a couple models
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
-    updateScheduled();   // decision-engine: fire due scheduled events (Phase 1 stub)
+    updateScheduled();   // decision-engine: fire due delayed consequences
+    updateDecisions();   // decision-engine: roll the pacing lottery (Sub-part C)
+    updateInbox();       // decision-engine: auto-resolve ignored bankable items (Sub-part D)
     updateCards();
     updateMarket();
     updateRace(dt);
@@ -1685,6 +1845,13 @@
     if (!s.vars || typeof s.vars !== 'object' || Array.isArray(s.vars)) s.vars = {};
     if (!Array.isArray(s.scheduled)) s.scheduled = [];
     if (!Array.isArray(s.buffs)) s.buffs = [];
+    // ---- Phase 2: decision pacing/inbox state (safe backfill for old saves) ----
+    if (!s.eventCooldowns || typeof s.eventCooldowns !== 'object' || Array.isArray(s.eventCooldowns)) s.eventCooldowns = {};
+    if (!s.eventsFired || typeof s.eventsFired !== 'object' || Array.isArray(s.eventsFired)) s.eventsFired = {};
+    if (!s.categoryCooldowns || typeof s.categoryCooldowns !== 'object' || Array.isArray(s.categoryCooldowns)) s.categoryCooldowns = {};
+    if (!s.eventBag || typeof s.eventBag !== 'object' || Array.isArray(s.eventBag)) s.eventBag = {};
+    if (!Array.isArray(s.inbox)) s.inbox = [];
+    if (typeof s.nextDecisionAt !== 'number') s.nextDecisionAt = 0;
     // ---- corruption hardening: coerce/clamp critical numerics so a malformed or
     // tampered save can never produce negative cash, NaN compute, or string maths.
     function clean(v, def, min, max) {
@@ -1859,6 +2026,10 @@
     cardTemplate: cardTemplate, marketBuy: marketBuy, marketSell: marketSell, ensureMarket: ensureMarket,
     // decision engine (Phase 2)
     evalCond: evalCond, _evalCondTest: _evalCondTest,
+    decisionById: decisionById, resolveDecision: resolveDecision, removeInbox: removeInbox,
+    pickDefaultOption: pickDefaultOption, decisionWeight: decisionWeight,
+    // force-fire a decision NOW (manual testing / debug). Bypasses pacing + cooldowns.
+    _forceDecision: function (id) { var ev = decisionById(id); if (!ev) return false; fireDecision(ev, Date.now()); return true; },
     newState: newState
   };
 })();
