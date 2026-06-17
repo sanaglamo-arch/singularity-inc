@@ -111,6 +111,20 @@
           <button id="hireBtn"></button>
           <div id="hireHint" class="muted small"></div>
         </div>
+        <!-- Managing Director (executive ladder): current director, next recruit, mandate -->
+        <h2 id="execTitle"></h2>
+        <div id="execPanel" class="glass-panel">
+          <div id="execCurrent"></div>
+          <div id="execNext"></div>
+          <button id="execRecruitBtn"></button>
+          <div id="execProg" class="hidden"><div class="bar"><div id="execFill"></div></div><div id="execTimer" class="muted small"></div></div>
+          <div id="execGate" class="muted small hidden"></div>
+          <div id="mandateLabel" class="exec-mandate-label muted small"></div>
+          <div class="seg seg-wrap" id="mandateSeg">
+            <button data-mandate="growth"></button><button data-mandate="balance"></button><button data-mandate="safety"></button><button data-mandate="share"></button>
+          </div>
+          <div id="mandateDesc" class="muted small"></div>
+        </div>
         <h2 id="rndTitle"></h2>
         <div id="rndPanel" class="glass-panel">
           <div id="researchStats"></div>

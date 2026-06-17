@@ -191,6 +191,14 @@
       $('teamDesc').textContent = t('team_desc');
       if ($('rndTitle')) $('rndTitle').innerHTML = t('rnd_title') + infoBtn('tip_research2');
     }
+    // Managing Director panel (executive ladder) static labels + mandate segment captions
+    if ($('execTitle')) {
+      $('execTitle').innerHTML = t('exec_title') + infoBtn('tip_exec');
+      $('mandateLabel').textContent = t('mandate_label');
+      var mseg = $('mandateSeg').children;
+      mseg[0].textContent = t('mandate_growth'); mseg[1].textContent = t('mandate_balance');
+      mseg[2].textContent = t('mandate_safety'); mseg[3].textContent = t('mandate_share');
+    }
     // alignment
     $('alignTitle').innerHTML = t('alignment_title') + infoBtn('tip_align'); $('trustHud').setAttribute('data-tip','tip_trust');
     $('alignIntro').textContent = t('alignment_intro');
@@ -444,6 +452,76 @@
       setText(rb, t('research_btn', { v: '$' + fmt(G.researchProjCost()) }));
       rb.disabled = !G.canStartResearch();
     }
+  }
+
+  // ---------- Managing Director (executive ladder) ----------
+  // Day-aware time: long recruit timers (hours→days) read better than raw "96h 0m".
+  function fmtLong(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    if (sec >= 86400) { var d = Math.floor(sec / 86400), h = Math.round((sec % 86400) / 3600); return d + 'd' + (h ? ' ' + h + 'h' : ''); }
+    return FMT.fmtTime(sec);
+  }
+  function updateExec() {
+    if (!$('execPanel')) return;
+    var s = G.state, cur = G.currentExec();
+    // current director
+    if (cur) {
+      var perkTxt = execPerkText(cur);
+      setHTML($('execCurrent'),
+        '<div class="exec-cur"><span class="exec-role">' + t(cur.name) + '</span>' +
+        '<span class="exec-badge">' + t('exec_judgment') + ' ' + cur.judgment + '</span></div>' +
+        (perkTxt ? '<div class="exec-perk muted small">' + t('exec_perk') + ': ' + perkTxt + '</div>' : ''));
+    } else {
+      setHTML($('execCurrent'), '<div class="exec-none muted">' + t('exec_none') + '</div>');
+    }
+    // recruit timer / next-tier / top
+    var rb = $('execRecruitBtn'), rp = $('execProg'), gate = $('execGate'), nextBox = $('execNext');
+    if (G.execRecruitActive()) {
+      setClass(rb, 'hidden', true); setClass(gate, 'hidden', true); setClass(rp, 'hidden', false);
+      setStyleP($('execFill'), 'width', (G.execRecruitProgress() * 100).toFixed(1) + '%');
+      var rt = G.nextExecTier();   // toTier is being recruited; show its name
+      var rtName = rt ? t(rt.name) : '';
+      setText($('execTimer'), t('exec_recruiting', { name: rtName, t: fmtLong(G.execRecruitTimeLeft()) }));
+      setHTML(nextBox, '');
+    } else if (G.execTopReached()) {
+      setClass(rp, 'hidden', true); setClass(rb, 'hidden', true); setClass(gate, 'hidden', true);
+      setHTML(nextBox, '<div class="exec-top">' + t('exec_top') + '</div>');
+    } else {
+      setClass(rp, 'hidden', true);
+      var nx = G.nextExecTier();
+      setHTML(nextBox,
+        '<div class="exec-next-head muted small">' + t('exec_next') + '</div>' +
+        '<div class="exec-next"><span class="exec-role">' + t(nx.name) + '</span>' +
+        '<span class="exec-badge">' + t('exec_judgment') + ' ' + nx.judgment + '</span></div>' +
+        '<div class="exec-meta muted small">' + t('exec_cost') + ': $' + fmt(G.execCost(nx)) + ' · ' + t('exec_time') + ': ' + fmtLong(nx.recruitSec) + '</div>');
+      var met = G.execGateMet(nx);
+      setClass(rb, 'hidden', false);
+      setText(rb, t('exec_recruit_btn', { v: '$' + fmt(G.execCost(nx)) }));
+      rb.disabled = !G.canRecruitExec();
+      if (!met) { setClass(gate, 'hidden', false); setText(gate, t('exec_gate_locked', { req: gateReqText(nx.gate) })); }
+      else setClass(gate, 'hidden', true);
+    }
+    // mandate segment + active description
+    var mseg = $('mandateSeg').children, mandates = ['growth', 'balance', 'safety', 'share'];
+    for (var i = 0; i < mseg.length; i++) mseg[i].classList.toggle('on', s.mandate === mandates[i]);
+    setText($('mandateDesc'), t('mandate_' + s.mandate + '_d'));
+  }
+  function execPerkText(tier) {
+    if (!tier || !tier.perk) return '';
+    var p = tier.perk, parts = [];
+    if (p.buildSpeed) parts.push('+' + Math.round(p.buildSpeed * 100) + '% ' + t('exec_time'));
+    if (p.researchSpeed) parts.push('+' + Math.round(p.researchSpeed * 100) + '% ' + t('rnd_title'));
+    if (p.riskDamp) parts.push('−' + Math.round(p.riskDamp * 100) + '% ' + t('risk_label'));
+    if (p.dealBonus) parts.push('+' + Math.round(p.dealBonus * 100) + '% ' + t('exec_cost'));
+    return parts.join(', ');
+  }
+  function gateReqText(gate) {
+    if (!gate) return '';
+    var parts = [];
+    if (typeof gate.valuation === 'number') parts.push(t('exec_gate_val', { v: '$' + fmt(gate.valuation) }));
+    if (typeof gate.trust === 'number') parts.push(t('exec_gate_trust', { v: gate.trust }));
+    if (typeof gate.modelGen === 'number') parts.push(t('exec_gate_gen', { v: gate.modelGen }));
+    return parts.join(' · ');
   }
 
   // ---------- GDD v3: rival market-share standings ----------
@@ -1343,7 +1421,7 @@
     updateTop();
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
-    else if (currentTab === 'research') { updateTeam(); }
+    else if (currentTab === 'research') { updateTeam(); updateExec(); }
     else if (currentTab === 'world') updateWorld();
     else if (currentTab === 'alignment') updateAlignment();
     else if (currentTab === 'stats') updateStats();
@@ -1835,6 +1913,28 @@
         toast(t('hire_done_toast', { p: (C.PROCESS.RESEARCHER_SPEED_PER * 100).toFixed(1) }), 'gold', { routine: true });
         updateTeam();
       } else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // Managing Director: start a recruit (spends the signing package up front)
+    var execRecruitBtn = $('execRecruitBtn');
+    if (execRecruitBtn) execRecruitBtn.addEventListener('click', function () {
+      if (G.startExecRecruit()) { window.GAME_AUDIO.buy(); buzz(10); window.GAME_FX.flash('rgba(139,92,246,0.15)'); updateExec(); }
+      else { window.GAME_AUDIO.error && window.GAME_AUDIO.error(); }
+    });
+    // Mandate segment: pick the offline-decision posture
+    var mseg = $('mandateSeg') ? $('mandateSeg').children : [];
+    for (var mm = 0; mm < mseg.length; mm++) {
+      (function (btn) {
+        btn.addEventListener('click', function () { if (G.setMandate(btn.dataset.mandate)) { window.GAME_AUDIO.buy && window.GAME_AUDIO.buy(); buzz(8); updateExec(); } });
+      })(mseg[mm]);
+    }
+    // Recruit completion: celebratory toast + FX (the headline is pushed by the engine)
+    G.on('execHired', function (d) {
+      var tier = G.execTier(d.tier);
+      window.GAME_AUDIO.milestone && window.GAME_AUDIO.milestone(); buzz([0, 20, 50, 30]);
+      window.GAME_FX.flash('rgba(139,92,246,0.22)');
+      window.GAME_FX.confetti(34);
+      toast(t('exec_hired_toast', { name: tier ? t(tier.name) : '' }), 'gold');
+      if (currentTab === 'research') updateExec();
     });
     // GDD v3: raise a funding round
     var fundingBtn = $('fundingBtn');
