@@ -63,3 +63,60 @@ All gates on all 4 difficulties:
   zero-buffer play further than the isolated base-economy sim can show.
 - Accountant / discrete bills+taxes (GDD §1) remain UNimplemented — separate larger feature, out
   of scope for this build. The time change is forward-compatible with adding them later.
+
+---
+
+## Night build — ACCOUNTANT + discrete BILLS/TAXES (DESIGN-time-accountant lock)
+
+Implemented the accountant + discrete electricity bill + monthly taxes the GDD/audit described but
+the code lacked (electricity was a continuous burn share; no taxes). Commits: c127876, eccc76b,
+3b45cf3, a23ceb3.
+
+### What landed
+1. **Electricity → discrete accruing BILL.** Pulled out of continuous `burnBreakdown().total`
+   (verified `EXCLUDED_OK`): continuous net/sec is now salaries+compute+upkeep+overhead+debt only.
+   Electricity accrues `state.powerOwed += electricityPerSec()×dt`, settles every 7 in-game days.
+2. **Taxes — monthly (30 in-game days).** `state.taxOwed += 12% × positive revenue × dt`; $0 before
+   any profit. Settles on the 30-day boundary.
+3. **Batching / no per-bill spam.** Bills accrue VISIBLY (running owed number in the Bills view);
+   no popup per bill. FIRST electricity bill fires a one-time TEACH popup (what/where/consequences);
+   otherwise online bills auto-settle on their boundary (no fee).
+4. **The ACCOUNTANT.** Auto-hires at 120s playtime (≈2 real min) → toast "В компании появился
+   бухгалтер…" (no "free"). ONLINE: player pays in Bills view, no fee. OFFLINE/on-return: accountant
+   auto-pays electricity+taxes from cash + a per-bill SERVICE FEE. The "while you were away" report
+   now lists electricity paid, taxes paid, **accountant fee ("кусается на старте!")**, earned, cash.
+5. **Partial-shutoff FLOOR (audit §B).** Cash can't cover a bill → accountant pays what it can, the
+   rest rolls into debt + a **−30% generator throttle** (NOT full shutoff). Cleared on payment.
+   Verified throttle ratio = **0.700** exactly; online pay clears it.
+6. **Bills view** on the Lab: ⚡ owed + "settles in N days", 🧾 next tax + "in N days", pay-now
+   buttons (online, no fee), shutoff warning. Compact, no overflow at 360. EN+RU.
+
+### Fee curve (bites early, trivial late) — `FEE_BASE + FEE_LOG×log10(bill)`, capped at 40% of bill
+- **$70 bill → fee ~$24.9 (35.6%)** — meaningful vs small early cash.
+- **$5,000,000 bill → fee ~$58.9 (0.0012%)** — effectively nothing late game.
+
+### Re-validated economy after moving electricity out of continuous burn (mini-sim, real engine)
+- **Building STILL pays off from v1:** marginal Δ(true net/sec incl. amortized bill+tax) POSITIVE at
+  every tier (laptop +0.001, gpuRig +0.005, serverRack +0.043). At gen 4: true net +33.2/s,
+  marginal serverRack +0.80, gpuCluster +2.35, runway ∞. Moving elec out *improved* marginal payoff.
+- v1 runway ~3.95 months (sane early pressure).
+
+### Quality gates
+- `node --check` clean on config/game/ui/i18n/main per commit.
+- Headless: **0 console errors** across bills accrual, online pay, offline settle+fee, shutoff floor,
+  migration, normal boot.
+- **Migration v16→v17 confirmed:** old save (no bill fields) loads → v17, cash preserved, fields
+  backfilled, period anchors rebased (no retroactive bill), veteran (playtime>120s) grandfathered
+  with accountant already hired + teach marked seen. 0 crash.
+- Screenshots read at 360: Bills view, "while you were away" report (shows the fee line), first-bill
+  teach popup — all render clean, no overflow.
+
+### Honest notes
+- Offline bills accrue over the CAPPED+RATED offline window (same window as offline earnings) so the
+  away report nets sensibly; a player can't dodge bills, but a very long absence is capped like
+  earnings (fair, matches existing offline model).
+- The Bills view is a section on the Lab tab (not a new bottom-nav tab) — cleaner at 360 than adding
+  a 5th nav slot; matches DESIGN-bills-meters §5 "встроить если чище".
+- The new metrics (gov loyalty / industry / morale) from DESIGN-bills-meters §4 are NOT part of this
+  build — that's a separate larger feature. This build covers electricity/taxes/accountant only.
+- dist zip rebuild intentionally deferred (per prompt) — live tree on :8080 is current.
