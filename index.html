@@ -18,25 +18,28 @@
       <div id="cashVal">0</div>
       <div id="cpsVal">0/sec</div>
     </div>
-    <div id="raceBadge" class="hidden"></div>
-    <div id="boostBadge" class="hidden"></div>
-    <div id="eventBadge" class="hidden"></div>
     <button id="inboxBadge" class="hidden" aria-label="decisions inbox"><span class="ib-ico">✉</span><span id="inboxCount">0</span></button>
   </header>
 
-  <!-- Runway HUD (Phase 2 burn→runway headline): "Runway: 14 mo" + small burn/revenue line.
-       Color states green(>6mo)/amber(3-6mo)/red(<3mo)/profitable. Hidden until you ship v1. -->
-  <div id="runwayBar" class="hidden">
+  <!-- Runway HUD (Phase 2 burn→runway headline): "Runway: 14 mo" headline only.
+       Color states green(>6mo)/amber(3-6mo)/red(<3mo)/profitable. Tap for burn/revenue
+       detail (full breakdown lives in Stats). Race-status badge sits inline on the right.
+       Hidden until you ship v1. -->
+  <div id="runwayBar" class="hidden" data-tip-dyn="runway">
     <div class="rw-main"><span id="runwayLabel"></span><span id="runwayVal"></span></div>
-    <div id="runwayFlow" class="rw-flow"></div>
+    <!-- inline status chips: live boost / world event / race standing (consolidated here so
+         the header is one strip, not four floating bands) -->
+    <div id="boostBadge" class="hidden"></div>
+    <div id="eventBadge" class="hidden"></div>
+    <div id="raceBadge" class="hidden"></div>
     <!-- Phase 3: in-danger CTA — re-opens the recovery / ultimatum panel any time -->
     <button id="crisisCta" class="hidden"></button>
   </div>
 
   <!-- Satirical news ticker (narrative arc, stage-based) — hidden until the World/News layer unlocks -->
   <div id="ticker" class="hidden"><span class="tk-ico"></span><span id="tickerText"></span></div>
-  <!-- Act / campaign progress indicator -->
-  <div id="actBar" class="hidden"><span id="actLabel"></span><div class="actbar-track"><div id="actFill"></div></div></div>
+  <!-- Act / campaign progress: thin hairline only (the act is named under the brand) -->
+  <div id="actBar" class="hidden"><div class="actbar-track"><div id="actFill"></div></div></div>
 
   <!-- Content tabs -->
   <main id="content">
@@ -118,7 +121,6 @@
         <div id="teamPanel" class="glass-panel">
           <div id="teamStats"></div>
           <button id="hireBtn"></button>
-          <div id="hireHint" class="muted small"></div>
         </div>
         <!-- Managing Director (executive ladder): current director, next recruit, mandate -->
         <h2 id="execTitle"></h2>

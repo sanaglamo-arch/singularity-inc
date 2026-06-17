@@ -27,6 +27,7 @@
     stat_runway: 'Runway',
     stat_burn: 'Burn / mo',
     stat_net_burn: 'Net burn / mo',
+    runway_flow_tip: 'Burn −${burn}/mo · Revenue +${rev}/mo. Full breakdown in Stats.',
     tap_button: 'TRAIN',
     tap_hint: 'Tap to train your model',
     earn_per_sec: 'Revenue: {v}/sec',
@@ -108,7 +109,7 @@
     rp_cost: '{n} RP',
 
     alignment_title: '{s} Lab',
-    alignment_intro: 'Your AI is powerful — and powerful AIs go off the rails. Fund {s} to hold Incident Risk down. Skimp, and sooner or later it does something that costs you a fine, your reputation, or worse.',
+    alignment_intro: 'Fund {s} to hold Incident Risk down — skimp and it eventually costs you.',
     risk_label: 'Incident Risk',
     alignment_label: '{s}',
     align_suppress: 'Holding Incident Risk down: -{v}/sec',
@@ -1124,6 +1125,7 @@
     stat_runway: 'Запас хода',
     stat_burn: 'Расход / мес',
     stat_net_burn: 'Чистый расход / мес',
+    runway_flow_tip: 'Расход −${burn}/мес · Доход +${rev}/мес. Подробности — во вкладке «Статистика».',
     tap_button: 'ОБУЧАТЬ',
     tap_hint: 'Жми, чтобы обучать модель',
     earn_per_sec: 'Доход: {v}/сек',
@@ -1202,7 +1204,7 @@
     rp_cost: '{n} RP',
 
     alignment_title: 'Лаборатория «{s}»',
-    alignment_intro: 'Твой ИИ мощный — а мощный ИИ может сорваться. Финансируй «{s}», чтобы держать Риск инцидента низким. Сэкономишь — рано или поздно он сделает то, что стоит тебе штрафа, репутации или хуже.',
+    alignment_intro: 'Финансируй «{s}», чтобы держать Риск инцидента низким — сэкономишь, и рано или поздно это тебе аукнется.',
     risk_label: 'Риск инцидента',
     alignment_label: '{s}',
     align_suppress: 'Гасит Риск инцидента: -{v}/сек',

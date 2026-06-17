@@ -36,6 +36,17 @@
     tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 12, r.bottom + 8) + 'px';
   }
   function hideTip() { var tip = document.getElementById('tooltip'); if (tip) tip.classList.add('hidden'); }
+  // dynamic tooltip (runtime values, e.g. the runway-strip burn/revenue detail)
+  function showTipText(anchor, text) {
+    var tip = document.getElementById('tooltip');
+    if (!tip) { tip = el('div'); tip.id = 'tooltip'; tip.className = 'hidden'; document.body.appendChild(tip); }
+    tip.textContent = text;
+    tip.classList.remove('hidden');
+    var r = anchor.getBoundingClientRect(), w = Math.min(260, window.innerWidth - 24);
+    tip.style.width = w + 'px';
+    tip.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+    tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 12, r.bottom + 8) + 'px';
+  }
   var SW = ' fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
   var EXTRA = {
     ic_check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
@@ -438,7 +449,7 @@
     var btn = $('hireBtn'), cost = G.researcherCost();
     setText(btn, t('hire_btn', { v: fmt(cost) }));
     btn.disabled = s.cash < cost;
-    setText($('hireHint'), t('team_hint'));
+    // team_desc (above) + the info tip already cover this; drop the redundant sub-line
     // research project (parallel timer): money + time -> permanent efficiency
     setHTML($('researchStats'),
       '<div class="tstat"><span class="tk">' + t('research_done') + '</span><span class="tv">' + s.researchLevel + '</span></div>' +
@@ -1113,14 +1124,6 @@
         setText(rb, t('race_threat_badge', { name: G.rivalName(rs.id), p: rs.pct }));
       } else setClass(rb, 'hidden', true);
     }
-    // ITEM 1: the topbar badges hang at top:100% onto the ticker row. When ANY badge
-    // is shown, reserve a strip above the ticker text so the centered boost plaque
-    // never collides with the LIVE ticker copy (verified @360/390/414).
-    var anyBadge = !$('boostBadge').classList.contains('hidden')
-                || !$('eventBadge').classList.contains('hidden')
-                || (rb && !rb.classList.contains('hidden'));
-    var tk = $('ticker');
-    if (tk) setClass(tk, 'has-badge', anyBadge);
     updateInboxBadge();   // decision inbox count (Phase 2)
   }
 
@@ -1131,28 +1134,37 @@
   function updateRunway() {
     var bar = $('runwayBar'); if (!bar) return;
     var s = G.state;
-    // surface once a product exists (revenue/burn both meaningful) — pre-product garage stays clean
-    if (s.modelGen < 1) { setClass(bar, 'hidden', true); return; }
-    setClass(bar, 'hidden', false);
-    setText($('runwayLabel'), t('runway_label'));
     var burn = G.monthlyBurn(), rev = G.monthlyRevenue();
-    var profitable = G.isProfitable();
-    var months = G.runwayMonths();
-    // headline value + color state
+    // remember the latest burn/rev so a tap on the strip can surface the detail (folded out
+    // of the always-on sub-line; the full breakdown also lives on the Stats tab).
+    _runwayFlow = { burn: burn, rev: rev };
+    // The strip carries the runway headline once a product exists; it also hosts the inline
+    // boost/event/race chips, so keep it visible whenever any of those is active (e.g. an
+    // early boost in the garage before v1 ships). The runway label itself is gen-gated.
+    var hasProduct = s.modelGen >= 1;
+    var anyChip = !$('boostBadge').classList.contains('hidden')
+               || !$('eventBadge').classList.contains('hidden')
+               || !$('raceBadge').classList.contains('hidden');
+    if (!hasProduct && !anyChip) { setClass(bar, 'hidden', true); return; }
+    setClass(bar, 'hidden', false);
+    // runway headline (hidden in the garage; chips can still show)
+    setClass($('runwayLabel'), 'hidden', !hasProduct);
+    setClass($('runwayVal'), 'hidden', !hasProduct);
     var state = 'green';
-    if (profitable) { setText($('runwayVal'), t('runway_profitable')); state = 'profit'; }
-    else {
-      var disp = months >= 100 ? '99+' : (months >= 10 ? Math.round(months) : months.toFixed(1));
-      setText($('runwayVal'), t('runway_months', { n: disp }));
-      state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
+    if (hasProduct) {
+      setText($('runwayLabel'), t('runway_label'));
+      var profitable = G.isProfitable();
+      var months = G.runwayMonths();
+      if (profitable) { setText($('runwayVal'), t('runway_profitable')); state = 'profit'; }
+      else {
+        var disp = months >= 100 ? '99+' : (months >= 10 ? Math.round(months) : months.toFixed(1));
+        setText($('runwayVal'), t('runway_months', { n: disp }));
+        state = months > 6 ? 'green' : (months >= 3 ? 'amber' : 'red');
+      }
     }
     setClass(bar, 'amber', state === 'amber');
     setClass(bar, 'red', state === 'red');
     setClass(bar, 'profit', state === 'profit');
-    // burn vs revenue flow line (readable, compact)
-    setHTML($('runwayFlow'),
-      '<span class="rw-burn">−$' + fmt(burn) + t('per_mo_suffix') + '</span> · ' +
-      '<span class="rw-rev">+$' + fmt(rev) + t('per_mo_suffix') + '</span>');
     // Phase 3: in-danger CTA re-opens the crisis panel any time (so a dismissed modal isn't lost)
     var cta = $('crisisCta');
     if (cta) {
@@ -1457,7 +1469,11 @@
   function updateWorld() {
     var unlocked = G.worldUnlocked();
     $('worldLocked').classList.toggle('hidden', unlocked);
-    ['standingsPanel', 'worldNewsTitle', 'cardList', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) e.classList.toggle('hidden', !unlocked); });
+    // worldNewsTitle/cardList visibility is owned by the decision-card logic below (so the
+    // "Newsroom" band drops entirely when there are no decisions); only force them hidden
+    // while the world layer is still locked.
+    ['standingsPanel', 'newsFlavorTitle', 'newsFlavor'].forEach(function (id) { var e = $(id); if (e) setClass(e, 'hidden', !unlocked); });
+    if (!unlocked) { setClass($('worldNewsTitle'), 'hidden', true); setClass($('cardList'), 'hidden', true); }
     if (!unlocked) { $('worldLocked').innerHTML = '<div class="es-icon">' + ic('ic_world') + '</div>' + t('world_locked'); return; }
     // AGI finale banner (win / beaten) + optional Founder's Legacy
     var fb = $('finaleBanner');
@@ -1498,11 +1514,14 @@
     var order = { crisis: 0, opportunity: 1, decision: 2 };
     var sorted = G.state.cards.slice().sort(function (a, b) { return (order[a.kind] || 9) - (order[b.kind] || 9); });
     var sig = sorted.map(function (c) { return c.uid + c.id; }).join('|');
+    // No decisions on the table → drop the whole "Newsroom" band (heading + empty-state)
+    // so the World tab breathes; the HEADLINES feed below still carries the narrative.
+    var hasCards = sorted.length > 0;
+    var wnt = $('worldNewsTitle'); if (wnt) setClass(wnt, 'hidden', !hasCards);
+    setClass(cl, 'hidden', !hasCards);
     if (sig !== _lastCardSig) {
       _lastCardSig = sig;
-      var html = sorted.map(renderCardHTML).join('');
-      if (!html) html = '<div class="empty-state">' + t('news_quiet') + '</div>';
-      cl.innerHTML = html; wireCardButtons(cl);
+      cl.innerHTML = sorted.map(renderCardHTML).join(''); wireCardButtons(cl);
     } else {
       // refresh only the countdown labels in place
       var timers = cl.querySelectorAll('.nc-timer');
@@ -1533,7 +1552,6 @@
     }
     if (a < 1) { setClass(bar, 'hidden', true); return; }
     setClass(bar, 'hidden', false);
-    setText($('actLabel'), t('act_' + actId(a) + '_t'));
     var prog = a >= 2 ? G.agiProgress() : (a * 20);
     setStyleP($('actFill'), 'width', prog.toFixed(1) + '%');
   }
@@ -1670,6 +1688,7 @@
 
   // ---------- main per-frame update ----------
   var frameCps = 0, frameGM = 1, frameCompute = 0, frameMoney = 0, _lastInten = -1, _lastHeat = -1, _lastCardSig = null;
+  var _runwayFlow = { burn: 0, rev: 0 };   // latest burn/rev for the runway-strip tap detail
   function update() {
     frameCps = G.cps();           // compute the hottest values ONCE per frame
     frameGM = G.globalMult();
@@ -2097,7 +2116,22 @@
 
   // ---------- events ----------
   function bind() {
-    document.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-tip]') : null; if (b) { e.preventDefault(); e.stopPropagation(); showTip(b); } else hideTip(); }, true);
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest) { hideTip(); return; }
+      var b = e.target.closest('[data-tip]');
+      if (b) { e.preventDefault(); e.stopPropagation(); showTip(b); return; }
+      // dynamic tips (runtime values) — currently the runway strip's burn/revenue detail.
+      // Don't hijack the crisis CTA / chips that have their own behavior.
+      var d = e.target.closest('[data-tip-dyn]');
+      if (d && !e.target.closest('#crisisCta')) {
+        e.preventDefault(); e.stopPropagation();
+        if (d.dataset.tipDyn === 'runway') {
+          showTipText(d, t('runway_flow_tip', { burn: fmt(_runwayFlow.burn), rev: fmt(_runwayFlow.rev) }));
+        }
+        return;
+      }
+      hideTip();
+    }, true);
     // keyboard: Escape closes an open tooltip or modal (desktop/keyboard a11y)
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape' && e.keyCode !== 27) return;
