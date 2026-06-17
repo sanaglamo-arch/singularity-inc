@@ -91,7 +91,8 @@
       nextDecisionAt: 0,     // epoch ms of the next pacing roll
       lastCrisisAt: 0,       // crisis cooldown anchor (ms)
       nextNewsAt: 0,
-      newsLog: [],           // recent headline strings for the News feed
+      newsReact: {},         // world-reaction throttle: flag -> last-fired state (no spam)
+      newsLog: [],           // recent headline objects {line,type,at} for the News feed
       market: null,          // {price:{id:n}, hold:{id:shares}, hist:{id:[...]}, nextAt}
       crisesResolved: 0,
       crisesEscalated: 0,
@@ -438,6 +439,7 @@
     state.marketShare = Math.min(100, state.marketShare + (g ? g.share : 0));
     state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     checkAchievements();
+    emitNews('milestone', ['nh_gen_1', 'nh_gen_2'], { name: g ? t_safe(g.id) : '', n: state.modelGen });
     emit('generation', { gen: state.modelGen, id: g ? g.id : null });
     if (state.modelGen >= C.MODELGEN.length) triggerFinale(determineEnding(), true); // AGI — you won
     emit('change');
@@ -465,6 +467,7 @@
     state.funding[r.id] = true;
     addCash(fundingPayout(r));
     checkAchievements();
+    emitNews('milestone', ['nh_fund_1', 'nh_fund_2'], { round: t_safe('fund_' + r.id) });
     emit('funding', { id: r.id });
     emit('change');
     return true;
@@ -1183,7 +1186,7 @@
       // auto-apply a small default effect; news ticker line only.
       var optA = pickDefaultOption(ev);
       if (optA) applyEffect(optA.effects);
-      pushNews(t_safe(ev.id + '_t'));
+      decisionNews(ev, optA ? optA.id : null);
       emit('decision', { kind: 'ambient', id: ev.id });
       checkAchievements(); emit('change');
       return;
@@ -1212,8 +1215,22 @@
     if (!opt) return false;
     applyEffect(opt.effects);
     if (uid != null) removeInbox(uid);
+    decisionNews(ev, optionId);
     checkAchievements(); emit('change');
     return true;
+  }
+  // PART A — a resolved decision (by player, inbox, or auto) yields a news headline.
+  // Prefer a per-outcome line ({id}_{opt}_news), else the decision title.
+  function decisionNews(ev, optionId) {
+    if (!ev) return;
+    var keys = [];
+    if (optionId) keys.push(ev.id + '_' + optionId + '_news');
+    keys.push(ev.id + '_t');
+    // dedupe to the first that actually resolves to a string
+    for (var i = 0; i < keys.length; i++) {
+      var s = t_safe(keys[i], coVars());
+      if (s && s !== keys[i]) { pushNews(s, 'decision'); return; }
+    }
   }
   function removeInbox(uid) {
     for (var i = state.inbox.length - 1; i >= 0; i--) if (state.inbox[i].uid === uid) { state.inbox.splice(i, 1); return true; }
@@ -1228,19 +1245,44 @@
       if (it.autoAt && now >= it.autoAt) {
         var ev = decisionById(it.id), opt = pickDefaultOption(ev);
         state.inbox.splice(i, 1);
-        if (ev && opt) { applyEffect(opt.effects); emit('decision', { kind: 'auto', id: it.id, option: opt.id }); }
+        if (ev && opt) { applyEffect(opt.effects); decisionNews(ev, opt.id); emit('decision', { kind: 'auto', id: it.id, option: opt.id }); }
       }
     }
     checkAchievements();
   }
   // small helpers for surfacing
-  function t_safe(key) { try { return window.GAME_I18N.t(key); } catch (e) { return key; } }
-  function pushNews(line) {
+  function t_safe(key, vars) { try { return window.GAME_I18N.t(key, vars); } catch (e) { return key; } }
+  // company-name token: every headline can carry {co}. Resolve it here so callers
+  // (and i18n strings) never have to thread the name through manually.
+  function coVars(extra) {
+    var v = { co: state.companyName || t_safe('game_title') };
+    if (extra) for (var k in extra) v[k] = extra[k];
+    return v;
+  }
+  // Pick a localized headline from a list of candidate keys (round-robins via a tiny
+  // rolling index so repeated event-types don't always read the same line).
+  var _newsRot = {};
+  function headlineKey(keys) {
+    if (!keys || !keys.length) return null;
+    if (keys.length === 1) return keys[0];
+    var bucket = keys.join(',');
+    var i = (_newsRot[bucket] = ((_newsRot[bucket] || 0) + 1)) % keys.length;
+    return keys[i];
+  }
+  // PART A — LIVING NEWS: push a localized headline onto the feed for a REAL event.
+  // `type` drives the per-headline icon in the news-feed UI; `keys` is one i18n key or
+  // an array to round-robin; `vars` are extra tokens (rival name, model name, …).
+  function emitNews(type, keys, vars) {
+    var key = headlineKey(Array.isArray(keys) ? keys : [keys]);
+    if (!key) return;
+    pushNews(t_safe(key, coVars(vars)), type);
+  }
+  function pushNews(line, type) {
     if (!line) return;
     state.newsLog = state.newsLog || [];
-    state.newsLog.unshift(line);
-    if (state.newsLog.length > 12) state.newsLog.pop();
-    emit('newsline', { line: line });
+    state.newsLog.unshift({ line: line, type: type || 'flavor', at: Date.now() });
+    if (state.newsLog.length > 20) state.newsLog.pop();
+    emit('newsline', { line: line, type: type || 'flavor' });
   }
 
   function cardTemplate(card) {
@@ -1375,7 +1417,11 @@
       if (rivalsRevealed()) {
         var last = state.rivalAgiToasted[r.id] || 0;
         var ms = after >= 90 ? 90 : after >= 75 ? 75 : after >= 50 ? 50 : 0;
-        if (ms > last) { state.rivalAgiToasted[r.id] = ms; emit('rivalagi', { id: r.id, pct: ms }); }
+        if (ms > last) {
+          state.rivalAgiToasted[r.id] = ms;
+          emitNews('rival', ms >= 90 ? ['nh_rival_agi90'] : ['nh_rival_agi', 'nh_rival_agi2'], { name: t_safe('rival_' + r.id), pct: ms });
+          emit('rivalagi', { id: r.id, pct: ms });
+        }
       }
     });
   }
@@ -1435,7 +1481,7 @@
   function updateRace(dt) {
     // act advance + intro
     var a = currentAct();
-    if (a > state.act) { state.act = a; emit('act', { act: a }); }
+    if (a > state.act) { state.act = a; emitNews('milestone', ['nh_act_' + a, 'nh_act_x'], { n: a + 1 }); emit('act', { act: a }); }
     if (!rivalsRevealed()) return;
     ensureRivals();
     var heat = Math.max(agiProgress(), maxRivalAgi()) / 100 * C.RACE.HEAT;
@@ -1608,6 +1654,30 @@
       for (var bi = state.buffs.length - 1; bi >= 0; bi--) if (state.buffs[bi].endsAt <= now) state.buffs.splice(bi, 1);
     }
   }
+  // PART A — WORLD REACTION: the world visibly reacts to YOUR state. Fires only on
+  // threshold CROSSINGS (a flag flips on entering a band, resets on leaving), never per
+  // tick — so the feed reacts to what you do without spamming.
+  function reactNews(flag, on, type, keys, vars) {
+    var was = !!state.newsReact[flag];
+    if (on && !was) { state.newsReact[flag] = 1; emitNews(type, keys, vars); }
+    else if (!on && was) { state.newsReact[flag] = 0; }
+  }
+  function updateWorldNews() {
+    // risk/regulatory scrutiny — only meaningful once risk exists (v3+)
+    if (riskUnlocked()) {
+      reactNews('react_risk_high', avgVec() >= 60, 'regulatory', ['nh_react_risk', 'nh_react_risk2']);
+      reactNews('react_reg_heat', (state.vec && state.vec.reg >= 70), 'regulatory', ['nh_react_reg']);
+    }
+    // public trust craters → bad press (trust meter lives the whole game once you ship)
+    if (state.modelGen >= 1) {
+      reactNews('react_trust_low', state.trust <= 25, 'rival', ['nh_react_trust', 'nh_react_trust2']);
+      reactNews('react_trust_hi', state.trust >= 80, 'milestone', ['nh_react_trust_hi']);
+    }
+    // you top the AGI race (lead the field AND no rival breathing down your neck)
+    if (rivalsRevealed() && rivalsActive()) {
+      reactNews('react_lead', isMarketLeader() && agiProgress() >= maxRivalAgi(), 'milestone', ['nh_react_lead', 'nh_react_lead2']);
+    }
+  }
   // Sub-part E: fire any due scheduled events — a delayed consequence SPAWNS its
   // target decision/effect with a "they remembered" callback toast referencing the
   // original choice ("The lawsuit you risked has arrived.").
@@ -1624,6 +1694,8 @@
         // the callback toast tags the original gamble before the decision surfaces
         var cbKey = s.callbackKey || (ev.category === 'legal' ? 'callback_lawsuit' : 'scheduled_fired');
         emit('toast', { key: cbKey });
+        // reuse the callback line as a news headline (the gamble "comes back")
+        pushNews(t_safe(cbKey, coVars()), 'rival');
         // record the fire (so its own cooldowns apply) and surface as a callback
         state.eventCooldowns[ev.id] = now;
         if (ev.category) state.categoryCooldowns[ev.category] = now;
@@ -1730,6 +1802,7 @@
     if (insightUnlocked()) updateInsight();     // Insight Flash: an early delight (Stage 2)
     updateBuffs(dt);
     updateScheduled();   // decision-engine: fire due delayed consequences
+    updateWorldNews();   // LIVING NEWS: world reacts to your state on threshold crossings
     updateDecisions();   // decision-engine: roll the pacing lottery (Sub-part C)
     updateInbox();       // decision-engine: auto-resolve ignored bankable items (Sub-part D)
     updateCards();
@@ -1792,6 +1865,11 @@
     // sanitize a loaded name defensively (never trust storage)
     s.companyName = sanitizeCompanyName(s.companyName);
     GEN.forEach(function (g) { if (s.gens[g.id] === undefined) s.gens[g.id] = 0; });
+    // LIVING NEWS migration: newsLog used to hold plain strings; normalize to {line,type,at}.
+    if (Array.isArray(s.newsLog)) {
+      s.newsLog = s.newsLog.map(function (n) { return (n && typeof n === 'object' && 'line' in n) ? n : { line: String(n), type: 'flavor', at: 0 }; });
+    } else s.newsLog = [];
+    if (!s.newsReact || typeof s.newsReact !== 'object') s.newsReact = {};
     // Autopilot was removed in Phase 1 — drop the field from any old save (never crash).
     if ('autopilot' in s) delete s.autopilot;
     // multi-vector risk migration: fold old single risk into capability
