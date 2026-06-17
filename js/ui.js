@@ -929,6 +929,76 @@
       nodes[i].querySelector('.check').classList.toggle('hidden', !has);
     }
     $('achProgress').textContent = t('ach_progress', { n: unlocked, m: C.ACHIEVEMENTS.length });
+    renderDailyPanel();
+    renderGoalsPanel();
+  }
+
+  // ---------- v19: DAILY LOOP panel (daily goal + streak + claim) ----------
+  // English-style plural suffix helper ({s} → 'day'/'days'). RU strings sidestep agreement
+  // (abbreviated 'дн.'/'знач.') so this is a no-op there; harmless either way.
+  function plS(n) { return n === 1 ? '' : 's'; }
+  function dailyGoalText(info) {
+    if (!info) return '';
+    if (info.id === 'taps') return t('daily_goal_taps', { n: info.target });
+    if (info.id === 'ship') return t('daily_goal_ship');
+    if (info.id === 'earn') return t('daily_goal_earn', { n: fmt(info.target) });
+    return '';
+  }
+  function renderDailyPanel() {
+    var p = $('dailyPanel'); if (!p) return;
+    var info = G.dailyGoalInfo();
+    var streak = G.state.dailyStreak || 0;
+    var streakHtml = streak > 0
+      ? '<span class="dp-streak">' + t('daily_streak_days', { n: streak, s: plS(streak) }) + '</span>'
+      : '<span class="dp-streak none">' + t('daily_streak_none') + '</span>';
+    var body = '<div class="dp-head"><span class="dp-title">' + t('daily_panel_title') + '</span>' + streakHtml + '</div>';
+    if (info) {
+      var pct = Math.round(info.frac * 100);
+      var progTxt = info.id === 'earn'
+        ? t('daily_goal_progress', { cur: fmt(info.progress), tot: fmt(info.target) })
+        : t('daily_goal_progress', { cur: Math.floor(info.progress), tot: info.target });
+      body += '<div class="dp-goal">' + t('daily_goal_label') + ': <b>' + dailyGoalText(info) + '</b></div>';
+      body += '<div class="dp-bar"><div class="dp-fill' + (info.done ? ' done' : '') + '" style="width:' + pct + '%"></div></div>';
+      if (G.state.dailyGoalDone) {
+        body += '<div class="dp-done">' + t('daily_goal_done', { n: C.DAILY.GOAL_REWARD_TOKENS }) + '</div>';
+      } else if (info.done) {
+        body += '<div class="dp-prog">' + progTxt + '</div>';
+        body += '<button class="dp-claim" id="dailyClaimBtn">' + t('daily_claim', { n: C.DAILY.GOAL_REWARD_TOKENS }) + '</button>';
+      } else {
+        body += '<div class="dp-prog">' + progTxt + ' · ' + t('daily_goal_reward_note', { n: C.DAILY.GOAL_REWARD_TOKENS }) + '</div>';
+      }
+    }
+    p.innerHTML = body;
+    var cb = $('dailyClaimBtn');
+    if (cb) cb.onclick = function () {
+      var r = G.claimDailyGoal();
+      if (r) {
+        window.GAME_AUDIO.prestige && window.GAME_AUDIO.prestige();
+        window.GAME_FX.confetti && window.GAME_FX.confetti(24);
+        toast(t('daily_goal_claimed_toast', { n: r.tokens }), 'gold');
+        renderDailyPanel(); updateModelPanel();
+      }
+    };
+  }
+
+  // ---------- v19: RUN OBJECTIVES panel (alt-goals, colorblind glyphs) ----------
+  function renderGoalsPanel() {
+    var p = $('goalsPanel'); if (!p) return;
+    var GL = STATE_GLYPH; // ✓ done · ▲ progress · ⚠ blocked
+    var rows = '';
+    C.RUN_GOALS.forEach(function (g) {
+      var st = G.runGoalState(g.id);              // 'done' | 'progress' | 'blocked'
+      var glyph = st === 'done' ? '✓' : (st === 'blocked' ? '⚠' : '▲');
+      var label = t('goal_' + g.id, { n: C.RUN_GOALS_CFG.SPEEDRUN_DAYS });
+      var stateTxt = t('goal_state_' + st);
+      rows += '<div class="gp-item ' + st + '">' +
+        '<span class="gp-glyph">' + glyph + '</span>' +
+        '<span class="gp-text">' + label + '</span>' +
+        '<span class="gp-state">' + stateTxt + '</span></div>';
+    });
+    p.innerHTML = '<div class="dp-head"><span class="dp-title">' + t('goals_panel_title') + '</span></div>' +
+      '<div class="gp-sub">' + t('goals_panel_sub') + '</div>' + rows;
+    void GL;
   }
 
   // ---------- stats ----------
@@ -970,6 +1040,8 @@
   // Renders one compact line per difficulty (Easy/Normal/Hard/Impossible) showing the
   // persistent records: best share · fastest AGI · wins. A 🏆 flourish for difficulties
   // where the player reached AGI / won. Difficulties never played show "—". EN+RU.
+  // v19: count earned alt-goal badges in a record bucket (persisted across runs).
+  function badgeCount(r) { if (!r || !r.badges) return 0; var n = 0; for (var k in r.badges) if (r.badges[k]) n++; return n; }
   function hofPlural(n, base) {
     // RU 3-form plural (one/few/many); EN 2-form (one/many). base = 'hof_wins'|'hof_games'.
     var lang = window.GAME_I18N.getLang(), key;
@@ -1001,6 +1073,7 @@
         }
         if ((r.wins || 0) > 0) parts.push(hofPlural(r.wins, 'hof_wins'));
         else parts.push(hofPlural(r.games || 0, 'hof_games'));
+        var bc = badgeCount(r); if (bc > 0) parts.push('🏅 ' + t('hof_badges', { n: bc, s: bc === 1 ? '' : 's' }));
       }
       var detail = parts.length ? parts.join(' · ') : t('hof_empty_cell');
       html += '<div class="hofItem' + (played ? '' : ' hofItem--empty') + '">' +
@@ -1025,6 +1098,7 @@
         parts.push(t('hof_share', { p: (r.bestShare || 0).toFixed(0) }));
         if (won && (r.fastestAGIdays || 0) > 0) { var days = r.fastestAGIdays < 10 ? r.fastestAGIdays.toFixed(1) : Math.round(r.fastestAGIdays); parts.push(t('hof_agi', { n: days })); }
         if ((r.wins || 0) > 0) parts.push(hofPlural(r.wins, 'hof_wins')); else parts.push(hofPlural(r.games || 0, 'hof_games'));
+        var bc2 = badgeCount(r); if (bc2 > 0) parts.push('🏅 ' + t('hof_badges', { n: bc2, s: bc2 === 1 ? '' : 's' }));
       }
       var detail = parts.length ? parts.join(' · ') : t('hof_empty_cell');
       rows += '<div class="hofItem' + (played ? '' : ' hofItem--empty') + '">' +
@@ -1399,6 +1473,16 @@
     setHTML($('goSummary'), rows.map(function (r) {
       return '<div class="go-row"><span class="go-k">' + r[0] + '</span><span class="go-v">' + r[1] + '</span></div>';
     }).join(''));
+    // v19: alt-goal badges earned THIS run (computed at the finale in awardRunGoals).
+    var badgeEl = $('goBadges');
+    if (badgeEl) {
+      var earned = s._lastRunBadges || [];
+      if (earned.length) {
+        badgeEl.innerHTML = '<span class="go-badge" style="background:none;border:none;color:var(--fg-muted);padding:0">' + t('go_badges_label') + ':</span>' +
+          earned.map(function (id) { return '<span class="go-badge">🏅 ' + t('goal_' + id, { n: C.RUN_GOALS_CFG.SPEEDRUN_DAYS }).split(':')[0] + '</span>'; }).join('');
+        setClass(badgeEl, 'hidden', false);
+      } else setClass(badgeEl, 'hidden', true);
+    }
     // record flag (Phase 9): set in recordGameEnd when this run beat a difficulty best.
     var rec = $('goRecord');
     if (s._lastRunRecord) { setClass(rec, 'hidden', false); setText(rec, t('go_record', { diff: t('diff_' + (s.difficulty || 'normal')) })); }
@@ -2128,6 +2212,19 @@
     var showBuyMode = (tab === 'company') && G.buyModesUnlocked();
     $('buyModeBar').classList.toggle('hidden', !showBuyMode);
     update();
+    // v19: teach the daily loop ONCE, the first time the player opens the achievements tab
+    // (where the daily + run-objective panels live). Non-nagging: shows once, then never again.
+    if (tab === 'achievements' && !G.state.dailySeen) setTimeout(showDailyTeach, 200);
+  }
+  function showDailyTeach() {
+    if (G.state.dailySeen) return;
+    G.markDailySeen();
+    showModal(
+      '<div class="ob"><h3>' + t('daily_teach_title') + '</h3>' +
+      '<p class="ob-body">' + t('daily_teach_body') + '</p>' +
+      '<div class="row"><button class="primary" id="dailyTeachOk">' + t('daily_teach_ok') + '</button></div></div>'
+    );
+    if ($('dailyTeachOk')) $('dailyTeachOk').onclick = function () { window.GAME_AUDIO.buy && window.GAME_AUDIO.buy(); hideModal(); };
   }
 
   // ---------- "More" overflow sheet (only unlocked destinations) ----------
@@ -3099,6 +3196,27 @@
         if (/world/.test(location.search)) { switchTab('world'); updateWorld(); } else showNewsFeed();
       };
       setTimeout(window.__seedNews, 120);
+    }
+    // DEV/QA hook: ?qa_ach seeds a mid-game state + opens the achievements tab so the daily-loop
+    // and run-objective panels can be screenshot without a full run. Dev-only; no gameplay effect.
+    if (/[?&]qa_ach/.test(location.search)) {
+      setTimeout(function () {
+        if (/[?&]lang=ru/.test(location.search)) { G.setLang('ru'); renderStatic(); }
+        var s = G.state;
+        s.companyNamed = true; s.companyName = 'Singularity Inc.';
+        s.onboarded = true; s.dailySeen = true; s.difficulty = 'normal';
+        s.act = 99;                  // past the last act → no Act narrative modal during the snapshot
+        s.modelGen = 4; s.marketShare = 62; s.incidentsThisRun = 0; s.align = 6; s.trust = 88;
+        s.taps = 18; s.dailyTapsBase = 0; s.dailyShipBase = s.modelGen; s.dailyEarnBase = 0;
+        s.dailyGoalDay = G.realDayIndex(); s.dailyStreak = 5; s.dailyGoalDone = false;
+        s.gens['laptop'] = 200;
+        if (C.ACHIEVEMENTS[0]) s.achievements[C.ACHIEVEMENTS[0].id] = true; // unlock the tab gate
+        G.tick(0.1);                 // latch the monopoly goal
+        switchTab('achievements');
+        updateAchievements();
+        hideModal();                 // clear any modal that fired during boot
+        setTimeout(function () { hideModal(); switchTab('achievements'); updateAchievements(); }, 400);
+      }, 200);
     }
   }
   function showDaily() {

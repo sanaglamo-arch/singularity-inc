@@ -983,6 +983,38 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .ach .check { margin-left: auto; color: var(--green); width: 20px; height: 20px; display: inline-flex; }
 .ach .check svg { width: 20px; height: 20px; }
 
+/* ---------- v19: daily loop + run-objectives panels ---------- */
+.dailyPanel, .goalsPanel { background: var(--surface); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 12px 13px; margin-bottom: 12px; box-shadow: var(--inset-hi); }
+.dailyPanel.hidden, .goalsPanel.hidden { display: none; }
+.dp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.dp-title { font-weight: 700; font-size: 13px; }
+.dp-streak { font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.dp-streak.none { color: var(--fg-muted); font-weight: 600; }
+.dp-goal { font-size: 12px; color: var(--fg-muted); margin-bottom: 6px; }
+.dp-goal b { color: var(--fg); font-weight: 600; }
+.dp-bar { height: 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--glass-border); overflow: hidden; margin-bottom: 8px; }
+.dp-fill { height: 100%; background: linear-gradient(90deg, var(--violet), var(--cyan)); transition: width 0.4s; }
+.dp-fill.done { background: var(--green); }
+.dp-prog { font-size: 11px; color: var(--fg-muted); }
+.dp-claim { width: 100%; min-height: 44px; margin-top: 8px; border: none; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px; cursor: pointer; background: linear-gradient(100deg, var(--violet), var(--cyan)); color: #0a0a18; }
+.dp-claim.hidden { display: none; }
+.dp-done { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--green); }
+.gp-sub { font-size: 11px; color: var(--fg-muted); margin-bottom: 9px; }
+.gp-item { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-top: 1px solid var(--glass-border); font-size: 12px; }
+.gp-item:first-of-type { border-top: none; }
+.gp-glyph { flex: 0 0 auto; width: 18px; text-align: center; font-weight: 700; }
+.gp-item.done .gp-glyph { color: var(--green); }
+.gp-item.progress .gp-glyph { color: var(--gold); }
+.gp-item.blocked .gp-glyph { color: var(--red, #f87171); }
+.gp-text { flex: 1 1 auto; min-width: 0; line-height: 1.35; word-break: break-word; }
+.gp-item.done .gp-text { color: var(--fg); }
+.gp-item.blocked .gp-text { color: var(--fg-muted); text-decoration: line-through; text-decoration-color: rgba(248,113,113,0.5); }
+.gp-state { flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: var(--fg-muted); white-space: nowrap; }
+.gp-item.done .gp-state { color: var(--green); }
+/* badges on the ending card */
+.go-badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.go-badge { font-size: 11px; font-weight: 700; color: var(--gold); background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.3); border-radius: var(--radius-pill); padding: 3px 10px; }
+
 /* ---------- settings ---------- */
 .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 4px; border-bottom: 1px solid var(--glass-border); font-size: 14px; }
 .seg { display: flex; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
