@@ -1898,6 +1898,76 @@
     setText($('nudgeText'), t(n.key, n.vars));
   }
 
+  // ---------- share-change notifications (owner's request) ----------
+  // Small dismissable cards when ANY company's market share moves ≥ SHARE_NOTI_DELTA.
+  // Throttled: at most one card per company per SHARE_NOTI_COOLDOWN, max a few on screen,
+  // and a global rate cap so a big swing doesn't spam. Auto-dismiss + explicit ✕ close.
+  var SHARE_NOTI_DELTA = 1.5;          // % move that's "meaningful"
+  var SHARE_NOTI_COOLDOWN = 22000;     // per-company throttle (ms)
+  var SHARE_NOTI_MS = 6500;            // auto-dismiss
+  var SHARE_NOTI_MAX = 3;              // max cards on screen at once
+  var _shareBaseline = {};             // id -> last share value we notified from
+  var _shareNotiAt = {};               // id -> last notify epoch
+  var _shareNotiGlobalAt = 0;          // global rate-limit anchor
+  var _shareNotisOn = false;           // armed only after v1 (no noise in the garage)
+
+  function dismissShareNoti(node) {
+    if (!node || node._closing) return;
+    node._closing = true;
+    if (node._timer) clearTimeout(node._timer);
+    node.classList.add('out');
+    setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 280);
+  }
+  function pushShareNoti(key, vars, up) {
+    var root = $('shareNotis'); if (!root) return;
+    // cap on-screen count: drop the oldest to make room
+    while (root.children.length >= SHARE_NOTI_MAX) dismissShareNoti(root.firstChild);
+    var card = el('div', 'share-noti ' + (up ? 'up' : 'down'));
+    var txt = el('span', 'sn-txt', t(key, vars));
+    var x = el('button', 'sn-x'); x.setAttribute('aria-label', '✕'); x.textContent = '✕';
+    x.onclick = function () { dismissShareNoti(card); };
+    card.appendChild(txt); card.appendChild(x);
+    root.appendChild(card);
+    card._timer = setTimeout(function () { dismissShareNoti(card); }, SHARE_NOTI_MS);
+  }
+  function updateShareNotis() {
+    var s = G.state;
+    // arm once a product exists (and the race is real); seed baselines so we don't fire on reveal
+    if (!_shareNotisOn) {
+      if (s.modelGen < 1) return;
+      _shareNotisOn = true;
+      _shareBaseline.you = s.marketShare || 0;
+      (G.activeRivals() || []).forEach(function (r) { _shareBaseline[r.id] = r.share || 0; });
+      return;
+    }
+    var now = Date.now();
+    if (now - _shareNotiGlobalAt < 4000) return;   // global rate cap (don't spam in one tick)
+
+    // gather candidates (you + each live rival) whose move clears the threshold + cooldown
+    var cand = [];
+    function consider(id, cur, isYou, name) {
+      var base = _shareBaseline[id];
+      if (base == null) { _shareBaseline[id] = cur; return; }
+      var d = cur - base;
+      if (Math.abs(d) < SHARE_NOTI_DELTA) return;
+      if (now - (_shareNotiAt[id] || 0) < SHARE_NOTI_COOLDOWN) return;
+      cand.push({ id: id, d: d, isYou: isYou, name: name, mag: Math.abs(d) });
+    }
+    consider('you', s.marketShare || 0, true, null);
+    (G.activeRivals() || []).forEach(function (r) { consider(r.id, r.share || 0, false, G.rivalName(r.id)); });
+    if (!cand.length) return;
+    // fire only the single biggest mover this tick (keeps it informative, not spammy)
+    cand.sort(function (a, b) { return b.mag - a.mag; });
+    var c = cand[0];
+    var up = c.d > 0, p = Math.abs(c.d) >= 10 ? Math.round(Math.abs(c.d)) : Math.abs(c.d).toFixed(1);
+    var key = c.isYou ? (up ? 'share_noti_you_up' : 'share_noti_you_down')
+                      : (up ? 'share_noti_rival_up' : 'share_noti_rival_down');
+    pushShareNoti(key, c.isYou ? { p: p } : { name: c.name, p: p }, up);
+    _shareNotiAt[c.id] = now;
+    _shareBaseline[c.id] = (c.isYou ? s.marketShare : (G.rivalById(c.id) || {}).share) || 0;
+    _shareNotiGlobalAt = now;
+  }
+
   // ---------- main per-frame update ----------
   var frameCps = 0, frameGM = 1, frameCompute = 0, frameMoney = 0, _lastInten = -1, _lastHeat = -1, _lastV1 = -1, _lastCardSig = null;
   var _runwayFlow = { burn: 0, rev: 0 };   // latest burn/rev for the runway-strip tap detail
@@ -1910,6 +1980,7 @@
     updateRunway();
     updateFinanceLine();   // DESIGN §2/§5/§6: Day N + always-on finance line + pre-revenue hint + debt banner
     updateGameOver();      // DESIGN §4: full-screen blocking game-over overlay (when a finale has fired)
+    updateShareNotis();    // owner's request: dismissable cards on meaningful market-share moves
     if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateBills(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); updateExec(); }

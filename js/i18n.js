@@ -1124,6 +1124,11 @@
     v1_ritual_sub: 'Your first AI model is live. You\'re on the board.',
     v1_board_toast: '🏆 {co} is on the board — you\'re officially in the race!',
     v1_rival_react: '😈 {rival}: "Cute. A new lab shipped v1. We were doing this in our sleep."',
+    // SHARE-CHANGE notifications (owner's request): small dismissable cards
+    share_noti_rival_up: '📈 {name} +{p}% share',
+    share_noti_rival_down: '📉 {name} −{p}% share',
+    share_noti_you_up: '📈 You gained {p}% share',
+    share_noti_you_down: '📉 You lost {p}% share',
     nudge_tap: 'Tap TRAIN to earn your first cash!',
     nudge_buyfirst: 'Now buy your first {name}.',
     nudge_train: 'Train {name} — ready to ship!', nudge_train_need: 'Grow compute to train {name} ({v} needed).',
@@ -2286,6 +2291,11 @@
     v1_ritual_sub: 'Твоя первая ИИ-модель в строю. Ты на табло.',
     v1_board_toast: '🏆 {co} на табло — ты официально в гонке!',
     v1_rival_react: '😈 {rival}: «Мило. Новая лаба выпустила v1. Мы такое делали во сне».',
+    // УВЕДОМЛЕНИЯ об изменении доли (просьба заказчика): маленькие закрываемые карточки
+    share_noti_rival_up: '📈 {name} +{p}% доли',
+    share_noti_rival_down: '📉 {name} −{p}% доли',
+    share_noti_you_up: '📈 Ты получил +{p}% доли',
+    share_noti_you_down: '📉 Ты потерял {p}% доли',
     nudge_tap: 'Жми ОБУЧАТЬ, чтобы заработать первые деньги!',
     nudge_buyfirst: 'Теперь купи первый: {name}.',
     nudge_train: 'Обучи {name} — готово к выпуску!', nudge_train_need: 'Наращивай компьют для {name} (нужно {v}).',

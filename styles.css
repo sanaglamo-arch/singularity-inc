@@ -1046,6 +1046,34 @@ button { font-family: var(--font-ui); color: var(--fg); }
 }
 .toast.gold { border-color: var(--gold); box-shadow: 0 0 28px -8px var(--glow-gold), var(--shadow-2); }
 .toast.bad { border-color: var(--rose); box-shadow: 0 0 28px -8px var(--glow-rose), var(--shadow-2); }
+
+/* Share-change notifications (owner's request): small dismissable cards, top-right.
+   Sits below the topbar; cards auto-dismiss but ALSO have an explicit ✕ close. */
+#shareNotis {
+  position: fixed; right: 8px; top: calc(58px + var(--safe-top, 0px)); z-index: 49;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+  width: min(72vw, 230px); pointer-events: none;
+}
+.share-noti {
+  pointer-events: auto; display: flex; align-items: center; gap: 8px;
+  background: rgba(16,15,34,0.95); border: 1px solid var(--violet); color: var(--fg);
+  padding: 7px 8px 7px 11px; border-radius: 11px; font-size: 12px; font-weight: 600;
+  box-shadow: var(--shadow-2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  max-width: 100%; animation: shareNotiIn 0.28s var(--ease-spring);
+}
+.share-noti.up { border-color: var(--green); box-shadow: 0 0 22px -10px var(--green), var(--shadow-2); }
+.share-noti.down { border-color: var(--rose); box-shadow: 0 0 22px -10px var(--glow-rose), var(--shadow-2); }
+.share-noti .sn-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-noti .sn-x {
+  flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.08); color: var(--muted); font-size: 12px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.share-noti .sn-x:hover { background: rgba(255,255,255,0.16); color: var(--fg); }
+.share-noti.out { animation: shareNotiOut 0.26s ease forwards; }
+@keyframes shareNotiIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes shareNotiOut { to { opacity: 0; transform: translateX(16px); } }
+@media (prefers-reduced-motion: reduce) { .share-noti { animation: none; } .share-noti.out { animation: none; opacity: 0; } }
 /* coalesced-duplicate count badge (item 1: "hire ×4" instead of 4 stacked toasts) */
 .toast { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .toast .toast-x { font-family: var(--font-display); font-weight: 800; font-size: 12px; color: var(--gold); background: rgba(251,191,36,0.16); border: 1px solid rgba(251,191,36,0.4); border-radius: 999px; padding: 1px 7px; flex: 0 0 auto; }
