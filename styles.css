@@ -462,7 +462,11 @@ h2:first-child { margin-top: 4px; }
   box-shadow: 0 0 10px rgba(52,211,153,0.4); transition: width 0.3s var(--ease), box-shadow 0.3s, background 0.3s; }
 
 /* ---------- Lab main column (holds nudge + generator list) ---------- */
-#labMain { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+/* MOBILE (portrait, single column): the whole Lab tab is ONE natural page-scroll so
+   EVERY generator card is reachable (no nested collapsing scroll). Desktop (>=720px)
+   resets this back to the 2-column row with an internally-scrolling labMain. */
+.tab[data-tab="company"].active { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#labMain { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
 
 /* ---------- next-goal nudge ---------- */
 #nudge {
@@ -496,7 +500,9 @@ h2:first-child { margin-top: 4px; }
 @keyframes ctaPulse { 0%,100% { box-shadow: 0 0 18px -8px var(--glow-gold), var(--inset-hi); } 50% { box-shadow: 0 0 30px -2px var(--glow-gold), var(--inset-hi); } }
 
 /* ---------- glass cards (generators / upgrades / managers) ---------- */
-#genList { padding: 8px 14px 16px; }
+/* mobile: full natural height inside the page-scroll (override .scroll's collapsing
+   overflow); bottom padding clears the sticky buy-bar so the last card stays tappable */
+#genList { padding: 8px 14px 72px; flex: 0 0 auto; overflow: visible; }
 .card {
   position: relative; display: flex; align-items: center; gap: 13px;
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
@@ -680,7 +686,7 @@ button { font-family: var(--font-ui); color: var(--fg); }
 
 /* ---------- buy-mode bar (docked footer under the generator list — never overlaps a card) ---------- */
 #buyModeBar { flex: 0 0 auto; display: flex; gap: 7px; justify-content: center; align-items: center;
-  padding: 9px 14px; z-index: 6;
+  position: sticky; bottom: 0; padding: 9px 14px; z-index: 6;
   background: linear-gradient(0deg, rgba(7,7,16,0.97), rgba(11,10,24,0.88));
   border-top: 1px solid var(--glass-border);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
@@ -900,9 +906,12 @@ button:focus:not(:focus-visible) { outline: none; }
 /* ---------- desktop layout ---------- */
 @media (min-width: 720px) {
   #app { max-width: 1040px; margin: 0 auto; box-shadow: 0 0 120px rgba(0,0,0,0.6); }
-  .tab[data-tab="company"].active { flex-direction: row; }
+  .tab[data-tab="company"].active { flex-direction: row; overflow: hidden; }  /* reset mobile page-scroll */
   .tab[data-tab="company"] #tapZone { flex: 0 0 360px; justify-content: center; border-right: 1px solid var(--glass-border); }
   .tab[data-tab="company"] #labMain { flex: 1; min-height: 0; }
+  /* restore the internally-scrolling generator list + docked buy-bar on desktop */
+  .tab[data-tab="company"] #genList { flex: 1 1 auto; overflow-y: auto; }
+  .tab[data-tab="company"] #buyModeBar { position: static; }
   #cashVal { font-size: 32px; }
   #tapBtn { width: 220px; height: 220px; }
   .scroll { display: flex; flex-direction: column; justify-content: safe center; align-items: center; }
