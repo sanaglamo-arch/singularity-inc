@@ -466,6 +466,43 @@
     }
   }
 
+  // ---------- v17 BILLS view (electricity + taxes; pay-now online, no fee) ----------
+  // A compact section on the Lab: accruing ⚡ electricity ("owed, settles in N days") + next
+  // 🧾 tax ("~$Y in N days") + pay-now buttons (online ⇒ no fee). Telegraphs the −30% throttle
+  // when a bill couldn't be paid. Gen-gated (appears once a product exists, like the runway).
+  function fmtDays(n) { return t(n === 1 ? 'bills_day_one' : 'bills_days', { n: n }); }
+  function billRow(icon, owed, days, payId, payLabel, payable, urgent) {
+    var settle = days <= 0 ? t('bills_settling') : t('bills_in_days', { d: fmtDays(days) });
+    var btn = payable
+      ? '<button class="bills-pay" id="' + payId + '">' + payLabel + '</button>'
+      : '<span class="bills-paid muted small">' + t('bills_clear') + '</span>';
+    return '<div class="bills-row' + (urgent ? ' urgent' : '') + '">' +
+      '<span class="bills-icon">' + icon + '</span>' +
+      '<span class="bills-amt">$' + fmt(owed) + '</span>' +
+      '<span class="bills-when muted small">' + settle + '</span>' +
+      btn + '</div>';
+  }
+  function updateBills() {
+    var panel = $('billsPanel'); if (!panel) return;
+    var s = G.state;
+    // gen-gate: bills matter once you have a product (revenue/taxes) OR are drawing power.
+    var show = (s.modelGen || 0) >= 1 || G.electricityMonthly() > 0;
+    setClass(panel, 'hidden', !show);
+    if (!show) return;
+    setText($('billsTitle'), t('bills_title'));
+    // accountant status line (hired vs not) — never the word "free".
+    setText($('billsAccountant'), s.accountant ? t('bills_accountant_on') : t('bills_accountant_off'));
+    var elecOwed = G.elecForecast();      // current + projected-to-boundary
+    var taxOwed  = G.taxForecast();
+    var html = '';
+    html += billRow('⚡', elecOwed, G.elecDaysLeft(), 'payElecBtn', t('bills_pay'), elecOwed > 0, G.elecDaysLeft() <= 1 && elecOwed > 0);
+    html += billRow('🧾', taxOwed, G.taxDaysLeft(), 'payTaxBtn', t('bills_pay'), taxOwed > 0, G.taxDaysLeft() <= 1 && taxOwed > 0);
+    if (s.powerShutoff) html += '<div class="bills-warn">' + t('bills_shutoff') + '</div>';
+    setHTML($('billsList'), html);
+    var eb = $('payElecBtn'); if (eb) eb.onclick = function () { var r = G.payElectricity(); toast(t('bills_paid_elec', { v: fmt(r.paid) }), r.short > 0 ? 'bad' : 'good'); buzz(14); update(); };
+    var tb = $('payTaxBtn');  if (tb) tb.onclick = function () { var r = G.payTaxes();       toast(t('bills_paid_tax',  { v: fmt(r.paid) }), r.short > 0 ? 'bad' : 'good'); buzz(14); update(); };
+  }
+
   // ---------- Managing Director (executive ladder) ----------
   // Day-aware time: long recruit timers (hours→days) read better than raw "96h 0m".
   function fmtLong(sec) {
@@ -1827,7 +1864,7 @@
     updateRunway();
     updateFinanceLine();   // DESIGN §2/§5/§6: Day N + always-on finance line + pre-revenue hint + debt banner
     updateGameOver();      // DESIGN §4: full-screen blocking game-over overlay (when a finale has fired)
-    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateLabOrbs(); }
+    if (currentTab === 'company') { updateGenerators(); updateModelPanel(); updateBills(); updateLabOrbs(); }
     else if (currentTab === 'upgrades') { updateUpgrades(); updateManagers(); }
     else if (currentTab === 'research') { updateTeam(); updateExec(); }
     else if (currentTab === 'world') updateWorld();
@@ -2023,6 +2060,25 @@
   }
   function hideModal() { $('modalRoot').classList.add('hidden'); $('modalRoot').innerHTML = ''; }
 
+  // v17 — first-electricity-bill TEACH popup: explains WHAT it is, WHERE to pay (Bills view),
+  // and the CONSEQUENCE of ignoring it (the −30% throttle). One-time; routes to pay-now.
+  function showBillTeach(amount) {
+    showModal(
+      '<h3>⚡ ' + t('billteach_title') + '</h3>' +
+      '<p>' + t('billteach_body', { v: fmt(amount) }) + '</p>' +
+      '<div class="awlist"><div class="awrow"><span class="awk">' + t('billteach_owed') + '</span>' +
+        '<span class="awv">$' + fmt(amount) + '</span></div></div>' +
+      '<p class="muted small">' + t('billteach_consequence') + '</p>' +
+      '<div class="row">' +
+      '<button class="primary" id="billPayNow">' + t('billteach_pay') + '</button>' +
+      '<button class="ghost" id="billLater">' + t('billteach_later') + '</button>' +
+      '</div>'
+    );
+    window.GAME_FX.flash('rgba(245,200,66,0.16)');
+    $('billPayNow').onclick = function () { var r = G.payElectricity(); toast(t('bills_paid_elec', { v: fmt(r.paid) }), r.short > 0 ? 'bad' : 'good'); buzz(16); hideModal(); update(); };
+    $('billLater').onclick  = function () { hideModal(); switchTab('company'); update(); };
+  }
+
   function showOffline(off) {
     // GDD v3 "while you were away" summary: revenue + compute + finished processes
     var lines = '';
@@ -2030,6 +2086,11 @@
     if (off.trainedGenId) lines += '<div class="awrow done"><span class="awk">' + t('aw_trained') + '</span><span class="awv">' + t(off.trainedGenId) + '</span></div>';
     if (off.builtDC) lines += '<div class="awrow done"><span class="awk">' + t('aw_built') + '</span><span class="awv">✓</span></div>';
     if (off.didResearch) lines += '<div class="awrow done"><span class="awk">' + t('aw_research') + '</span><span class="awv">✓</span></div>';
+    // v17 — bills the ACCOUNTANT settled while away (electricity + taxes) + its service fee.
+    if ((off.elecBill || 0) > 0) lines += '<div class="awrow bill"><span class="awk">⚡ ' + t('aw_elec') + '</span><span class="awv neg">−$' + fmt(off.elecBill) + '</span></div>';
+    if ((off.taxBill || 0) > 0)  lines += '<div class="awrow bill"><span class="awk">🧾 ' + t('aw_tax')  + '</span><span class="awv neg">−$' + fmt(off.taxBill)  + '</span></div>';
+    var fee = (off.elecFee || 0) + (off.taxFee || 0);
+    if (off.accountant && fee > 0) lines += '<div class="awrow bill"><span class="awk">🧮 ' + t('aw_fee') + '</span><span class="awv neg">−$' + fmt(fee) + '</span></div>';
     showModal(
       '<h3>' + t('offline_title') + '</h3>' +
       '<p>' + t('offline_away', { t: FMT.fmtTime(off.cappedSec) }) + '</p>' +
@@ -2042,12 +2103,17 @@
     );
     // After collecting revenue, chain the director's "while you were away" report (if any),
     // otherwise go straight to the daily check-in.
-    function afterCollect() { hideModal(); if (off.execReport && off.execReport.length) showAwayReport(off); else maybeShowDaily(); }
-    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute); afterCollect(); };
+    function afterCollect() {
+      // v17: if the accountant couldn't cover a bill, it rolled into debt + the −30% throttle.
+      if (off.billResult && off.billResult.shutoff) toast(t('bills_shutoff_toast'), 'bad');
+      hideModal(); if (off.execReport && off.execReport.length) showAwayReport(off); else maybeShowDaily();
+    }
+    // v17: pass `off` so applyOffline settles the accrued electricity + taxes via the accountant.
+    $('offCollect').onclick = function () { G.applyOffline(off.earned, off.compute, off); afterCollect(); };
     $('offDouble').onclick = function () {
       window.GAME_ADS.showRewarded({
-        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2); afterCollect(); },
-        onUnavailable: function () { G.applyOffline(off.earned, off.compute); toast(t('ad_unavailable'), 'bad'); afterCollect(); }
+        onReward: function () { G.applyOffline(off.earned * 2, off.compute * 2, off); afterCollect(); },
+        onUnavailable: function () { G.applyOffline(off.earned, off.compute, off); toast(t('ad_unavailable'), 'bad'); afterCollect(); }
       });
     };
   }
@@ -2335,6 +2401,19 @@
     G.on('card', function (d) {
       if (d.kind === 'crisis') { window.GAME_AUDIO.incident(); buzz([0,40,60,40]); window.GAME_FX.flash('rgba(251,92,120,0.25)'); showCrisisModal(); }
       else if (d.kind === 'escalate') { window.GAME_AUDIO.incident(); toast(t('incident_active', { p: C.RISK.INCIDENT_PENALTY }), 'bad'); }
+    });
+    // v17 — ACCOUNTANT auto-hire (~2 real min): a teach toast (never the word "free").
+    G.on('accountant', function () {
+      window.GAME_AUDIO.achievement && window.GAME_AUDIO.achievement(); buzz(14);
+      window.GAME_FX.flash('rgba(34,211,238,0.12)');
+      toast(t('accountant_toast'), 'gold');
+    });
+    // v17 — FIRST electricity bill TEACHES via a popup (what / where to pay / consequences),
+    // then routes the player to the Bills view to pay it themselves (online ⇒ no fee).
+    G.on('billTeach', function (d) {
+      if (!d || d.kind !== 'elec') return;
+      window.GAME_AUDIO.buy && window.GAME_AUDIO.buy();
+      showBillTeach(d.amount);
     });
     // ---------- Decision engine surfacing (Phase 2, Sub-part D) ----------
     G.on('decision', function (d) {
@@ -2714,7 +2793,10 @@
     update();
     // replay the current act's intro beat (also lets the player revisit it)
     if (location.hash === '#__intro') { setTimeout(function () { showActIntro(Math.max(1, G.currentAct())); }, 60); }
-    var offlineShown = offline && offline.earned > 0;
+    // v17: bills accrued while away are settled through the offline modal too, so it must show
+    // when there are bills to report even if earnings were negligible.
+    var hasBills = offline && ((offline.elecBill || 0) > 0 || (offline.taxBill || 0) > 0);
+    var offlineShown = offline && (offline.earned > 0 || hasBills);
     var awayOnly = !offlineShown && offline && offline.execReport && offline.execReport.length;
     if (offlineShown) {
       showOffline(offline);   // chains the away report on collect (showAwayReport)

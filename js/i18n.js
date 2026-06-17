@@ -43,7 +43,7 @@
     pre_revenue_hint: 'Pre-revenue — burning runway. Ship Model v1 to start earning.',
     // full per-line breakdown shown on tapping the finance line
     finance_tip_title: 'Monthly finances',
-    finance_tip: 'Income +${rev}/mo\nSalaries −${sal}/mo\nElectricity −${elec}/mo\nCompute −${comp}/mo\nDatacenters −${dc}/mo\nOverhead −${oh}/mo\nNet {sign}${net}/mo',
+    finance_tip: 'Income +${rev}/mo\nSalaries −${sal}/mo\nCompute −${comp}/mo\nDatacenters −${dc}/mo\nOverhead −${oh}/mo\nNet {sign}${net}/mo\n⚡ Electricity −${elec}/mo — billed separately',
     finance_tip_debt: '\nDebt interest +10% (in the red)',
     // loud red debt banner
     debt_banner_grace: 'IN THE RED — bankrupt by Day {n} unless you recover',
@@ -868,6 +868,34 @@
     offline_collect: 'Collect',
     offline_double: 'Double it (Ad)',
 
+    // ===== v17 — BILLS / TAXES / ACCOUNTANT (DESIGN-time-accountant) =====
+    bills_title: 'Bills',
+    bills_accountant_on: 'Accountant on staff',
+    bills_accountant_off: 'No accountant yet',
+    bills_pay: 'Pay now',
+    bills_clear: 'Clear',
+    bills_settling: 'settling…',
+    bills_in_days: 'settles {d}',
+    bills_day_one: 'in {n} day',
+    bills_days: 'in {n} days',
+    bills_shutoff: '⚠ Unpaid bill — generators throttled −30% until cleared.',
+    bills_shutoff_toast: 'A bill went unpaid — generators throttled −30% until you clear it.',
+    bills_paid_elec: 'Electricity paid: −${v}',
+    bills_paid_tax: 'Taxes paid: −${v}',
+    // accountant auto-hire toast (never the word "free")
+    accountant_toast: 'An accountant has joined the company — they settle the bills while you\'re away.',
+    // first-electricity-bill teach popup
+    billteach_title: 'First electricity bill',
+    billteach_body: 'Your generators draw power. It builds up into a bill of ~${v} that settles every few days — pay it in the Bills section on the Lab.',
+    billteach_owed: 'Owed now',
+    billteach_consequence: 'Ignore it and generators get throttled −30% until it\'s cleared. While online you pay it yourself — no fee.',
+    billteach_pay: 'Pay it now',
+    billteach_later: 'Later',
+    // "while you were away" bill rows
+    aw_elec: 'Electricity',
+    aw_tax: 'Taxes',
+    aw_fee: 'Accountant fee — bites early!',
+
     ad_boost: '2× Revenue (Ad)',
     ad_cash: 'Free Cash (Ad)',
     boost_active: '2× boost: {t}',
@@ -1163,7 +1191,7 @@
     finance_dot: ' · ',
     pre_revenue_hint: 'Пока без выручки — жжёшь runway. Выпусти Model v1, чтобы начать зарабатывать.',
     finance_tip_title: 'Финансы за месяц',
-    finance_tip: 'Доход +${rev}/мес\nЗарплаты −${sal}/мес\nЭлектричество −${elec}/мес\nКомпьют −${comp}/мес\nДатацентры −${dc}/мес\nОверхед −${oh}/мес\nИтог {sign}${net}/мес',
+    finance_tip: 'Доход +${rev}/мес\nЗарплаты −${sal}/мес\nКомпьют −${comp}/мес\nДатацентры −${dc}/мес\nОверхед −${oh}/мес\nИтог {sign}${net}/мес\n⚡ Электричество −${elec}/мес — отдельным счётом',
     finance_tip_debt: '\nДолговой процент +10% (в минусе)',
     debt_banner_grace: 'В МИНУСЕ — банкротство к Дню {n}, если не выправишься',
     debt_banner_near: 'В МИНУСЕ — банкротство к Дню {n}! Долг на {pct}% до потолка',
@@ -1967,6 +1995,34 @@
     offline_earned: 'Лаборатория заработала {v}',
     offline_collect: 'Забрать',
     offline_double: 'Удвоить (реклама)',
+
+    // ===== v17 — СЧЕТА / НАЛОГИ / БУХГАЛТЕР (DESIGN-time-accountant) =====
+    bills_title: 'Счета',
+    bills_accountant_on: 'Бухгалтер в штате',
+    bills_accountant_off: 'Бухгалтера ещё нет',
+    bills_pay: 'Оплатить',
+    bills_clear: 'Оплачено',
+    bills_settling: 'списание…',
+    bills_in_days: 'спишется {d}',
+    bills_day_one: 'через {n} день',
+    bills_days: 'через {n} дн.',
+    bills_shutoff: '⚠ Счёт не оплачен — генераторы урезаны на −30% до погашения.',
+    bills_shutoff_toast: 'Счёт остался неоплаченным — генераторы урезаны на −30%, пока не погасишь.',
+    bills_paid_elec: 'Электричество оплачено: −${v}',
+    bills_paid_tax: 'Налоги оплачены: −${v}',
+    // авто-найм бухгалтера (без слова «бесплатно»)
+    accountant_toast: 'В компании появился бухгалтер — оплачивает счета в твоё отсутствие.',
+    // обучающий попап первого электросчёта
+    billteach_title: 'Первый счёт за электричество',
+    billteach_body: 'Генераторы потребляют электричество. Оно копится в счёт ~${v}, который списывается раз в несколько дней — оплачивай его в разделе «Счета» на Лабе.',
+    billteach_owed: 'Накоплено',
+    billteach_consequence: 'Проигнорируешь — генераторы урежут на −30% до погашения. Онлайн платишь сам — без комиссии.',
+    billteach_pay: 'Оплатить сейчас',
+    billteach_later: 'Позже',
+    // строки отчёта «пока тебя не было»
+    aw_elec: 'Электричество',
+    aw_tax: 'Налоги',
+    aw_fee: 'Оплачено бухгалтеру — кусается на старте!',
 
     ad_boost: '2× доход (реклама)',
     ad_cash: 'Деньги бесплатно (реклама)',

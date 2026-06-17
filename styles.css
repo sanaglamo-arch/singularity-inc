@@ -665,6 +665,20 @@ h2:first-child { margin-top: 4px; }
 .awrow .awk { color: var(--fg-muted); }
 .awrow .awv { font-family: var(--font-display); font-weight: 700; color: var(--cyan); }
 .awrow.done .awv { color: var(--green); }
+.awrow.bill .awv.neg { color: var(--rose); }
+/* v17 — BILLS view (Lab): accruing electricity + next tax + pay-now */
+#billsPanel #billsHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+#billsPanel #billsTitle { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+#billsList { display: flex; flex-direction: column; gap: 6px; }
+.bills-row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; background: rgba(20,19,42,0.5); border: 1px solid var(--glass-border); }
+.bills-row.urgent { border-color: var(--amber, #f5c842); background: rgba(245,200,66,0.10); }
+.bills-row .bills-icon { font-size: 15px; }
+.bills-row .bills-amt { font-family: var(--font-display); font-weight: 700; color: var(--fg); }
+.bills-row .bills-when { white-space: nowrap; }
+.bills-row .bills-pay { padding: 5px 11px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(34,211,238,0.14); color: var(--cyan); cursor: pointer; }
+.bills-row .bills-pay:active { transform: scale(0.96); }
+.bills-row .bills-paid { white-space: nowrap; }
+.bills-warn { margin-top: 6px; padding: 7px 10px; border-radius: 9px; font-size: 12px; color: var(--rose); background: rgba(251,92,120,0.10); border: 1px solid rgba(251,92,120,0.35); }
 /* "while you were away" — Managing Director delegation report */
 .awreport { max-height: 46vh; overflow-y: auto; gap: 7px; }
 .awcard { padding: 9px 11px; border-radius: 10px; background: rgba(20,19,42,0.55); border: 1px solid var(--glass-border); border-left-width: 3px; text-align: left; }
