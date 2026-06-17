@@ -9,7 +9,7 @@
   GEN.forEach(function (g) { GENBYID[g.id] = g; });
 
   // ---- listeners (ui subscribes) --------------------------------------
-  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [] };
+  var listeners = { change: [], toast: [], achievement: [], incident: [], prestige: [], gameevent: [], milestone: [], insight: [], breakthrough: [], singularity: [], card: [], act: [], ending: [], generation: [], funding: [], process: [], acquire: [], trainprogress: [], longtrain: [], rivalagi: [], rivallife: [], scheduled: [], decision: [], newsline: [], crisis: [], lever: [] };
   var LONG_TRAIN_SEC = 3600;   // ~1h: the threshold where a training run "feels long" (v4→v5 cliff)
   function on(ev, cb) { if (listeners[ev]) listeners[ev].push(cb); }
   function emit(ev, data) { (listeners[ev] || []).forEach(function (cb) { try { cb(data); } catch (e) {} }); }
@@ -109,6 +109,7 @@
       // R9 narrative campaign + race to AGI
       act: 0,                // current narrative act (monotonic)
       rivals: [],            // §4 data-driven roster: [{id,name,archetype,share,agi,acquired,agiToasted,shareRate,agiRate,speed}] — seeded at new-game
+      rivalLifeNextAt: 0,    // PHASE 6: epoch ms when the next lifecycle event may fire (cooldown anchor)
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
       // ===== GDD v3 — continuous no-reset meta =====
@@ -1165,6 +1166,7 @@
     emit('singularity', { gain: gain });
     resetRun(true); // clears tech + RP
     seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the new race
+    state.rivalLifeNextAt = 0; // PHASE 6: reset lifecycle cooldown for the fresh field
     state.raceStance = null; state._endingFired = false;
     rollGamble();
     checkAchievements();
@@ -2076,6 +2078,125 @@
   function leadingRival() { ensureRivals(); var id = null, v = -1; activeRivals().forEach(function (r) { if ((r.agi || 0) > v) { v = r.agi || 0; id = r.id; } }); return { id: id, val: v < 0 ? 0 : v }; }
   function maxRivalAgi() { return leadingRival().val; }
   function slowLeadingRival() { var l = leadingRival(); if (l.id) { var r = rivalById(l.id); if (r) r.agi = Math.max(0, (r.agi || 0) - C.RACE.SLOW_OPENSOURCE); } }
+
+  // ===== PHASE 6 — RIVAL LIFECYCLE (Sub-part B) + NEWS (Sub-part C) =====
+  // weighted pick over {key:weight}; returns a key or null. NaN/0-weight entries are skipped.
+  function weightedPick(weights) {
+    var total = 0, k;
+    for (k in weights) { var w = +weights[k]; if (isFinite(w) && w > 0) total += w; }
+    if (total <= 0) return null;
+    var roll = Math.random() * total;
+    for (k in weights) { var ww = +weights[k]; if (!(isFinite(ww) && ww > 0)) continue; if ((roll -= ww) < 0) return k; }
+    return null;
+  }
+  // redistribute an exiting rival's share to the OTHER active rivals (consolidation of the field).
+  function redistributeShare(share, exceptId) {
+    var others = activeRivals().filter(function (r) { return r.id !== exceptId; });
+    if (!others.length || share <= 0) return;
+    var each = share / others.length;
+    others.forEach(function (r) { r.share = Math.min(C.RIVAL_SHARE_CAP, (r.share || 0) + each); });
+  }
+  // ids currently on the live roster (active OR acquired) — so a dark-horse never re-uses a name.
+  function rosterIds() { var m = {}; (state.rivals || []).forEach(function (r) { m[r.id] = 1; }); return m; }
+  // build a brand-new dark-horse rival from an UNUSED pool entry. Returns the rival or null.
+  function spawnEntrant() {
+    var used = rosterIds();
+    var fresh = C.RIVAL_POOL.filter(function (p) { return !used[p.id]; });
+    if (!fresh.length) return null;
+    var pool = fresh[Math.floor(Math.random() * fresh.length)];
+    var L = C.RIVAL_LIFECYCLE, r = makeRival(pool);
+    // dark-horse enters mid-game ALREADY impactful (storms the market), not from zero.
+    r.share = Math.round(rnd(L.ENTRANT_SURGE[0], L.ENTRANT_SURGE[1]) * 10) / 10;
+    r.agi = Math.round(rnd(L.ENTRANT_AGI[0], L.ENTRANT_AGI[1]) * 10) / 10;
+    state.rivals.push(r);
+    return r;
+  }
+  // gate: lifecycle drama only once the race is live, mid-game, with a real field to act on.
+  function lifecycleEligible() {
+    if (!rivalsActive() || state.gameOver) return false;
+    if ((state.modelGen || 0) < C.RIVAL_LIFECYCLE.MIN_GEN) return false;
+    return activeRivals().length >= 1;
+  }
+  // THE ROLLER — at most one event per cooldown window (difficulty-scaled). Fires drama +
+  // routes EVERY event through emitNews so rivals are self-acting characters in the feed.
+  function updateRivalLifecycle() {
+    if (!lifecycleEligible()) return;
+    var L = C.RIVAL_LIFECYCLE, now = Date.now();
+    // first-fire grace + cooldown anchor (scaled by difficulty: harder = shorter = more churn)
+    var cdMult = diffNum('lifecycleCdMult', 1);
+    if (!state.rivalLifeNextAt) { state.rivalLifeNextAt = now + L.FIRST_DELAY_SEC * 1000 * cdMult; return; }
+    if (now < state.rivalLifeNextAt) return;
+    // schedule the NEXT window (±25% jitter so it never feels metronomic)
+    state.rivalLifeNextAt = now + L.COOLDOWN_SEC * 1000 * cdMult * rnd(0.75, 1.25);
+
+    var active = activeRivals();
+    // weight the eligible events by field state: bankruptcy/merge need bodies; entrants are
+    // rarer-but-impactful (×difficulty entrantMult). Pick weighted-random among eligible.
+    var w = {};
+    w.ship = L.weights.ship;
+    w.scandal = L.weights.scandal;
+    if (active.filter(function (r) { return (r.share || 0) <= L.BANKRUPT_SHARE_MAX; }).length && active.length > L.BANKRUPT_MIN_FIELD) w.bankrupt = L.weights.bankrupt;
+    if (active.length >= L.MERGE_MIN_FIELD) w.merge = L.weights.merge;
+    if (spawnableEntrantExists()) w.entrant = L.weights.entrant * diffNum('entrantMult', 1);
+    var kind = weightedPick(w);
+    if (!kind) return;
+
+    if (kind === 'ship') {
+      // a rival ships a model → share + AGI jump + headline (the owner's example line).
+      var r = active[Math.floor(Math.random() * active.length)];
+      r.share = Math.min(C.RIVAL_SHARE_CAP, (r.share || 0) + rnd(L.SHIP_SHARE[0], L.SHIP_SHARE[1]));
+      r.agi = Math.min(100, (r.agi || 0) + rnd(L.SHIP_AGI[0], L.SHIP_AGI[1]));
+      emitNews('rival', ['nh_rival_ship', 'nh_rival_ship2'], { name: rivalName(r.id) });
+      emit('rivallife', { kind: 'ship', id: r.id });
+    } else if (kind === 'scandal') {
+      // a rival scandal/incident → share dip (the player can capitalize). Regulatory-flavored.
+      var rs = active[Math.floor(Math.random() * active.length)];
+      rs.share = Math.max(0, (rs.share || 0) + rnd(L.SCANDAL_SHARE[0], L.SCANDAL_SHARE[1]));
+      emitNews('regulatory', ['nh_rival_scandal', 'nh_rival_scandal2'], { name: rivalName(rs.id) });
+      emit('rivallife', { kind: 'scandal', id: rs.id });
+    } else if (kind === 'bankrupt') {
+      // a weak rival exits standings; its share redistributes to the survivors.
+      var weak = active.filter(function (r2) { return (r2.share || 0) <= L.BANKRUPT_SHARE_MAX; });
+      weak.sort(function (a, b) { return (a.share || 0) - (b.share || 0); });
+      var victim = weak[0];
+      if (!victim) return;
+      emitNews('rival', ['nh_rival_bankrupt', 'nh_rival_bankrupt2'], { name: rivalName(victim.id) });
+      redistributeShare(victim.share || 0, victim.id);
+      removeRival(victim.id);
+      emit('rivallife', { kind: 'bankrupt', id: victim.id });
+    } else if (kind === 'merge') {
+      // a strong rival absorbs a weaker one (consolidation → toward a juggernaut).
+      var byShare = active.slice().sort(function (a, b) { return (b.share || 0) - (a.share || 0); });
+      var acquirer = byShare[0], target = byShare[byShare.length - 1];
+      if (!acquirer || !target || acquirer.id === target.id) return;
+      acquirer.share = Math.min(C.RIVAL_SHARE_CAP, (acquirer.share || 0) + (target.share || 0) * 0.7);
+      acquirer.agi = Math.min(100, Math.max(acquirer.agi || 0, target.agi || 0));
+      emitNews('rival', ['nh_rival_merge', 'nh_rival_merge2'], { name: rivalName(acquirer.id), name2: rivalName(target.id) });
+      removeRival(target.id);
+      emit('rivallife', { kind: 'merge', id: acquirer.id, absorbed: target.id });
+    } else if (kind === 'entrant') {
+      // a dark-horse from the unused pool ENTERS mid-game and surges.
+      var e = spawnEntrant();
+      if (!e) return;
+      emitNews('milestone', ['nh_rival_entrant', 'nh_rival_entrant2'], { name: rivalName(e.id) });
+      emit('rivallife', { kind: 'entrant', id: e.id });
+    }
+    checkAchievements();
+    emit('change');
+  }
+  // is there at least one unused pool name a dark-horse could spawn from?
+  function spawnableEntrantExists() {
+    var used = rosterIds();
+    for (var i = 0; i < C.RIVAL_POOL.length; i++) if (!used[C.RIVAL_POOL[i].id]) return true;
+    return false;
+  }
+  // remove a rival from the live roster entirely (bankruptcy / merge target). Keeps the array
+  // tight so standings/buildStandings rebuild correctly when the roster set changes.
+  function removeRival(id) {
+    if (!Array.isArray(state.rivals)) return;
+    state.rivals = state.rivals.filter(function (r) { return r.id !== id; });
+  }
+
   function updateRace(dt) {
     // act advance + intro
     var a = currentAct();
@@ -2127,6 +2248,7 @@
     state.crisis = { warnLevel: 0, ultimatumAt: 0, acq: null, acqClearUntil: 0, sharePeak: 0, natAt: 0 };
     state.debt = { owed: 0, perMonth: 0, monthsLeft: 0 };
     seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the legacy run
+    state.rivalLifeNextAt = 0; // PHASE 6: reset lifecycle cooldown for the fresh field
     state.gameOver = false; state.ending = null; state.won = false;
     state.totalEarnedThisRun = 0;
     emit('change');
@@ -2377,6 +2499,7 @@
     if (execRecruitActive() && Date.now() >= state.execRecruit.endsAt) finishExecRecruit(); // managing-director recruit
 
     updateRivals(dt);   // GDD v3: rivals creep on market share + AGI (the race)
+    updateRivalLifecycle();   // PHASE 6: ship/scandal/bankruptcy/merger/dark-horse drama (cooldowned)
     if (!state.gameOver && !isAGI() && leadingRivalAgi() >= 100) triggerFinale('beaten', false); // a rival reached AGI first
     updateCrisis(dt);   // Phase 3 FAILURE STATES: bankruptcy telegraph + acquisition + nationalization
     if (!state.unicorn && state.modelGen >= 1 && valuation() >= 1e9) { state.unicorn = true; emit('toast', { key: 'milestone_unicorn' }); } // §9 shareable
@@ -2692,6 +2815,8 @@
     }
     // drop the superseded per-id maps so they can't drift out of sync with state.rivals
     delete s.rivalShare; delete s.rivalAgi; delete s.acquired; delete s.rivalAgiToasted;
+    // ---- v15 (Phase 6): rival lifecycle cooldown anchor (defaults to 0 = ready) ----
+    if (typeof s.rivalLifeNextAt !== 'number' || !isFinite(s.rivalLifeNextAt)) s.rivalLifeNextAt = 0;
     // ---- v6: parallel build/research timers ----
     if (typeof s.datacenters !== 'number') s.datacenters = 0;
     if (!s.build || typeof s.build !== 'object') s.build = { active: false, startedAt: 0, endsAt: 0 };
@@ -2920,6 +3045,7 @@
       var seed = (C.DIFFICULTY.START_CASH_SEED || 0) * (diff('startCashMult') || 1);
       if (seed > 0 && state.cash < seed) state.cash = seed;   // grant once (don't lower an existing balance)
       seedRivals(level);                                       // fresh random field for this run
+      state.rivalLifeNextAt = 0;                               // PHASE 6: fresh lifecycle cooldown
     } else { ensureRivals(); }
     save();
     emit('change');
@@ -3012,6 +3138,7 @@
     setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
     setDifficulty: setDifficulty, diff: diff, seedRivals: seedRivals,
     rivalName: rivalName, activeRivals: activeRivals, rivalById: rivalById,
+    updateRivalLifecycle: updateRivalLifecycle, spawnEntrant: spawnEntrant,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
     // progressive unlock schedule + release projection
