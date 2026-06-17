@@ -2710,18 +2710,34 @@
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
   function leadingRivalAgi() { var m = 0; activeRivals().forEach(function (r) { m = Math.max(m, r.agi || 0); }); return m; }
-  // Topbar race-status badge (item 3): show '#1' when you lead the market AND no rival is
-  // closing in; otherwise surface the most threatening rival's AGI %. Null = nothing to show
-  // yet (race not revealed). The threat takes priority once a rival passes ~40% AGI.
-  // (uses the existing leadingRival() defined below, which returns {id, val}.)
+  // Topbar AGI-race GAP telegraph (audit §B.2 — "Beaten = a clock you can't see").
+  // PERSISTENT, always-visible from mid-game: compares YOUR AGI% to the LEADING rival's
+  // AGI% so the player SEES the race tightening BEFORE committing to a multi-day final
+  // train. Returns null only before v1 ships (nothing to race yet). Otherwise:
+  //   { state:'lead'|'amber'|'red', you, lead, gap, id, pct, kind }
+  //   • state 'lead'  — you lead by ≥ GAP_SAFE (green)
+  //   • state 'amber' — a rival is within ±GAP_SAFE, closing in (amber)
+  //   • state 'red'   — a rival is AHEAD of you (gap < 0)  → you are LOSING the race
+  // `kind` is kept for back-compat with older callers (lead vs threat).
   function raceStatus() {
-    if (!rivalsRevealed() || !rivalsActive()) return null;
+    if (!rivalsActive()) return null;
+    if (state.modelGen < (C.RACE.GAP_HUD_FROM_GEN || 1)) return null;
+    var you = agiProgress();
     var lr = leadingRival();
-    var agi = lr && lr.id ? (lr.val || 0) : 0;
-    var threat = lr && lr.id && agi >= 40;
-    if (threat) return { kind: 'threat', id: lr.id, pct: Math.round(agi) };
-    if (isMarketLeader()) return { kind: 'lead' };
-    return (lr && lr.id) ? { kind: 'threat', id: lr.id, pct: Math.round(agi) } : null;
+    var lead = lr && lr.id ? (lr.val || 0) : 0;
+    var gap = Math.round((you - lead) * 10) / 10;
+    var safe = C.RACE.GAP_SAFE || 5;
+    var st = gap < 0 ? 'red' : (gap < safe ? 'amber' : 'lead');
+    return {
+      state: st,
+      kind: st === 'lead' ? 'lead' : 'threat',  // legacy field
+      you: Math.round(you),
+      lead: Math.round(lead),
+      gap: Math.abs(Math.round(gap)),
+      ahead: gap >= 0,
+      id: lr.id,
+      pct: Math.round(lead)
+    };
   }
   function rivalAcquired(id) { var r = rivalById(id); return !r || !!r.acquired; }
   // §5 acquisitions: buy out the strongest remaining rival (one-time each, post mid-game)

@@ -153,8 +153,10 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
 #boostBadge { background: linear-gradient(90deg, var(--violet), var(--cyan)); }
 #eventBadge { max-width: 42%; background: linear-gradient(90deg, var(--gold), #f59e0b); }
 #eventBadge.bad { background: linear-gradient(90deg, var(--rose), #ff8aa0); color: #2a0710; }
-/* race-status badge: green when leading, rose when a rival closes in */
-#raceBadge { max-width: 50%; background: linear-gradient(90deg, #34d399, #22d3ee); }
+/* AGI-race GAP telegraph badge (audit §B.2): green = you lead · amber = rival closing · red = rival ahead.
+   A STATE GLYPH (✓ / ▲ / ⚠) prefixes the text so the lead/amber/red signal survives colorblindness. */
+#raceBadge { max-width: 58%; background: linear-gradient(90deg, #34d399, #22d3ee); color: #06231b; }
+#raceBadge.amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); color: #2a1a02; }
 #raceBadge.threat { background: linear-gradient(90deg, var(--rose), #ff8aa0); color: #2a0710; }
 
 /* ---------- runway HUD (Phase 2 burn→runway headline) ---------- */

@@ -335,7 +335,13 @@
     PLAYER_TARGET_RP: 700,  // your AGI% = 100 * rp / TARGET (100% ~ when you can Ascend)
     HEAT: 0.6,              // as the leader nears AGI, everyone speeds up (climax tension)
     SLOW_OPENSOURCE: 14,    // open-sourcing knocks the leading rival back this much AGI%
-    RECKLESS_RIVAL_BONUS: 0.4 // racing recklessly (low alignment) lets rivals gain faster too
+    RECKLESS_RIVAL_BONUS: 0.4, // racing recklessly (low alignment) lets rivals gain faster too
+    // ---- AGI-race GAP telegraph HUD (audit §B.2 "Beaten = a clock you can't see") ----
+    // The persistent topbar gap indicator shows YOUR AGI% vs the LEADING rival's AGI%.
+    // gap = you − leader.  green = you lead by ≥ GAP_SAFE · amber = within ±GAP_SAFE
+    // (a rival is breathing down your neck) · red = a rival is AHEAD (gap < 0).
+    GAP_SAFE: 5,           // % AGI lead considered "comfortable" (green above this)
+    GAP_HUD_FROM_GEN: 1    // gap HUD appears once you've shipped v1 (visible mid-game, testable)
   };
 
   // ---- DIFFICULTY (Phase 1 foundation) ---------------------------------

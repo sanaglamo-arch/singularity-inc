@@ -1238,17 +1238,23 @@
       setClass(eb, 'bad', s.eventId === 'shortage');
       setText(eb, t('ev_active', { name: t('ev_' + s.eventId), t: FMT.fmtTime((s.eventEndsAt - Date.now()) / 1000) }));
     } else setClass(eb, 'hidden', true);
-    // persistent race-status badge (item 3): '#1 market share' when leading, switches to
-    // 'Helion 78% AGI' as a rival closes in. Shown from mid-game (once rivals are revealed).
+    // persistent AGI-race GAP telegraph (audit §B.2 — "Beaten = a clock you can't see").
+    // Always visible from mid-game: shows YOUR AGI% vs the LEADING rival's, color-coded
+    // green (you lead ≥5%) / amber (a rival within 5%) / red (a rival is AHEAD), so the
+    // player SEES the race tightening before committing to a multi-day final train.
     var rb = $('raceBadge');
     if (rb) {
       var rs = G.raceStatus && G.raceStatus();
-      if (rs && rs.kind === 'lead') {
-        setClass(rb, 'hidden', false); setClass(rb, 'threat', false);
-        setText(rb, t('race_lead_badge'));
-      } else if (rs && rs.kind === 'threat') {
-        setClass(rb, 'hidden', false); setClass(rb, 'threat', true);
-        setText(rb, t('race_threat_badge', { name: G.rivalName(rs.id), p: rs.pct }));
+      if (rs) {
+        setClass(rb, 'hidden', false);
+        setClass(rb, 'amber', rs.state === 'amber');
+        setClass(rb, 'threat', rs.state === 'red');   // .threat = red (rival ahead)
+        var glyph = rs.state === 'lead' ? STATE_GLYPH.green : (rs.state === 'amber' ? STATE_GLYPH.amber : STATE_GLYPH.red);
+        var key, vars;
+        if (rs.state === 'red') { key = 'race_gap_behind'; vars = { name: G.rivalName(rs.id), g: rs.gap }; }
+        else if (rs.state === 'amber') { key = 'race_gap_close'; vars = { name: G.rivalName(rs.id), g: rs.gap }; }
+        else { key = 'race_gap_lead'; vars = { g: rs.gap }; }
+        setText(rb, glyph + t(key, vars));
       } else setClass(rb, 'hidden', true);
     }
     updateInboxBadge();   // decision inbox count (Phase 2)

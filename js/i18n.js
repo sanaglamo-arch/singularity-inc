@@ -207,6 +207,10 @@
     rival_agi_toast: '{name} hit {p}% AGI — they\'re catching up!',
     race_lead_badge: '#1 market share',
     race_threat_badge: '{name} {p}% AGI',
+    // AGI-race GAP telegraph (audit §B.2) — persistent topbar lead/amber/red indicator
+    race_gap_lead: '🏁 You lead by {g}% AGI',
+    race_gap_close: '🏁 {name} closing — +{g}% lead',
+    race_gap_behind: '🏁 {name} ahead by {g}% AGI',
     tip_research2: 'Run research projects (money + time) for permanent efficiency: more compute per unit and faster processes. Runs in parallel with training and builds — there is always something progressing.',
     world_news_title: 'Newsroom', world_market_title: 'AI Market',
     world_locked: 'Releases & investing unlock after your first model.',
@@ -1427,6 +1431,10 @@
     rival_agi_toast: '{name} достиг {p}% AGI — они догоняют!',
     race_lead_badge: '#1 по доле рынка',
     race_threat_badge: '{name} {p}% AGI',
+    // телеграф ОТРЫВА в гонке к AGI (аудит §B.2) — постоянный индикатор зел/амбер/красный
+    race_gap_lead: '🏁 Ты впереди на {g}% AGI',
+    race_gap_close: '🏁 {name} догоняет — отрыв +{g}%',
+    race_gap_behind: '🏁 {name} впереди на {g}% AGI',
     tip_research2: 'Запускай исследовательские проекты (деньги + время) ради перманентной эффективности: больше компьюта на единицу и быстрее процессы. Идёт параллельно с обучением и стройкой — всегда что-то прогрессирует.',
     world_news_title: 'Ньюсрум', world_market_title: 'ИИ-рынок',
     world_locked: 'Релизы и инвестиции откроются после первой модели.',
