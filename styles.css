@@ -938,6 +938,21 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .name-edit .name-input { margin: 0; font-size: 13px; padding: 9px 11px; }
 .name-save { flex: 0 0 auto; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); background: linear-gradient(100deg, var(--violet), var(--cyan)); color: #0a0a18; font-weight: 700; font-size: 12px; padding: 9px 12px; min-height: 40px; cursor: pointer; white-space: nowrap; }
 
+/* difficulty-select step (new-game) */
+.diff-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 2px; text-align: left; }
+.diff-opt {
+  display: block; width: 100%; box-sizing: border-box; cursor: pointer;
+  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--fg); padding: 10px 12px; transition: border-color 0.15s, background 0.15s;
+}
+.diff-opt:hover { border-color: var(--violet-2); }
+.diff-opt.on { border-color: var(--violet); background: rgba(139,92,246,0.12); box-shadow: 0 0 0 1px rgba(139,92,246,0.30); }
+.diff-opt .dname { font-family: var(--font-display); font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 7px; }
+.diff-opt .dtick { margin-left: auto; color: var(--cyan); opacity: 0; font-size: 13px; }
+.diff-opt.on .dtick { opacity: 1; }
+.diff-opt .ddesc { font-size: 11.5px; line-height: 1.35; color: var(--muted); margin-top: 3px; }
+.ob-diff .row { margin-top: 12px; }
+
 /* ---------- evolving backdrop stages (escalate toward AGI) ---------- */
 html[data-stage="1"] #app::before { filter: blur(28px) saturate(1.15); }
 html[data-stage="2"] #app::before { filter: blur(30px) saturate(1.25); }

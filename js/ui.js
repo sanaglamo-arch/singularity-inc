@@ -526,12 +526,16 @@
 
   // ---------- GDD v3: rival market-share standings ----------
   var standRefs = null;
-  function entityName(id) { return id === 'you' ? t('you_label') : t('rival_' + id); }
+  // item 2 + §4: the player row shows companyName; each rival shows its live roster name
+  // (the roster is randomized per game, so names come from state.rivals, not static i18n).
+  function entityName(id) { return id === 'you' ? coName() : G.rivalName(id); }
   function buildStandings() {
     var box = $('standingsRows'); if (!box) return;
     box.innerHTML = ''; standRefs = {};
-    var ids = ['you']; C.RIVALS.forEach(function (r) { ids.push(r.id); });
-    ids.forEach(function (id) {
+    // build one row per CURRENT standings entry (player + live rivals) — the roster size
+    // varies by game now, so derive ids from G.standings() rather than a fixed config list.
+    G.standings().forEach(function (e) {
+      var id = e.id;
       var row = el('div', 'standrow' + (id === 'you' ? ' you' : ''));
       row.innerHTML = '<span class="srank"></span><span class="sname">' + entityName(id) + '</span>' +
         '<span class="sbarwrap"><span class="sbar"></span></span><span class="sshare"></span>';
@@ -540,8 +544,9 @@
     });
   }
   function updateStandings() {
-    if (!standRefs) buildStandings();
     var rows = G.standings(), maxShare = 0, box = $('standingsRows');
+    // rebuild if the roster set changed (different game / acquisition removed a rival)
+    if (!standRefs || rows.some(function (r) { return !standRefs[r.id]; }) || rows.length !== Object.keys(standRefs).length) buildStandings();
     rows.forEach(function (r) { if (r.share > maxShare) maxShare = r.share; });
     maxShare = Math.max(maxShare, 1);
     // Reorder the REAL DOM nodes to the sorted order EVERY update so the shown rank,
@@ -564,7 +569,7 @@
     var ab = $('acquireBtn'), tgt = G.acquireTarget();
     if (tgt && G.acquireUnlocked() && G.canAcquire()) {
       setClass(ab, 'hidden', false);
-      setText(ab, t('acquire_btn', { name: t('rival_' + tgt.id), v: '$' + fmt(G.acquireCost(tgt.id)) }));
+      setText(ab, t('acquire_btn', { name: G.rivalName(tgt.id), v: '$' + fmt(G.acquireCost(tgt.id)) }));
     } else setClass(ab, 'hidden', true);
     // §4 open-source action: repeatable, slows the leader (+Trust) on a cooldown
     var ob = $('raceOpenBtn');
@@ -1046,7 +1051,7 @@
         setText(rb, t('race_lead_badge'));
       } else if (rs && rs.kind === 'threat') {
         setClass(rb, 'hidden', false); setClass(rb, 'threat', true);
-        setText(rb, t('race_threat_badge', { name: t('rival_' + rs.id), p: rs.pct }));
+        setText(rb, t('race_threat_badge', { name: G.rivalName(rs.id), p: rs.pct }));
       } else setClass(rb, 'hidden', true);
     }
     // ITEM 1: the topbar badges hang at top:100% onto the ticker row. When ANY badge
@@ -1745,10 +1750,46 @@
     setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) {} }, 50);
   }
 
+  // ---------- difficulty-select step (new-game; after naming) ----------
+  // Four levels with a one-line description each. The choice seeds starting cash + the
+  // random rival roster (G.setDifficulty(level, true)). Shown once for a genuinely new game.
+  function showDifficulty(done) {
+    var levels = C.DIFFICULTY.ORDER;
+    var sel = G.state.difficulty || C.DIFFICULTY.DEFAULT;
+    function optsHtml() {
+      return levels.map(function (lv) {
+        return '<button class="diff-opt' + (lv === sel ? ' on' : '') + '" data-diff="' + lv + '">' +
+          '<div class="dname">' + t('diff_' + lv) + '<span class="dtick">✓</span></div>' +
+          '<div class="ddesc">' + t('diff_' + lv + '_d') + '</div></button>';
+      }).join('');
+    }
+    showModal(
+      '<div class="ob ob-diff">' +
+      '<h3>' + t('diff_title') + '</h3>' +
+      '<p>' + t('diff_body') + '</p>' +
+      '<div class="diff-list" id="diffList">' + optsHtml() + '</div>' +
+      '<div class="row">' +
+      '<button class="primary" id="diffOk">' + t('diff_confirm') + '</button>' +
+      '</div></div>'
+    );
+    var list = $('diffList');
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.diff-opt') : null; if (!b) return;
+      sel = b.getAttribute('data-diff');
+      var kids = list.querySelectorAll('.diff-opt');
+      for (var i = 0; i < kids.length; i++) setClass(kids[i], 'on', kids[i].getAttribute('data-diff') === sel);
+    });
+    $('diffOk').onclick = function () {
+      G.setDifficulty(sel, true);   // seeds start-cash boost + random rival roster
+      renderStatic(); update();
+      done();
+    };
+  }
+
   // ---------- onboarding tour ----------
   function showOnboarding() {
-    // genuinely-new game gets the naming step first, then the tour
-    if (!G.state.companyNamed) { showNaming(function () { showTour(); }); return; }
+    // genuinely-new game: name your lab → choose difficulty → the tour
+    if (!G.state.companyNamed) { showNaming(function () { showDifficulty(function () { showTour(); }); }); return; }
     showTour();
   }
   function showTour() {
@@ -1891,7 +1932,7 @@
       var tgt = G.acquireTarget(); if (!tgt) return;
       if (G.acquireRival()) { window.GAME_AUDIO.prestige(); buzz([0,25,40,25]); window.GAME_FX.flash('rgba(139,92,246,0.2)'); updateStandings(); }
     });
-    G.on('acquire', function (d) { toast(t('acquire_done', { name: t('rival_' + d.id) }), 'gold'); });
+    G.on('acquire', function (d) { toast(t('acquire_done', { name: G.rivalName(d.id) }), 'gold'); });
     // GDD v3: Founder's Legacy (optional, non-forced replay after the finale)
     var legacyBtn = $('legacyBtn');
     if (legacyBtn) legacyBtn.addEventListener('click', function () {
@@ -1937,7 +1978,7 @@
     // late-game drama: a rival crossed 50/75/90% AGI — they're catching up (item 3)
     G.on('rivalagi', function (d) {
       window.GAME_AUDIO.incident && window.GAME_AUDIO.incident(); buzz([0, 30, 50, 30]);
-      toast(t('rival_agi_toast', { name: t('rival_' + d.id), p: d.pct }), 'bad');
+      toast(t('rival_agi_toast', { name: G.rivalName(d.id), p: d.pct }), 'bad');
     });
     // GDD v3: hire a researcher (speeds up training/research/builds)
     var hireBtn = $('hireBtn');
@@ -2174,7 +2215,7 @@
       window.__seedNews = function () {
         var seeds = [
           ['nh_react_lead', 'milestone', {}], ['nh_react_risk', 'regulatory', {}],
-          ['nh_rival_agi', 'rival', { name: t('rival_helion'), pct: 75 }],
+          ['nh_rival_agi', 'rival', { name: (G.activeRivals()[0] ? G.activeRivals()[0].name : t('rival_helion')), pct: 75 }],
           ['dec_data_dilemma_t', 'decision', {}], ['nh_fund_1', 'milestone', { round: t('fund_b') }],
           ['callback_lawsuit', 'rival', {}], ['nh_react_trust', 'rival', {}],
           ['nh_gen_1', 'milestone', { name: t('g_v4') }]

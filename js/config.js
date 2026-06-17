@@ -323,6 +323,121 @@
     RECKLESS_RIVAL_BONUS: 0.4 // racing recklessly (low alignment) lets rivals gain faster too
   };
 
+  // ---- DIFFICULTY (Phase 1 foundation) ---------------------------------
+  // Chosen once at new-game (after naming). A VECTOR of multipliers (DESIGN-depth-redesign
+  // §5), NOT a single toggle. ALL levers are defined here even though several have no
+  // consumer yet — later phases (burn/economy/failure/acquisition windows) read them.
+  // Hooked NOW (Phase 1): startCashMult, rivalAGIspeedMult, eventSeverityMult.
+  // rivalCount = [min,max] rivals seeded at new-game (replayability core).
+  var DIFFICULTY = {
+    DEFAULT: 'normal',
+    ORDER: ['easy', 'normal', 'hard', 'impossible'],
+    // base starting cash seed (×startCashMult) granted once when the difficulty is chosen on
+    // a NEW game — gives a little early runway so the multiplier has something to bite on.
+    START_CASH_SEED: 50,
+    levels: {
+      easy: {
+        startCashMult: 1.5,     // HOOKED — new-game starting cash
+        burnMult: 0.8,          // dormant (Phase: burn/runway)
+        computePriceMult: 0.85, // dormant (Phase: burn)
+        revenueMult: 1.2,       // dormant (Phase: economy)
+        fundValMult: 1.2,       // dormant (Phase: funding/down-rounds)
+        rivalAggroMult: 0.6,    // dormant (Phase: rival lifecycle aggression)
+        failWarnMonths: 4,      // dormant (Phase: failure telegraph)
+        failMonths: 0,          // dormant (Phase: bankruptcy threshold)
+        acqWindow: 5,           // dormant (Phase: hostile-takeover ultimatum window, turns)
+        eventSeverityMult: 0.7, // HOOKED — scales bad decision/event magnitudes
+        rivalAGIspeedMult: 0.8, // HOOKED — rival AGI creep speed in updateRivals
+        varianceMult: 0.7,      // dormant (Phase: world variance / RNG spread)
+        rivalCount: [2, 3]
+      },
+      normal: {
+        startCashMult: 1.0, burnMult: 1.0, computePriceMult: 1.0, revenueMult: 1.0,
+        fundValMult: 1.0, rivalAggroMult: 1.0, failWarnMonths: 3, failMonths: 0,
+        acqWindow: 4, eventSeverityMult: 1.0, rivalAGIspeedMult: 1.0, varianceMult: 1.0,
+        rivalCount: [3, 3]
+      },
+      hard: {
+        startCashMult: 0.7, burnMult: 1.25, computePriceMult: 1.2, revenueMult: 0.85,
+        fundValMult: 0.85, rivalAggroMult: 1.3, failWarnMonths: 2, failMonths: 0,
+        acqWindow: 3, eventSeverityMult: 1.3, rivalAGIspeedMult: 1.2, varianceMult: 1.3,
+        rivalCount: [4, 4]
+      },
+      impossible: {
+        startCashMult: 0.5, burnMult: 1.5, computePriceMult: 1.4, revenueMult: 0.7,
+        fundValMult: 0.7, rivalAggroMult: 1.6, failWarnMonths: 1, failMonths: 0,
+        acqWindow: 2, eventSeverityMult: 1.6, rivalAGIspeedMult: 1.45, varianceMult: 1.6,
+        rivalCount: [4, 5]
+      }
+    }
+  };
+
+  // ---- RIVAL POOL (replayability core, §4) -----------------------------
+  // ~40 named fictional AI labs. On a NEW game, N are picked at random (N by difficulty).
+  // archetype ∈ juggernaut|safety|disruptor|opensource|sovereign|stealth|satire — drives
+  // starting share/AGI band + (later phases) lifecycle behavior. Names are language-neutral
+  // / lightly transliterated so they read in both EN and RU. Each rival's per-second creep
+  // rates are derived from its archetype at seed time (see seedRivals in game.js).
+  var RIVAL_POOL = [
+    { id: 'titan',      name: 'Titan AI',              archetype: 'juggernaut' },
+    { id: 'vantage',    name: 'Vantage Intelligence',  archetype: 'juggernaut' },
+    { id: 'apex',       name: 'Apex Cognition',        archetype: 'juggernaut' },
+    { id: 'borealis',   name: 'Borealis AI',           archetype: 'juggernaut' },
+    { id: 'helion',     name: 'Helion AI',             archetype: 'juggernaut' },
+    { id: 'meridian',   name: 'Meridian Labs',         archetype: 'juggernaut' },
+    { id: 'aegis',      name: 'Aegis AI',              archetype: 'safety' },
+    { id: 'covenant',   name: 'Covenant Labs',         archetype: 'safety' },
+    { id: 'sentinel',   name: 'Sentinel Mind',         archetype: 'safety' },
+    { id: 'concord',    name: 'Concord AI',            archetype: 'safety' },
+    { id: 'bastion',    name: 'Bastion',               archetype: 'safety' },
+    { id: 'haven',      name: 'Haven Intelligence',    archetype: 'safety' },
+    { id: 'velocity',   name: 'Velocity AI',           archetype: 'disruptor' },
+    { id: 'moonshot',   name: 'Moonshot Labs',         archetype: 'disruptor' },
+    { id: 'ignis',      name: 'Ignis',                 archetype: 'disruptor' },
+    { id: 'overclock',  name: 'Overclock AI',          archetype: 'disruptor' },
+    { id: 'rampant',    name: 'Rampant Systems',       archetype: 'disruptor' },
+    { id: 'blitz',      name: 'Blitzscale AI',         archetype: 'disruptor' },
+    { id: 'openmind',   name: 'OpenMind Collective',   archetype: 'opensource' },
+    { id: 'commons',    name: 'Commons Intelligence',  archetype: 'opensource' },
+    { id: 'freethought',name: 'Freethought AI',        archetype: 'opensource' },
+    { id: 'llamatech',  name: 'Llamatech',             archetype: 'opensource' },
+    { id: 'forge',      name: 'OpenForge',             archetype: 'opensource' },
+    { id: 'redphoenix', name: 'Red Phoenix AI',        archetype: 'sovereign' },
+    { id: 'volga',      name: 'Volga Neural',          archetype: 'sovereign' },
+    { id: 'bharat',     name: 'Bharat Intelligence',   archetype: 'sovereign' },
+    { id: 'crescent',   name: 'Crescent AI',           archetype: 'sovereign' },
+    { id: 'nihon',      name: 'Nihon Cognition',       archetype: 'sovereign' },
+    { id: 'cipher',     name: 'Cipher Labs',           archetype: 'stealth' },
+    { id: 'nullsys',    name: 'Null Systems',          archetype: 'stealth' },
+    { id: 'obscura',    name: 'Obscura AI',            archetype: 'stealth' },
+    { id: 'stealthwave',name: 'Stealthwave',           archetype: 'stealth' },
+    { id: 'quietfront', name: 'Quietfront',            archetype: 'stealth' },
+    { id: 'gptgoblin',  name: 'GPT-Goblin',            archetype: 'satire' },
+    { id: 'monkey',     name: 'Infinite Monkey AI',    archetype: 'satire' },
+    { id: 'basilisk',   name: 'Basilisk Labs',         archetype: 'satire' },
+    { id: 'paperclip',  name: 'Paperclip Maximizers',  archetype: 'satire' },
+    { id: 'doomscroll', name: 'Doomscroll AI',         archetype: 'satire' },
+    { id: 'hypecycle',  name: 'Hype Cycle AI',         archetype: 'satire' },
+    { id: 'ramen',      name: 'Ramen Compute',         archetype: 'satire' },
+    { id: 'cerebra',    name: 'Cerebra Labs',          archetype: 'satire' },
+    { id: 'omninet',    name: 'OmniNet',               archetype: 'satire' }
+  ];
+  // per-archetype seeding bands: starting share %, starting AGI %, and creep-rate scales.
+  // shareRate/agiRate/speed are MULTIPLIERS applied to the legacy base rates so the race
+  // feels the same as before. Disruptors creep fast, safety slow-but-steady, stealth low
+  // share but can spike (lifecycle phase), juggernauts big & strong.
+  var RIVAL_ARCHETYPES = {
+    juggernaut: { share0: [14, 20], agi0: [4, 10],  shareRate: 1.2, agiRate: 1.15, speed: 1.2 },
+    safety:     { share0: [8, 13],  agi0: [2, 8],   shareRate: 0.85, agiRate: 0.8,  speed: 0.8 },
+    disruptor:  { share0: [6, 12],  agi0: [3, 12],  shareRate: 1.35, agiRate: 1.3,  speed: 1.35 },
+    opensource: { share0: [9, 15],  agi0: [2, 7],   shareRate: 1.1, agiRate: 0.9,  speed: 0.9 },
+    sovereign:  { share0: [10, 16], agi0: [3, 9],   shareRate: 1.05, agiRate: 1.05, speed: 1.05 },
+    stealth:    { share0: [3, 7],   agi0: [1, 6],   shareRate: 0.8, agiRate: 1.1,  speed: 1.0 },
+    satire:     { share0: [4, 10],  agi0: [1, 8],   shareRate: 0.95, agiRate: 0.95, speed: 0.95 }
+  };
+  // legacy base rates (the old C.RIVALS numbers) the archetype scales multiply against.
+  var RIVAL_BASE = { shareRate: 0.00045, agiRate: 0.00038, speed: 0.0110 };
+
   // ---- Endings (resolve at the AGI climax; each = badge + small meta-perk) ----
   var ENDINGS = {
     PERK_PER: 0.04,         // +4% permanent global output per UNIQUE ending unlocked
@@ -1266,7 +1381,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 10,         // + executive / managing-director ladder (exec/mandate)
+    SAVE_VERSION: 11,         // + difficulty vector + data-driven rival roster (state.rivals)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -1298,6 +1413,10 @@
     ACTS: ACTS,
     RIVALS: RIVALS,
     RIVAL_SHARE_CAP: RIVAL_SHARE_CAP,
+    RIVAL_POOL: RIVAL_POOL,
+    RIVAL_ARCHETYPES: RIVAL_ARCHETYPES,
+    RIVAL_BASE: RIVAL_BASE,
+    DIFFICULTY: DIFFICULTY,
     ACQUIRE: ACQUIRE,
     RACE: RACE,
     ENDINGS: ENDINGS,

@@ -103,10 +103,7 @@
       seen: {},              // one-time unlock hints shown
       // R9 narrative campaign + race to AGI
       act: 0,                // current narrative act (monotonic)
-      rivalAgi: {},          // rival id -> AGI progress 0..100
-      rivalAgiToasted: {},   // rival id -> highest AGI milestone (50/75/90) already toasted
-      rivalShare: {},        // rival id -> market share % (GDD v3 race scoreboard)
-      acquired: {},          // rival id -> true (acquired/removed from the race, §5)
+      rivals: [],            // §4 data-driven roster: [{id,name,archetype,share,agi,acquired,agiToasted,shareRate,agiRate,speed}] — seeded at new-game
       raceStance: null,      // story choice at Act 3
       endings: {},           // unlocked ending ids (persist forever)
       // ===== GDD v3 — continuous no-reset meta =====
@@ -136,6 +133,7 @@
       buyMode: 1,            // 1 | 10 | 100 | 'max'
       _lastRunClean: false,  // was the most recently prestiged run incident-free
       onboarded: false,      // first-run tour shown
+      difficulty: 'normal',  // chosen at new-game (easy|normal|hard|impossible) — multiplier vector (C.DIFFICULTY)
       companyName: 'Singularity Inc.', // player-chosen AI-lab name (item 2; shown as topbar brand)
       companyNamed: false,   // has the player confirmed a name yet (false => show the naming step)
       lastSeen: Date.now(),
@@ -160,6 +158,71 @@
       }
     });
     return v;
+  }
+
+  // ---- difficulty accessor --------------------------------------------
+  // diff(key) -> the chosen difficulty's lever value (falls back to 'normal', then to a
+  // neutral 1 / undefined). All call sites read levers through here so an unknown/missing
+  // difficulty can never crash. Some levers are dormant (no consumer yet) — see C.DIFFICULTY.
+  function diffLevel() {
+    var L = C.DIFFICULTY.levels;
+    return L[state.difficulty] || L[C.DIFFICULTY.DEFAULT];
+  }
+  function diff(key) {
+    var lv = diffLevel();
+    var v = lv ? lv[key] : undefined;
+    if (v === undefined) { var n = C.DIFFICULTY.levels[C.DIFFICULTY.DEFAULT]; v = n ? n[key] : undefined; }
+    return v;
+  }
+
+  // ---- rival roster (data-driven, §4 replayability core) ---------------
+  // state.rivals is an array of live rival objects seeded at new-game from C.RIVAL_POOL.
+  // Each: { id, name, archetype, share, agi, acquired, agiToasted, shareRate, agiRate, speed }.
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function rivalById(id) {
+    var rs = state.rivals || [];
+    for (var i = 0; i < rs.length; i++) if (rs[i].id === id) return rs[i];
+    return null;
+  }
+  // build ONE live rival object from a pool entry (rolls its starting band + creep rates).
+  function makeRival(pool) {
+    var A = C.RIVAL_ARCHETYPES[pool.archetype] || C.RIVAL_ARCHETYPES.satire;
+    var B = C.RIVAL_BASE;
+    return {
+      id: pool.id, name: pool.name, archetype: pool.archetype,
+      share: Math.round(rnd(A.share0[0], A.share0[1]) * 10) / 10,
+      agi: Math.round(rnd(A.agi0[0], A.agi0[1]) * 10) / 10,
+      acquired: false, agiToasted: 0,
+      // small per-rival jitter on rates so two runs with the same archetype still differ
+      shareRate: B.shareRate * A.shareRate * rnd(0.85, 1.15),
+      agiRate: B.agiRate * A.agiRate * rnd(0.85, 1.15),
+      speed: B.speed * A.speed * rnd(0.85, 1.15)
+    };
+  }
+  // pick N distinct rivals at random (N from the difficulty's rivalCount band) and assign to
+  // target.rivals. Pure helper so it works on the live state OR a save object during migrate.
+  function seedRivalsInto(target, difficulty) {
+    var lv = C.DIFFICULTY.levels[difficulty] || C.DIFFICULTY.levels[C.DIFFICULTY.DEFAULT];
+    var band = (lv && lv.rivalCount) || [3, 3];
+    var n = Math.floor(rnd(band[0], band[1] + 1));
+    n = Math.max(band[0], Math.min(band[1], n));
+    var pool = C.RIVAL_POOL.slice();
+    // Fisher–Yates partial shuffle
+    for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+    var picked = pool.slice(0, Math.min(n, pool.length));
+    target.rivals = picked.map(makeRival);
+    return target.rivals;
+  }
+  function seedRivals(difficulty) { return seedRivalsInto(state, difficulty); }
+  // active (not-yet-acquired) rivals — the live field
+  function activeRivals() { return (state.rivals || []).filter(function (r) { return !r.acquired; }); }
+  // localized display name for a rival id (live roster name first; falls back to i18n/id)
+  function rivalName(id) {
+    var r = rivalById(id);
+    if (r && r.name) return r.name;
+    var key = 'rival_' + id;
+    var s = t_safe(key);
+    return (s && s !== key) ? s : id;
   }
 
   // ---- multipliers -----------------------------------------------------
@@ -751,7 +814,7 @@
     emit('ending', { id: ending, gain: gain });
     emit('singularity', { gain: gain });
     resetRun(true); // clears tech + RP
-    C.RIVALS.forEach(function (r) { state.rivalAgi[r.id] = 0; }); // reset the race
+    seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the new race
     state.raceStance = null; state._endingFired = false;
     rollGamble();
     checkAchievements();
@@ -934,13 +997,25 @@
     if (typeof v === 'string') { var n = parseFloat(v); return isFinite(n) ? n : undefined; }
     return undefined;
   }
+  // HOOK (difficulty): event-severity multiplier. Scales only the HARMFUL direction of a
+  // delta (more risk / lost cash / lost trust) — beneficial outcomes are never amplified or
+  // dampened. `bad` = which sign counts as harm (+1: positive is bad, e.g. risk; -1: negative
+  // is bad, e.g. losing cash). Returns the (possibly) scaled delta.
+  function evSev() { var m = diff('eventSeverityMult'); return (typeof m === 'number' && isFinite(m) && m > 0) ? m : 1; }
+  function scaleHarm(delta, badSign) {
+    if (typeof delta !== 'number' || !isFinite(delta) || delta === 0) return delta;
+    var m = evSev();
+    if (m === 1) return delta;
+    if (badSign > 0 ? delta > 0 : delta < 0) return delta * m;   // only the harmful direction
+    return delta;
+  }
   function applyEffect(eff) {
     if (!eff) return;
     // ---- existing card-effect keys (unchanged) ----
-    if (eff.cashFrac) state.cash = Math.max(0, state.cash + state.cash * eff.cashFrac);
+    if (eff.cashFrac) state.cash = Math.max(0, state.cash + state.cash * scaleHarm(eff.cashFrac, -1));
     if (eff.cashGift) addCash(windfallCash(eff.cashGift, C.CARDS.CASHGIFT_CAP_FRAC, 100));
-    if (eff.trust) state.trust = clampTrust(state.trust + eff.trust);
-    if (eff.vec) for (var k in eff.vec) state.vec[k] = Math.max(0, Math.min(C.RISK.MAX, state.vec[k] + eff.vec[k]));
+    if (eff.trust) state.trust = clampTrust(state.trust + scaleHarm(eff.trust, -1));
+    if (eff.vec) for (var k in eff.vec) state.vec[k] = Math.max(0, Math.min(C.RISK.MAX, state.vec[k] + scaleHarm(eff.vec[k], +1)));
     if (eff.penaltySec) state.incidentEndsAt = Date.now() + eff.penaltySec * 1000;
     if (eff.allMult) state.cardAllMult = (state.cardAllMult || 1) * eff.allMult;
 
@@ -950,6 +1025,7 @@
       var r = eff.resource;
       var dCash = numDelta(r.cash);
       if (dCash !== undefined) {
+        dCash = scaleHarm(dCash, -1);                                 // HOOK: losses scale with severity
         var nc = state.cash + dCash;
         if (dCash > 0) addCash(dCash);                                // earnings count toward totals
         else state.cash = (eff.allowDebt || r.allowDebt) ? nc : Math.max(0, nc);
@@ -960,8 +1036,8 @@
     // meter: clamped deltas to derived scoreboards. marketShare/trust 0..100; align via state.align.
     if (eff.meter) {
       var m = eff.meter;
-      var dShare = numDelta(m.marketShare); if (dShare !== undefined) state.marketShare = Math.max(0, Math.min(100, state.marketShare + dShare));
-      var dTrust = numDelta(m.trust); if (dTrust !== undefined) state.trust = clampTrust(state.trust + dTrust);
+      var dShare = numDelta(m.marketShare); if (dShare !== undefined) state.marketShare = Math.max(0, Math.min(100, state.marketShare + scaleHarm(dShare, -1)));
+      var dTrust = numDelta(m.trust); if (dTrust !== undefined) state.trust = clampTrust(state.trust + scaleHarm(dTrust, -1));
       var dAlign = numDelta(m.align); if (dAlign !== undefined) state.align = Math.max(0, state.align + dAlign);
       // valuation is a DERIVED figure (no stored field) — record the adjustment as an
       // accumulator now; later phases may fold it into valuation().
@@ -981,15 +1057,20 @@
       // the delayed consequence comes due, referencing the original choice (Sub-part E).
       state.scheduled.push({ event: sc.event, fireAt: Date.now() + delaySec * 1000, chance: (typeof sc.chance === 'number') ? sc.chance : 1, callbackKey: sc.callback });
     }
-    // rival_effect: nudge rival AGI progress / share. { id: {...} } or { all: {...} }.
+    // rival_effect: nudge rival AGI progress / share. { all: {...} } hits the live roster.
+    // A specific {id:{...}} resolves to a rival only if that id is in the current random
+    // roster; 'leader'/'top' targets the AGI front-runner; otherwise it's skipped safely.
     if (eff.rival_effect) {
-      ensureRivals(); ensureRivalShare();
+      ensureRivals();
       for (var rid in eff.rival_effect) {
         var d = eff.rival_effect[rid] || {};
-        var targets = (rid === 'all') ? C.RIVALS.map(function (rv) { return rv.id; }) : [rid];
-        targets.forEach(function (tid) {
-          if (typeof d.agi === 'number') state.rivalAgi[tid] = Math.max(0, Math.min(100, (state.rivalAgi[tid] || 0) + d.agi));
-          if (typeof d.share === 'number') state.rivalShare[tid] = Math.max(0, Math.min(C.RIVAL_SHARE_CAP, (state.rivalShare[tid] || 0) + d.share));
+        var targets;
+        if (rid === 'all') targets = activeRivals();
+        else if (rid === 'leader' || rid === 'top') { var lr = leadingRival(); var lrr = lr.id ? rivalById(lr.id) : null; targets = lrr ? [lrr] : []; }
+        else { var one = rivalById(rid); targets = (one && !one.acquired) ? [one] : []; }
+        targets.forEach(function (r) {
+          if (typeof d.agi === 'number') r.agi = Math.max(0, Math.min(100, (r.agi || 0) + d.agi));
+          if (typeof d.share === 'number') r.share = Math.max(0, Math.min(C.RIVAL_SHARE_CAP, (r.share || 0) + d.share));
         });
       }
     }
@@ -1403,33 +1484,36 @@
     return 0;                            // garage: tap → buy hardware → work toward v1
   }
   function rivalsRevealed() { return currentAct() >= C.RACE.REVEAL_ACT; }
-  function ensureRivals() { C.RIVALS.forEach(function (r) { if (typeof state.rivalAgi[r.id] !== 'number') state.rivalAgi[r.id] = 0; }); }
+  // legacy no-ops kept as guards: rival progress now lives on state.rivals objects. If a
+  // save somehow loaded without a roster (corruption), seed a default one so nothing crashes.
+  function ensureRivals() { if (!Array.isArray(state.rivals) || !state.rivals.length) seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); }
+  function ensureRivalShare() { ensureRivals(); }
   // GDD v3: AGI progress = how far up the model-generation ladder you are.
   function agiProgress() { return Math.max(0, Math.min(100, 100 * state.modelGen / C.MODELGEN.length)); }
   // ---- rival market-share race (the central scoreboard) ----
   function rivalsActive() { return state.modelGen >= 1; } // race begins once you have a product
-  function ensureRivalShare() { C.RIVALS.forEach(function (r) { if (typeof state.rivalShare[r.id] !== 'number' || !isFinite(state.rivalShare[r.id])) state.rivalShare[r.id] = r.share0; }); }
   function updateRivals(dt) {
     if (!rivalsActive()) return;
-    ensureRivalShare(); ensureRivals();
-    C.RIVALS.forEach(function (r) {
-      if (rivalAcquired(r.id)) return;   // acquired rivals are out of the race
+    ensureRivals();
+    var agiMult = diff('rivalAGIspeedMult');   // HOOK: difficulty scales rival AGI creep
+    if (typeof agiMult !== 'number' || !isFinite(agiMult)) agiMult = 1;
+    activeRivals().forEach(function (r) {
       // share creeps up, tapering toward the cap (so you can always overtake by shipping)
-      var cur = state.rivalShare[r.id];
+      var cur = isFinite(r.share) ? r.share : 0;
       var room = Math.max(0, (C.RIVAL_SHARE_CAP - cur) / C.RIVAL_SHARE_CAP);
-      state.rivalShare[r.id] = Math.min(C.RIVAL_SHARE_CAP, cur + r.shareRate * room * dt);
+      r.share = Math.min(C.RIVAL_SHARE_CAP, cur + r.shareRate * room * dt);
       // AGI progress climbs on each rival's own timeline (the deadline / pressure)
-      var before = state.rivalAgi[r.id] || 0;
-      var after = Math.min(100, before + r.agiRate * dt);
-      state.rivalAgi[r.id] = after;
+      var before = r.agi || 0;
+      var after = Math.min(100, before + r.agiRate * agiMult * dt);
+      r.agi = after;
       // late-game drama: fire a toast as a rival crosses 50/75/90% AGI (they're catching up).
       // Only once you can see the race (rivals revealed) and once per threshold per rival.
       if (rivalsRevealed()) {
-        var last = state.rivalAgiToasted[r.id] || 0;
+        var last = r.agiToasted || 0;
         var ms = after >= 90 ? 90 : after >= 75 ? 75 : after >= 50 ? 50 : 0;
         if (ms > last) {
-          state.rivalAgiToasted[r.id] = ms;
-          emitNews('rival', ms >= 90 ? ['nh_rival_agi90'] : ['nh_rival_agi', 'nh_rival_agi2'], { name: t_safe('rival_' + r.id), pct: ms });
+          r.agiToasted = ms;
+          emitNews('rival', ms >= 90 ? ['nh_rival_agi90'] : ['nh_rival_agi', 'nh_rival_agi2'], { name: rivalName(r.id), pct: ms });
           emit('rivalagi', { id: r.id, pct: ms });
         }
       }
@@ -1438,18 +1522,19 @@
   // standings: you + rivals, sorted by market share desc (for the race panel)
   function finiteNum(v) { v = +v; return isFinite(v) ? v : 0; }   // NaN/undefined/string -> 0
   function standings() {
-    ensureRivalShare();
+    ensureRivals();
     // Coerce EVERY share to a finite number before sorting. A NaN share (which passes
     // typeof==='number') would make the comparator return NaN and Array.sort leave the
     // array in insertion order — rivals would then display mis-ranked. (BUG 3 root cause.)
-    var rows = [{ id: 'you', share: finiteNum(state.marketShare), agi: agiProgress(), you: true }];
-    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) rows.push({ id: r.id, share: finiteNum(state.rivalShare[r.id]), agi: state.rivalAgi[r.id] || 0 }); });
+    // The player row carries `name` = companyName (item 2: standings by company name).
+    var rows = [{ id: 'you', name: state.companyName || t_safe('game_title'), share: finiteNum(state.marketShare), agi: agiProgress(), you: true }];
+    activeRivals().forEach(function (r) { rows.push({ id: r.id, name: rivalName(r.id), share: finiteNum(r.share), agi: r.agi || 0 }); });
     rows.sort(function (a, b) { return b.share - a.share; });
     return rows;
   }
   function playerRank() { var rows = standings(); for (var i = 0; i < rows.length; i++) if (rows[i].you) return i + 1; return rows.length; }
   function isMarketLeader() { return playerRank() === 1; }
-  function leadingRivalAgi() { var m = 0; C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) m = Math.max(m, state.rivalAgi[r.id] || 0); }); return m; }
+  function leadingRivalAgi() { var m = 0; activeRivals().forEach(function (r) { m = Math.max(m, r.agi || 0); }); return m; }
   // Topbar race-status badge (item 3): show '#1' when you lead the market AND no rival is
   // closing in; otherwise surface the most threatening rival's AGI %. Null = nothing to show
   // yet (race not revealed). The threat takes priority once a rival passes ~40% AGI.
@@ -1463,31 +1548,31 @@
     if (isMarketLeader()) return { kind: 'lead' };
     return (lr && lr.id) ? { kind: 'threat', id: lr.id, pct: Math.round(agi) } : null;
   }
-  function rivalAcquired(id) { return !!(state.acquired && state.acquired[id]); }
+  function rivalAcquired(id) { var r = rivalById(id); return !r || !!r.acquired; }
   // §5 acquisitions: buy out the strongest remaining rival (one-time each, post mid-game)
   function acquireTarget() {
     var best = null, bv = -1;
-    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id) && (state.rivalShare[r.id] || 0) > bv) { bv = state.rivalShare[r.id] || 0; best = r; } });
+    activeRivals().forEach(function (r) { if ((r.share || 0) > bv) { bv = r.share || 0; best = r; } });
     return best;
   }
-  function acquireCost(id) { var agi = state.rivalAgi[id] || 0; return Math.floor(valuation() * C.ACQUIRE.COST_FRAC * (1 + agi / 100)); }
+  function acquireCost(id) { var r = rivalById(id), agi = r ? (r.agi || 0) : 0; return Math.floor(valuation() * C.ACQUIRE.COST_FRAC * (1 + agi / 100)); }
   function acquireUnlocked() { return state.modelGen >= C.ACQUIRE.UNLOCK_GEN; }
   function canAcquire() { var r = acquireTarget(); return !!r && acquireUnlocked() && state.cash >= acquireCost(r.id); }
   function acquireRival() {
     var r = acquireTarget(); if (!r || !acquireUnlocked()) return false;
     var cost = acquireCost(r.id); if (state.cash < cost) return false;
-    state.cash -= cost; state.acquired[r.id] = true;
-    state.marketShare = Math.min(100, state.marketShare + (state.rivalShare[r.id] || 0) * C.ACQUIRE.SHARE_TRANSFER);
-    state.rivalShare[r.id] = 0; state.rivalAgi[r.id] = 0;
+    state.cash -= cost; r.acquired = true;
+    state.marketShare = Math.min(100, state.marketShare + (r.share || 0) * C.ACQUIRE.SHARE_TRANSFER);
+    r.share = 0; r.agi = 0;
     checkAchievements(); emit('acquire', { id: r.id }); emit('change');
     return true;
   }
   // rank in the AGI race (you vs rivals by AGI progress) — 1 = leading
-  function agiRank() { var you = agiProgress(), rank = 1; C.RIVALS.forEach(function (r) { if ((state.rivalAgi[r.id] || 0) > you) rank++; }); return rank; }
-  function agiFieldSize() { return C.RIVALS.length + 1; }
-  function leadingRival() { ensureRivals(); var id = null, v = -1; C.RIVALS.forEach(function (r) { if (state.rivalAgi[r.id] > v) { v = state.rivalAgi[r.id]; id = r.id; } }); return { id: id, val: v }; }
+  function agiRank() { var you = agiProgress(), rank = 1; activeRivals().forEach(function (r) { if ((r.agi || 0) > you) rank++; }); return rank; }
+  function agiFieldSize() { return activeRivals().length + 1; }
+  function leadingRival() { ensureRivals(); var id = null, v = -1; activeRivals().forEach(function (r) { if ((r.agi || 0) > v) { v = r.agi || 0; id = r.id; } }); return { id: id, val: v < 0 ? 0 : v }; }
   function maxRivalAgi() { return leadingRival().val; }
-  function slowLeadingRival() { var l = leadingRival(); if (l.id) state.rivalAgi[l.id] = Math.max(0, state.rivalAgi[l.id] - C.RACE.SLOW_OPENSOURCE); }
+  function slowLeadingRival() { var l = leadingRival(); if (l.id) { var r = rivalById(l.id); if (r) r.agi = Math.max(0, (r.agi || 0) - C.RACE.SLOW_OPENSOURCE); } }
   function updateRace(dt) {
     // act advance + intro
     var a = currentAct();
@@ -1496,7 +1581,8 @@
     ensureRivals();
     var heat = Math.max(agiProgress(), maxRivalAgi()) / 100 * C.RACE.HEAT;
     var reckless = state.align < 2 ? C.RACE.RECKLESS_RIVAL_BONUS : 0;
-    C.RIVALS.forEach(function (r) { state.rivalAgi[r.id] = Math.min(100, state.rivalAgi[r.id] + r.speed * (1 + heat + reckless) * dt); });
+    var agiMult = diff('rivalAGIspeedMult'); if (typeof agiMult !== 'number' || !isFinite(agiMult)) agiMult = 1;
+    activeRivals().forEach(function (r) { r.agi = Math.min(100, (r.agi || 0) + r.speed * agiMult * (1 + heat + reckless) * dt); });
     if (maxRivalAgi() >= 100 && agiProgress() < 100 && !state.gameOver) { triggerFinale('beaten', false); } // a rival reached AGI first (backup path; doSingularity was a dead no-op)
   }
   function avgVec() { var s = 0; C.RISK.VECTORS.forEach(function (v) { s += state.vec[v]; }); return s / C.RISK.VECTORS.length; }
@@ -1534,7 +1620,7 @@
     state.research2 = { active: false, startedAt: 0, endsAt: 0 }; state.researchLevel = 0;
     state.funding = {};
     state.align = 0; state.vec = { cap: 0, data: 0, reg: 0, sec: 0 }; state.incidentEndsAt = 0;
-    state.rivalShare = {}; state.rivalAgi = {}; ensureRivalShare();
+    seedRivals(state.difficulty || C.DIFFICULTY.DEFAULT); // fresh rival field for the legacy run
     state.gameOver = false; state.ending = null; state.won = false;
     state.totalEarnedThisRun = 0;
     emit('change');
@@ -2055,9 +2141,36 @@
     }
     if (!s.training || typeof s.training !== 'object') s.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     if (!s.funding || typeof s.funding !== 'object') s.funding = {};
-    // ---- v5: rival market-share race ----
-    if (!s.rivalShare || typeof s.rivalShare !== 'object') s.rivalShare = {};
-    C.RIVALS.forEach(function (r) { if (typeof s.rivalShare[r.id] !== 'number') s.rivalShare[r.id] = r.share0; });
+    // ---- v11: difficulty vector + data-driven rival roster ----
+    // difficulty: any save predating this defaults to 'normal'.
+    if (typeof s.difficulty !== 'string' || !C.DIFFICULTY.levels[s.difficulty]) s.difficulty = C.DIFFICULTY.DEFAULT;
+    // rival roster: convert the OLD per-id maps (rivalShare/rivalAgi/acquired/rivalAgiToasted)
+    // into the new state.rivals array, PRESERVING each rival's progress. If no usable old
+    // data exists (brand-new or already-migrated save), seed a fresh random roster so the
+    // game never crashes and two fresh games differ. Never lose a save.
+    if (!Array.isArray(s.rivals) || !s.rivals.length) {
+      var old = (s.rivalShare && typeof s.rivalShare === 'object') ? s.rivalShare : null;
+      var oldIds = old ? Object.keys(old) : [];
+      if (oldIds.length) {
+        var poolById = {}; C.RIVAL_POOL.forEach(function (p) { poolById[p.id] = p; });
+        var oldAgi = (s.rivalAgi && typeof s.rivalAgi === 'object') ? s.rivalAgi : {};
+        var oldAcq = (s.acquired && typeof s.acquired === 'object') ? s.acquired : {};
+        var oldToast = (s.rivalAgiToasted && typeof s.rivalAgiToasted === 'object') ? s.rivalAgiToasted : {};
+        s.rivals = oldIds.map(function (id) {
+          var pool = poolById[id] || { id: id, name: (window.GAME_I18N ? null : null) || id, archetype: 'satire' };
+          var live = makeRival(pool);              // gives a name + sensible creep rates
+          live.share = (typeof old[id] === 'number' && isFinite(old[id])) ? old[id] : live.share;
+          live.agi = (typeof oldAgi[id] === 'number' && isFinite(oldAgi[id])) ? oldAgi[id] : live.agi;
+          live.acquired = !!oldAcq[id];
+          live.agiToasted = (typeof oldToast[id] === 'number') ? oldToast[id] : 0;
+          return live;
+        });
+      } else {
+        s.rivals = seedRivalsInto(s, s.difficulty);  // fresh random field for a new/empty save
+      }
+    }
+    // drop the superseded per-id maps so they can't drift out of sync with state.rivals
+    delete s.rivalShare; delete s.rivalAgi; delete s.acquired; delete s.rivalAgiToasted;
     // ---- v6: parallel build/research timers ----
     if (typeof s.datacenters !== 'number') s.datacenters = 0;
     if (!s.build || typeof s.build !== 'object') s.build = { active: false, startedAt: 0, endsAt: 0 };
@@ -2077,8 +2190,7 @@
     if (typeof s.legacyMult !== 'number') s.legacyMult = 1;
     if (typeof s.unicorn !== 'boolean') s.unicorn = false;
     if (typeof s.decacorn !== 'boolean') s.decacorn = false;
-    if (!s.acquired || typeof s.acquired !== 'object') s.acquired = {}; // v9
-    if (!s.rivalAgiToasted || typeof s.rivalAgiToasted !== 'object') s.rivalAgiToasted = {}; // race-drama toasts
+    // (v9 acquired / rivalAgiToasted maps were folded into state.rivals above in v11)
     // ---- Phase 1: decision-engine state (flags/vars/scheduled/buffs) ----
     if (!s.flags || typeof s.flags !== 'object' || Array.isArray(s.flags)) s.flags = {};
     if (!s.vars || typeof s.vars !== 'object' || Array.isArray(s.vars)) s.vars = {};
@@ -2124,12 +2236,22 @@
     if (s.vec && typeof s.vec === 'object') {
       C.RISK.VECTORS.forEach(function (v) { s.vec[v] = clean(s.vec[v], 0, 0, C.RISK.MAX); });
     }
-    // rival shares/AGI must be finite (a NaN share breaks standings sort) — clamp to 0..cap
-    if (s.rivalShare && typeof s.rivalShare === 'object') {
-      for (var rsk in s.rivalShare) s.rivalShare[rsk] = clean(s.rivalShare[rsk], 0, 0, C.RIVAL_SHARE_CAP);
-    }
-    if (s.rivalAgi && typeof s.rivalAgi === 'object') {
-      for (var rak in s.rivalAgi) s.rivalAgi[rak] = clean(s.rivalAgi[rak], 0, 0, 100);
+    // rival roster: every entry's share/AGI must be finite (a NaN share breaks standings
+    // sort) — clamp share to 0..cap, agi to 0..100, and drop any malformed entry.
+    if (Array.isArray(s.rivals)) {
+      s.rivals = s.rivals.filter(function (r) { return r && typeof r === 'object' && r.id; }).map(function (r) {
+        r.share = clean(r.share, 0, 0, C.RIVAL_SHARE_CAP);
+        r.agi = clean(r.agi, 0, 0, 100);
+        r.acquired = !!r.acquired;
+        r.agiToasted = Math.floor(clean(r.agiToasted, 0, 0, 100));
+        // rates may be missing on a hand-tampered save — backfill from archetype
+        var A = C.RIVAL_ARCHETYPES[r.archetype] || C.RIVAL_ARCHETYPES.satire, B = C.RIVAL_BASE;
+        if (typeof r.shareRate !== 'number' || !isFinite(r.shareRate)) r.shareRate = B.shareRate * A.shareRate;
+        if (typeof r.agiRate !== 'number' || !isFinite(r.agiRate)) r.agiRate = B.agiRate * A.agiRate;
+        if (typeof r.speed !== 'number' || !isFinite(r.speed)) r.speed = B.speed * A.speed;
+        if (typeof r.name !== 'string' || !r.name) r.name = rivalName(r.id);
+        return r;
+      });
     }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
@@ -2215,6 +2337,23 @@
     emit('change');
     return state.companyName;
   }
+  // Difficulty chosen at the new-game step (after naming). Applies the immediate, safe hooks:
+  // (1) seeds a starting-cash boost ×startCashMult, (2) seeds the random rival roster sized by
+  // the level. Other levers (burn/funding/failure) are read live by their phases when built.
+  // `seedNewGame` is true only the first time (the onboarding step); a later debug re-pick
+  // won't re-grant cash or wipe an in-progress roster.
+  function setDifficulty(level, seedNewGame) {
+    if (!C.DIFFICULTY.levels[level]) level = C.DIFFICULTY.DEFAULT;
+    state.difficulty = level;
+    if (seedNewGame) {
+      var seed = (C.DIFFICULTY.START_CASH_SEED || 0) * (diff('startCashMult') || 1);
+      if (seed > 0 && state.cash < seed) state.cash = seed;   // grant once (don't lower an existing balance)
+      seedRivals(level);                                       // fresh random field for this run
+    } else { ensureRivals(); }
+    save();
+    emit('change');
+    return state.difficulty;
+  }
   function achCount() { var c = 0; for (var k in state.achievements) if (state.achievements[k]) c++; return c; }
   function cosmeticUnlocked(item) {
     var u = item.unlock || {};
@@ -2289,6 +2428,8 @@
     // setters
     setBuyMode: setBuyMode, setSound: setSound, setMusic: setMusic, setHaptics: setHaptics, setLang: setLang, setOnboarded: setOnboarded,
     setCompanyName: setCompanyName, sanitizeCompanyName: sanitizeCompanyName,
+    setDifficulty: setDifficulty, diff: diff, seedRivals: seedRivals,
+    rivalName: rivalName, activeRivals: activeRivals, rivalById: rivalById,
     achCount: achCount, cosmeticUnlocked: cosmeticUnlocked, setOrb: setOrb, setTheme: setTheme,
     worldUnlocked: worldUnlocked, marketUnlocked: marketUnlocked, resolveCard: resolveCard,
     // progressive unlock schedule + release projection
