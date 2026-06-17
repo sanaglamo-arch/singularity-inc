@@ -968,7 +968,9 @@
       var sc = eff.schedule;
       var delaySec = (typeof sc.delaySec === 'number') ? sc.delaySec
                    : (typeof sc.delay_days === 'number') ? sc.delay_days * C.DAY_SEC : 0;
-      state.scheduled.push({ event: sc.event, fireAt: Date.now() + delaySec * 1000, chance: (typeof sc.chance === 'number') ? sc.chance : 1 });
+      // `callback` (optional) is an i18n key for the "they remembered" toast shown when
+      // the delayed consequence comes due, referencing the original choice (Sub-part E).
+      state.scheduled.push({ event: sc.event, fireAt: Date.now() + delaySec * 1000, chance: (typeof sc.chance === 'number') ? sc.chance : 1, callbackKey: sc.callback });
     }
     // rival_effect: nudge rival AGI progress / share. { id: {...} } or { all: {...} }.
     if (eff.rival_effect) {

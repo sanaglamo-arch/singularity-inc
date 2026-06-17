@@ -441,7 +441,7 @@
       options: [
         { id: 'pirate', tooltip_meters: ['marketShare', 'risk', 'cash'],
           effects: { meter: { marketShare: '+6' }, vec: { data: 12 }, set_var: { legal_debt: '+1' },
-                     schedule: { event: 'dec_lawsuit_hits', delaySec: 120, chance: 0.6 } } },
+                     schedule: { event: 'dec_lawsuit_hits', delaySec: 120, chance: 0.6, callback: 'callback_lawsuit' } } },
         { id: 'license', tooltip_meters: ['cash', 'trust', 'risk'],
           effects: { resource: { cash: '-200' }, meter: { trust: '+4', marketShare: '-2' }, vec: { reg: -4 } } }
       ]
