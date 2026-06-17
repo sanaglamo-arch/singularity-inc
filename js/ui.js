@@ -412,7 +412,7 @@
       row.innerHTML = '<span class="srank"></span><span class="sname">' + entityName(id) + '</span>' +
         '<span class="sbarwrap"><span class="sbar"></span></span><span class="sshare"></span>';
       box.appendChild(row);
-      standRefs[id] = { row: row, rank: row.querySelector('.srank'), bar: row.querySelector('.sbar'), share: row.querySelector('.sshare') };
+      standRefs[id] = { row: row, rank: row.querySelector('.srank'), name: row.querySelector('.sname'), bar: row.querySelector('.sbar'), share: row.querySelector('.sshare') };
     });
   }
   function updateStandings() {
@@ -428,6 +428,7 @@
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], ref = standRefs[r.id]; if (!ref) continue;
       if (box) box.appendChild(ref.row);
+      if (ref.name) setText(ref.name, entityName(r.id));   // re-localize each update (BUG 5: "You"->"Вы" on RU)
       setText(ref.rank, '#' + (i + 1));
       setText(ref.share, (Math.round(r.share * 10) / 10) + '%');
       setStyleP(ref.bar, 'width', (r.share / maxShare * 100).toFixed(1) + '%');

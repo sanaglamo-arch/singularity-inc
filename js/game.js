@@ -1048,7 +1048,7 @@
   function agiProgress() { return Math.max(0, Math.min(100, 100 * state.modelGen / C.MODELGEN.length)); }
   // ---- rival market-share race (the central scoreboard) ----
   function rivalsActive() { return state.modelGen >= 1; } // race begins once you have a product
-  function ensureRivalShare() { C.RIVALS.forEach(function (r) { if (typeof state.rivalShare[r.id] !== 'number') state.rivalShare[r.id] = r.share0; }); }
+  function ensureRivalShare() { C.RIVALS.forEach(function (r) { if (typeof state.rivalShare[r.id] !== 'number' || !isFinite(state.rivalShare[r.id])) state.rivalShare[r.id] = r.share0; }); }
   function updateRivals(dt) {
     if (!rivalsActive()) return;
     ensureRivalShare(); ensureRivals();
@@ -1063,10 +1063,14 @@
     });
   }
   // standings: you + rivals, sorted by market share desc (for the race panel)
+  function finiteNum(v) { v = +v; return isFinite(v) ? v : 0; }   // NaN/undefined/string -> 0
   function standings() {
     ensureRivalShare();
-    var rows = [{ id: 'you', share: state.marketShare, agi: agiProgress(), you: true }];
-    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) rows.push({ id: r.id, share: state.rivalShare[r.id], agi: state.rivalAgi[r.id] || 0 }); });
+    // Coerce EVERY share to a finite number before sorting. A NaN share (which passes
+    // typeof==='number') would make the comparator return NaN and Array.sort leave the
+    // array in insertion order — rivals would then display mis-ranked. (BUG 3 root cause.)
+    var rows = [{ id: 'you', share: finiteNum(state.marketShare), agi: agiProgress(), you: true }];
+    C.RIVALS.forEach(function (r) { if (!rivalAcquired(r.id)) rows.push({ id: r.id, share: finiteNum(state.rivalShare[r.id]), agi: state.rivalAgi[r.id] || 0 }); });
     rows.sort(function (a, b) { return b.share - a.share; });
     return rows;
   }
@@ -1502,6 +1506,13 @@
     }
     if (s.vec && typeof s.vec === 'object') {
       C.RISK.VECTORS.forEach(function (v) { s.vec[v] = clean(s.vec[v], 0, 0, C.RISK.MAX); });
+    }
+    // rival shares/AGI must be finite (a NaN share breaks standings sort) — clamp to 0..cap
+    if (s.rivalShare && typeof s.rivalShare === 'object') {
+      for (var rsk in s.rivalShare) s.rivalShare[rsk] = clean(s.rivalShare[rsk], 0, 0, C.RIVAL_SHARE_CAP);
+    }
+    if (s.rivalAgi && typeof s.rivalAgi === 'object') {
+      for (var rak in s.rivalAgi) s.rivalAgi[rak] = clean(s.rivalAgi[rak], 0, 0, 100);
     }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
