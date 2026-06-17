@@ -176,6 +176,27 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
   #runwayVal { font-size: 14px; }
   #runwayFlow { font-size: 10px; }
 }
+/* Phase 3 FAILURE STATES — crisis CTA on the runway HUD + recovery/ultimatum modals */
+#crisisCta {
+  flex: 0 0 auto; border: 1px solid var(--rose); background: rgba(251,92,120,0.16); color: var(--rose);
+  font-family: var(--font-display); font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase;
+  border-radius: var(--radius-sm); padding: 4px 9px; cursor: pointer; white-space: nowrap; min-height: 28px;
+  animation: rwpulse 1.4s ease-in-out infinite;
+}
+#crisisCta:active { transform: scale(0.96); }
+.crisis-modal.cr-danger .newscard.crisis { border-color: var(--rose); box-shadow: 0 0 26px -6px var(--glow-rose), var(--inset-hi); }
+.cr-levers { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.cr-lever { width: 100%; }
+.cr-lever-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.cr-lever-btn:disabled { opacity: 0.45; cursor: default; }
+.cr-lever-btn:disabled:hover { border-color: var(--glass-border); background: var(--surface); }
+.cr-lever-l { font-weight: 700; font-size: 13px; line-height: 1.25; }
+.cr-lever-d { display: block; font-weight: 500; line-height: 1.3; white-space: normal; }
+.cr-countdown { font-family: var(--font-display); font-weight: 800; font-size: 13px; color: var(--rose);
+  letter-spacing: 0.4px; margin: 8px 0 2px; }
+.cr-section { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--fg-muted); margin: 12px 0 6px; }
+.danger-btn { border: 1px solid var(--rose) !important; background: rgba(251,92,120,0.12) !important; color: var(--rose) !important; }
 
 /* ---------- act bar + intro ---------- */
 #actBar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 4px 16px 5px; background: rgba(8,8,18,0.4); border-bottom: 1px solid var(--glass-border); }

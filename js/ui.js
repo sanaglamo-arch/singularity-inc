@@ -1101,6 +1101,14 @@
     setHTML($('runwayFlow'),
       '<span class="rw-burn">−$' + fmt(burn) + t('per_mo_suffix') + '</span> · ' +
       '<span class="rw-rev">+$' + fmt(rev) + t('per_mo_suffix') + '</span>');
+    // Phase 3: in-danger CTA re-opens the crisis panel any time (so a dismissed modal isn't lost)
+    var cta = $('crisisCta');
+    if (cta) {
+      var acq = G.acquisitionActive();
+      var danger = !G.isGameOver() && (acq || G.inBankruptcyDanger());
+      setClass(cta, 'hidden', !danger);
+      if (danger) setText(cta, acq ? t('crisis_acq_title') : t('crisis_title'));
+    }
   }
 
   // ---------- World: news cards, crises, market ----------
@@ -1136,6 +1144,130 @@
     if (!crisis) return;
     showModal('<div class="crisis-modal">' + renderCardHTML(crisis) + '</div>');
     wireCardButtons($('modalRoot'));
+  }
+
+  // ========== Phase 3 FAILURE STATES — crisis surfacing ================
+  // One recovery-lever button per AVAILABLE lever (leverAvailable()). Each ships a label +
+  // a one-line cost so the trade is legible. Reused by the red-pressure event AND the final
+  // ultimatum; `mode` ('red'|'ultimatum') only changes the framing copy.
+  var C_CR_UI = C.CRISIS;
+  function recoveryLeverButtons() {
+    var av = G.leverAvailable(), out = '';
+    function row(id, label, desc, enabled) {
+      return '<div class="cr-lever">' +
+        '<button class="cardchoice cr-lever-btn" data-lever="' + id + '"' + (enabled ? '' : ' disabled') + '>' +
+        '<span class="cr-lever-l">' + label + '</span>' +
+        '<span class="cr-lever-d muted small">' + desc + '</span></button></div>';
+    }
+    if (av.raise)     out += row('raise', t('crisis_lever_raise'), t('crisis_lever_raise_d'), true);
+    out += row('downround', t('crisis_lever_downround'), t('crisis_lever_downround_d'), true);
+    if (av.debt)      out += row('debt', t('crisis_lever_debt'), t('crisis_lever_debt_d', { m: C_CR_UI.DEBT_REPAY_MULT }), true);
+    if (av.layoffs)   out += row('layoffs', t('crisis_lever_layoffs'), t('crisis_lever_layoffs_d', { p: Math.round(C_CR_UI.LAYOFF_FRAC * 100) }), true);
+    if (av.pivot)     out += row('pivot', t('crisis_lever_pivot'), t('crisis_lever_pivot_d'), true);
+    return out;
+  }
+  function wireLeverButtons(container, onUse) {
+    var bs = container.querySelectorAll('.cr-lever-btn');
+    for (var i = 0; i < bs.length; i++) (function (b) {
+      b.addEventListener('click', function () {
+        if (b.disabled) return;
+        if (G.useRecoveryLever(b.dataset.lever)) {
+          window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.18)');
+          if (onUse) onUse(b.dataset.lever);
+        }
+      });
+    })(bs[i]);
+  }
+  // bankruptcy recovery modal (red pressure OR final ultimatum).
+  var _crisisModalOpen = false;
+  function showRecoveryModal(mode) {
+    if (G.isGameOver()) return;
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden') && !_crisisModalOpen) { setTimeout(function () { showRecoveryModal(mode); }, 700); return; }
+    window.GAME_AUDIO.incident(); buzz([0, 40, 70, 40]);
+    if (window.GAME_FX) window.GAME_FX.flash('rgba(251,92,120,0.28)');
+    _crisisModalOpen = true;
+    var ult = mode === 'ultimatum';
+    var html = '<div class="crisis-modal cr-danger">' +
+      '<div class="newscard crisis">' +
+        '<div class="nc-tag">' + t(ult ? 'crisis_ultimatum_title' : 'crisis_title') + '</div>' +
+        '<div class="nc-title">' + t(ult ? 'crisis_ultimatum_title' : 'crisis_runway_title') + '</div>' +
+        '<div class="nc-desc">' + t(ult ? 'crisis_ultimatum_body' : 'crisis_red_body', { co: coName() }) + '</div>' +
+        '<div class="cr-levers">' + recoveryLeverButtons() + '</div>' +
+        '<div class="row"><button class="secondary" id="crClose">' + t('crisis_lever_done') + '</button></div>' +
+      '</div></div>';
+    showModal(html);
+    wireLeverButtons($('modalRoot'), function () {
+      _crisisModalOpen = false; hideModal(); updateRunway(); updateWorld();
+      toast(t('crisis_survived_toast'), 'gold');
+    });
+    if ($('crClose')) $('crClose').onclick = function () { _crisisModalOpen = false; hideModal(); };
+  }
+
+  // hostile-acquisition ultimatum modal (Sub-part B). Fight options + the recovery levers.
+  function showAcquisitionModal() {
+    if (G.isGameOver() || !G.acquisitionActive()) return;
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden') && !_crisisModalOpen) { setTimeout(showAcquisitionModal, 700); return; }
+    window.GAME_AUDIO.incident(); buzz([0, 50, 80, 50]);
+    if (window.GAME_FX) window.GAME_FX.flash('rgba(251,92,120,0.3)');
+    _crisisModalOpen = true;
+    var a = G.state.crisis.acq;
+    var pillCost = C_CR_UI.ACQ_PILL_CASH_MONTHS;
+    var canPill = G.state.cash >= G.monthlyBurn() * pillCost;
+    var html = '<div class="crisis-modal cr-danger">' +
+      '<div class="newscard crisis">' +
+        '<div class="nc-tag">' + t('crisis_acq_title') + '</div>' +
+        '<div class="nc-title">' + t('crisis_acq_body', { rival: a.name, co: coName(), v: fmt(a.offer), p: Math.round(C_CR_UI.ACQ_POACH_FRAC * 100) }) + '</div>' +
+        '<div class="cr-countdown">' + t('crisis_acq_turns', { n: a.turnsLeft }) + '</div>' +
+        '<div class="cr-section">' + t('crisis_acq_fight_title') + '</div>' +
+        '<div class="cr-lever"><button class="cardchoice cr-lever-btn" data-fight="pill"' + (canPill ? '' : ' disabled') + '>' +
+          '<span class="cr-lever-l">' + t('crisis_acq_pill') + '</span>' +
+          '<span class="cr-lever-d muted small">' + t('crisis_acq_pill_d', { m: pillCost }) + '</span></button></div>' +
+        '<div class="cr-section muted small">' + t('crisis_acq_levers_note') + '</div>' +
+        '<div class="cr-levers">' + recoveryLeverButtons() + '</div>' +
+        '<div class="row"><button class="danger-btn" id="crAccept">' + t('crisis_acq_accept') + '</button>' +
+        '<button class="secondary" id="crClose">' + t('crisis_lever_done') + '</button></div>' +
+      '</div></div>';
+    showModal(html);
+    function close() { _crisisModalOpen = false; hideModal(); updateRunway(); updateWorld(); }
+    wireLeverButtons($('modalRoot'), function () { close(); });
+    var pill = $('modalRoot').querySelector('[data-fight="pill"]');
+    if (pill) pill.addEventListener('click', function () {
+      if (pill.disabled) return;
+      if (G.acqPoisonPill()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.18)'); close(); toast(t('crisis_survived_toast'), 'gold'); }
+    });
+    // accept the acqui-hire: a two-tap confirm inline (no native confirm() — Yandex moderation).
+    if ($('crAccept')) $('crAccept').onclick = function () {
+      var btn = $('crAccept');
+      if (btn.dataset.armed !== '1') {
+        btn.dataset.armed = '1';
+        setText(btn, t('crisis_acq_accept_confirm', { rival: a.name }));
+        return;
+      }
+      _crisisModalOpen = false; hideModal();
+      G.acqAccept();   // fires the 'absorbed' ending (its cinematic takes over)
+    };
+    if ($('crClose')) $('crClose').onclick = function () { _crisisModalOpen = false; hideModal(); };
+  }
+
+  // nationalization warning modal (Sub-part C) — a rally-or-lose beat (no levers; play it out).
+  function showNationalizeModal() {
+    if (G.isGameOver()) return;
+    var mr = $('modalRoot');
+    if (mr && !mr.classList.contains('hidden') && !_crisisModalOpen) { setTimeout(showNationalizeModal, 700); return; }
+    window.GAME_AUDIO.incident(); buzz([0, 60, 90, 60]);
+    if (window.GAME_FX) window.GAME_FX.flash('rgba(251,92,120,0.3)');
+    _crisisModalOpen = true;
+    var html = '<div class="crisis-modal cr-danger">' +
+      '<div class="newscard crisis">' +
+        '<div class="nc-tag">' + t('crisis_nat_title') + '</div>' +
+        '<div class="nc-title">' + t('crisis_nat_title') + '</div>' +
+        '<div class="nc-desc">' + t('crisis_nat_body', { co: coName() }) + '</div>' +
+        '<div class="row"><button class="primary" id="crClose">' + t('crisis_lever_done') + '</button></div>' +
+      '</div></div>';
+    showModal(html);
+    if ($('crClose')) $('crClose').onclick = function () { _crisisModalOpen = false; hideModal(); };
   }
 
   // ---------- Decision engine surfacing (Phase 2, Sub-part D) ----------
@@ -1253,7 +1385,9 @@
       if (G.isGameOver()) {
         setClass(fb, 'hidden', false);
         var won = G.state.won, eid = G.state.ending || 'aligned';
-        setText($('finaleTitle'), won ? t('agi_title') : t('finale_beaten'));
+        // Phase 3: failure endings get their own "GAME OVER" headline (not "BEATEN TO AGI").
+        var failEnding = eid === 'bankrupt' || eid === 'absorbed' || eid === 'nationalized';
+        setText($('finaleTitle'), won ? t('agi_title') : (failEnding ? t('finale_failed') : t('finale_beaten')));
         setClass($('finaleTitle'), 'beaten', !won);
         setText($('finaleDesc'), t('ending_' + eid + '_t') + ' — ' + t('ending_' + eid + '_d'));
         // endings collection: progress + the +%/ending perk + a badge per ending
@@ -1946,12 +2080,31 @@
     // open the inbox from the topbar badge
     var inboxBadge = $('inboxBadge');
     if (inboxBadge) inboxBadge.addEventListener('click', function () { window.GAME_AUDIO.buy(); showInboxModal(); });
+    // Phase 3: crisis CTA re-opens the correct recovery / ultimatum panel.
+    var crisisCta = $('crisisCta');
+    if (crisisCta) crisisCta.addEventListener('click', function () {
+      window.GAME_AUDIO.buy();
+      if (G.acquisitionActive()) showAcquisitionModal();
+      else if (G.state.crisis && G.state.crisis.warnLevel >= 3) showRecoveryModal('ultimatum');
+      else showRecoveryModal('red');
+    });
     // PART B — tapping the LIVE ticker opens the news-feed panel
     var tkEl = $('ticker');
     if (tkEl) { tkEl.classList.add('tappable'); tkEl.addEventListener('click', function () { window.GAME_AUDIO.buy(); buzz(8); showNewsFeed(); }); }
     // R9: act intros + ending cinematics
     G.on('act', function (d) { showActIntroDeferred(d.act); });
     G.on('ending', function (d) { showEndingCinematic(d); });
+    // Phase 3 FAILURE STATES — surface the right crisis modal on each escalation beat.
+    G.on('crisis', function (d) {
+      if (!d) return;
+      if (d.kind === 'pressure') showRecoveryModal('red');
+      else if (d.kind === 'ultimatum') showRecoveryModal('ultimatum');
+      else if (d.kind === 'acquisition') showAcquisitionModal();
+      else if (d.kind === 'nationalize') showNationalizeModal();
+      else if (d.kind === 'acq_poach') { window.GAME_AUDIO.incident(); buzz([0, 30, 50]); toast(t('nh_acq_poach', { rival: d.rival || '', n: d.n, k: d.turnsLeft }), 'bad'); }
+      else if (d.kind === 'acq_survived') { window.GAME_FX.flash('rgba(34,211,238,0.16)'); toast(t('crisis_survived_toast'), 'gold'); }
+      if (currentTab === 'world') updateWorld();
+    });
     if ($('raceOpenBtn')) $('raceOpenBtn').addEventListener('click', function () { if (G.raceOpenSource()) { window.GAME_AUDIO.buy(); window.GAME_FX.flash('rgba(34,211,238,0.2)'); toast(t('race_opensource_done'), 'good', { routine: true }); updateStandings(); } });
 
     // alignment buy + reactive audit
@@ -2303,5 +2456,7 @@
     if (currentTab !== 'company') { switchTab('company'); return true; }
     return false;
   }
-  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back, isPaused: isPaused };
+  window.GAME_UI = { init: init, update: update, toast: toast, renderStatic: renderStatic, back: back, isPaused: isPaused,
+    // Phase 3 crisis modals (also driven by the engine 'crisis' event + the runway-HUD CTA)
+    showRecoveryModal: showRecoveryModal, showAcquisitionModal: showAcquisitionModal, showNationalizeModal: showNationalizeModal };
 })();
