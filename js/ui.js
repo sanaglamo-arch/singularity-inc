@@ -1306,8 +1306,7 @@
     { key: 'u_managers',     on: function () { return G.managersUnlocked(); },     hint: 'hint_managers' },
     { key: 'u_research',     on: function () { return G.researchUnlocked(); },     hint: 'hint_research' },
     { key: 'u_risk',         on: function () { return G.riskUnlocked(); },         hint: 'hint_risk' },
-    { key: 'world',          on: function () { return G.worldUnlocked(); },        hint: 'hint_world' },
-    { key: 'u_sing',         on: function () { return G.singUnlocked(); },         hint: 'hint_singularity' }
+    { key: 'world',          on: function () { return G.worldUnlocked(); },        hint: 'hint_world' }
   ];
   function checkUnlocks() {
     for (var i = 0; i < UNLOCK_HINTS.length; i++) {
