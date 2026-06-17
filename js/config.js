@@ -177,6 +177,43 @@
     INTERSTITIAL_COOLDOWN: 120 // min seconds between interstitials
   };
 
+  // ---- RUN OBJECTIVES / ALT-GOALS (audit §E — replayability → Hall of Fame) ----
+  // Optional self-imposed challenges TRACKED PASSIVELY from existing signals (no new
+  // currency). At a run's finale, the ones met are AWARDED into records[diff].badges
+  // (persist forever) and surfaced on the shareable ending card. Each goal carries a
+  // `win` flag (most require reaching AGI) and an `eval` id resolved in game.js by
+  // runGoalState(). `glyph` mapping ✓ done / ▲ in-progress / ⚠ blocked is colorblind-safe.
+  var RUN_GOALS = [
+    { id: 'flawless',    win: true,  needAGI: true },  // reach AGI with ZERO incidents this run
+    { id: 'monopoly',    win: false, needAGI: false }, // hit ≥60% market share (any time, no win needed)
+    { id: 'bootstrap',   win: true,  needAGI: true },  // win WITHOUT taking ANY funding round
+    { id: 'no_ipo',      win: true,  needAGI: true },  // win WITHOUT an IPO (earlier rounds allowed)
+    { id: 'safe_leader', win: true,  needAGI: true },  // win with Safety/alignment maxed (≥ threshold)
+    { id: 'speedrun',    win: true,  needAGI: true }   // reach AGI in under SPEEDRUN_DAYS in-game days
+  ];
+  var RUN_GOALS_CFG = {
+    MONOPOLY_SHARE: 60,   // % market share for the Monopoly badge
+    SAFE_ALIGN: 5,        // alignment LEVELS bought (state.align is a small integer count) for Safe-Leader
+    SAFE_TRUST: 85,       // + public approval ≥ this (matches the 'quiet' pristine-win bar) for Safe-Leader
+    SPEEDRUN_DAYS: 21     // in-game days under which an AGI win counts as a speedrun (~3 weeks)
+  };
+
+  // ---- DAILY LOOP (audit §E — monthly retention) -----------------------
+  // A real-calendar-day goal layered on the existing login reward. Day boundary uses
+  // real Date (realDayIndex in game.js). One goal per real day, rotated by day index
+  // through GOALS. Completing it grants ONE boost token (modest — retention nudge, not a
+  // power spike; cash login reward already scales to stage via windfallCash). Forgiving
+  // streak: a single missed day does not reset (handled in claimDaily).
+  var DAILY = {
+    GOALS: [
+      { id: 'taps',  target: 40 },   // tap the lab N times today
+      { id: 'ship',  target: 1 },    // ship/advance a model generation today
+      { id: 'earn',  target: 30 }    // earn N×(10s of current production) today (stage-scaled)
+    ],
+    GOAL_REWARD_TOKENS: 1,           // boost tokens for clearing the daily goal
+    EARN_SECONDS: 10                 // 'earn' target = target × EARN_SECONDS of baseCps (scales to stage)
+  };
+
   // ---- Achievements ----------------------------------------------------
   // check: function(state) -> bool. Defined in game.js via ids; metadata here.
   var ACHIEVEMENTS = [
@@ -2313,7 +2350,7 @@
   // ---- Misc ------------------------------------------------------------
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v1',
-    SAVE_VERSION: 18,         // v18: 4 relationship meters (govLoyalty/industryRel/morale) — safe migrate
+    SAVE_VERSION: 19,         // v19: run-objective badges + daily-loop goal state — safe migrate (all new fields default)
     AUTOSAVE_INTERVAL: 5,     // seconds
     TICK_MAX_DELTA: 0.25      // clamp huge frame deltas (tab switch handled by offline)
   };
@@ -2340,6 +2377,9 @@
     TAP: TAP,
     OFFLINE: OFFLINE,
     ADS: ADS,
+    RUN_GOALS: RUN_GOALS,
+    RUN_GOALS_CFG: RUN_GOALS_CFG,
+    DAILY: DAILY,
     ACHIEVEMENTS: ACHIEVEMENTS,
     WINDFALL: WINDFALL,
     ACTS: ACTS,

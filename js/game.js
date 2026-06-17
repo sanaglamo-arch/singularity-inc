@@ -137,8 +137,23 @@
       research2: { active: false, startedAt: 0, endsAt: 0 },         // active research timer
       funding: {},           // funding round id -> true (Seed→A→B→C→IPO)
       boostTokens: 0,        // earned boosts (speed all timers) — from daily/achievements/idle
-      lastDailyDay: 0,       // last day index a daily reward was claimed
+      lastDailyDay: 0,       // last REAL-day index a daily login reward was claimed
       dailyStreak: 0,        // consecutive-day login streak (forgiving)
+      // ===== v19 DAILY LOOP — daily goal (real-calendar-day) =====
+      // One rotating goal per real day. Baselines snapshot the lifetime counters at day-roll
+      // so "today's" progress = current − baseline. dailyGoalDay anchors the active goal to a
+      // real day (realDayIndex); a new real day re-rolls + re-baselines + clears done.
+      dailyGoalDay: 0,       // realDayIndex the active daily goal belongs to (0 = none yet)
+      dailyGoalDone: false,  // has today's daily goal been cleared+rewarded
+      dailyTapsBase: 0,      // state.taps snapshot at this goal's day-roll
+      dailyEarnBase: 0,      // state.totalEarnedAllTime snapshot at this goal's day-roll
+      dailyShipBase: 0,      // state.modelGen snapshot at this goal's day-roll
+      dailySeen: false,      // has the daily-loop TEACH popup been shown (no re-nag)
+      // ===== v19 RUN OBJECTIVES — alt-goals met THIS run (computed continuously) =====
+      // runGoalsMet[id] = true once a goal's condition is satisfied. For win-gated goals this
+      // is finalized at the finale (awardRunGoals); for non-win goals (monopoly) it can latch
+      // mid-run. Awarded badges persist in records[diff].badges.
+      runGoalsMet: {},
       gameOver: false,       // AGI finale fired (win or beaten)
       ending: null,          // chosen ending id (aligned/foom/nationalized/beaten)
       won: false,            // reached AGI first
@@ -239,13 +254,14 @@
   function endingRank(id) { return (id && ENDING_RANK[id] !== undefined) ? ENDING_RANK[id] : -1; }
   // a blank record (all fields neutral). bools false; numbers 0; bestEnding null.
   function blankRecord() {
-    return { bestShare: 0, bestValuation: 0, reachedAGI: false, fastestAGIdays: 0, bestEnding: null, games: 0, wins: 0, noBankruptcyWin: false };
+    return { bestShare: 0, bestValuation: 0, reachedAGI: false, fastestAGIdays: 0, bestEnding: null, games: 0, wins: 0, noBankruptcyWin: false, badges: {} };
   }
   // fetch (creating if needed) the record bucket for a difficulty key.
   function recordFor(diffKey) {
     if (!state.records || typeof state.records !== 'object') state.records = {};
     var key = (typeof diffKey === 'string' && C.DIFFICULTY.levels[diffKey]) ? diffKey : (state.difficulty || C.DIFFICULTY.DEFAULT);
     if (!state.records[key] || typeof state.records[key] !== 'object') state.records[key] = blankRecord();
+    if (!state.records[key].badges || typeof state.records[key].badges !== 'object') state.records[key].badges = {}; // v19: defend old records
     return state.records[key];
   }
   // CONTINUOUS tracking: bump the current difficulty's bestShare/bestValuation each tick.
@@ -286,6 +302,77 @@
   function bankruptcyEverThisRun() {
     var cr = state.crisis;
     return !!(cr && ((cr.warnLevel || 0) >= 2 || (cr.natAt || 0) > 0));
+  }
+
+  // ===================================================================
+  // v19 — RUN OBJECTIVES / ALT-GOALS (audit §E) ----------------------
+  // Optional challenge badges TRACKED PASSIVELY from existing signals — no new currency.
+  // runGoalState(id) returns 'done' | 'progress' | 'blocked' for the live HUD (colorblind
+  // glyphs ✓/▲/⚠). awardRunGoals() runs once at the finale and latches the met ones into
+  // both state.runGoalsMet (this run) and records[diff].badges (forever → Hall of Fame /
+  // ending card). A goal can be permanently BLOCKED for the run (e.g. an incident kills
+  // 'flawless', a funding round kills 'bootstrap') so the player gets honest feedback.
+  // ===================================================================
+  function tookAnyFunding() { var f = state.funding || {}; for (var k in f) if (f[k]) return true; return false; }
+  function tookIPO() { return !!(state.funding && state.funding.ipo); }
+  var RG = C.RUN_GOALS_CFG;
+  // is the goal's condition CURRENTLY satisfied (ignoring the AGI/win gate)? Pure read of state.
+  function runGoalCondMet(id) {
+    switch (id) {
+      case 'flawless':    return (state.incidentsThisRun || 0) === 0;
+      case 'monopoly':    return finiteNum(state.marketShare) >= RG.MONOPOLY_SHARE;
+      case 'bootstrap':   return !tookAnyFunding();
+      case 'no_ipo':      return !tookIPO();
+      case 'safe_leader': return (state.align || 0) >= RG.SAFE_ALIGN && finiteNum(state.trust) >= RG.SAFE_TRUST;
+      case 'speedrun':    return (finiteNum(state.playtime) / (C.DAY_SEC || 60)) < RG.SPEEDRUN_DAYS;
+    }
+    return false;
+  }
+  // is the goal PERMANENTLY out of reach for the rest of this run? (one-way signals only)
+  function runGoalBlocked(id) {
+    switch (id) {
+      case 'flawless':    return (state.incidentsThisRun || 0) > 0;            // an incident already fired
+      case 'bootstrap':   return tookAnyFunding();                            // any round taken
+      case 'no_ipo':      return tookIPO();                                   // IPO already done
+      case 'speedrun':    return (finiteNum(state.playtime) / (C.DAY_SEC || 60)) >= RG.SPEEDRUN_DAYS; // window passed
+    }
+    return false; // monopoly / safe_leader can still flip back & forth — never hard-blocked
+  }
+  function goalById(id) { for (var i = 0; i < C.RUN_GOALS.length; i++) if (C.RUN_GOALS[i].id === id) return C.RUN_GOALS[i]; return null; }
+  // live HUD state for a goal: 'done' (will be awarded if the run ends now) · 'blocked' · 'progress'.
+  function runGoalState(id) {
+    var g = goalById(id); if (!g) return 'progress';
+    if (state.runGoalsMet[id]) return 'done';                 // already latched (non-win goal, or post-finale)
+    if (runGoalBlocked(id)) return 'blocked';
+    var cond = runGoalCondMet(id);
+    if (!g.win) return cond ? 'done' : 'progress';            // non-win goal: condition alone = done (latched below)
+    // win-gated goal: needs the finale too — show 'done' only once won, else on-track 'progress'.
+    if (state.gameOver && state.won) return cond ? 'done' : 'blocked';
+    return cond ? 'progress' : 'progress';                    // pre-finale: condition met = on track (still ▲)
+  }
+  // latch non-win goals (e.g. Monopoly) the moment they're met, so a later dip can't unset them.
+  function trackRunGoals() {
+    if (state.gameOver) return;
+    for (var i = 0; i < C.RUN_GOALS.length; i++) {
+      var g = C.RUN_GOALS[i];
+      if (!g.win && !state.runGoalsMet[g.id] && runGoalCondMet(g.id)) state.runGoalsMet[g.id] = true;
+    }
+  }
+  // FINALE: award the met goals into the run + the persistent per-difficulty badge ledger.
+  // Returns the list of goal ids newly earned this finale (for the ending-card flourish).
+  function awardRunGoals(won) {
+    var earned = [], r = recordFor(state.difficulty);
+    for (var i = 0; i < C.RUN_GOALS.length; i++) {
+      var g = C.RUN_GOALS[i], met;
+      if (g.win) met = !!won && runGoalCondMet(g.id);          // win-gated: must have reached AGI
+      else met = !!state.runGoalsMet[g.id] || runGoalCondMet(g.id);
+      if (met) {
+        state.runGoalsMet[g.id] = true;
+        if (!r.badges[g.id]) r.badges[g.id] = true;            // persist forever (Hall of Fame)
+        earned.push(g.id);
+      }
+    }
+    return earned;
   }
 
   // ---- rival roster (data-driven, §4 replayability core) ---------------
@@ -1701,11 +1788,15 @@
     state.boostTokens--; applyBoost();
     return true;
   }
-  function dayIndex() { return Math.floor(Date.now() / 86400000); }
-  function dailyAvailable() { return dayIndex() > (state.lastDailyDay || 0); }
+  // REAL-CALENDAR day index (local time) for the daily loop. SEPARATE from dayIndex() above,
+  // which is IN-GAME days (playtime/DAY_SEC) and drives bills. (Until v19 a duplicate
+  // `function dayIndex` here silently shadowed the in-game one for the whole IIFE — bills then
+  // keyed off real days. Renaming restores the in-game dayIndex as canonical for bills.)
+  function realDayIndex() { var d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
+  function dailyAvailable() { return realDayIndex() > (state.lastDailyDay || 0); }
   function claimDaily() {
     if (!dailyAvailable()) return null;
-    var today = dayIndex(), gap = today - (state.lastDailyDay || 0);
+    var today = realDayIndex(), gap = today - (state.lastDailyDay || 0);
     if (state.lastDailyDay === 0) state.dailyStreak = 1;
     else if (gap === 1) state.dailyStreak = (state.dailyStreak || 0) + 1;
     else if (gap === 2) state.dailyStreak = (state.dailyStreak || 1);   // forgiving: 1 missed day doesn't break it
@@ -1718,6 +1809,69 @@
     emit('change');
     return { tokens: tokens, cash: cash, streak: state.dailyStreak };
   }
+
+  // ===================================================================
+  // v19 — DAILY GOAL (real-calendar-day challenge layered on the login reward)
+  // One rotating goal per real day, picked by realDayIndex % GOALS.length. Progress is
+  // measured against baselines snapshotted at the day-roll, so it reads off existing
+  // lifetime counters (taps / totalEarnedAllTime / modelGen) with zero new tracking in tick.
+  // Clearing it grants ONE boost token (modest). Forgiving + skippable: ignoring it costs
+  // nothing; it just rolls to a new goal tomorrow. Day boundary = real Date (realDayIndex).
+  // ===================================================================
+  function dailyGoalDef() {
+    var gs = C.DAILY.GOALS; if (!gs || !gs.length) return null;
+    return gs[((realDayIndex() % gs.length) + gs.length) % gs.length];
+  }
+  // ensure the active goal belongs to TODAY. On a real-day roll (or a counter reset from a new
+  // run / legacy that pushed a baseline above its counter) re-snapshot baselines + clear done.
+  function ensureDailyGoal() {
+    var today = realDayIndex();
+    var rollover = (state.dailyGoalDay || 0) !== today;
+    // counter-reset guard: a newGame zeroes taps/modelGen but baselines were carried — if a base
+    // now exceeds its live counter, today's progress would go negative; re-baseline to fix.
+    var reset = (state.dailyTapsBase || 0) > (state.taps || 0) || (state.dailyShipBase || 0) > (state.modelGen || 0);
+    if (rollover || reset) {
+      state.dailyGoalDay = today;
+      state.dailyTapsBase = state.taps || 0;
+      state.dailyEarnBase = state.totalEarnedAllTime || 0;
+      state.dailyShipBase = state.modelGen || 0;
+      if (rollover) state.dailyGoalDone = false;   // fresh day → fresh goal; a same-day reset keeps a claimed reward
+    }
+  }
+  // current target value for the goal (the 'earn' target is stage-scaled via baseCps).
+  function dailyGoalTarget(def) {
+    if (!def) return 0;
+    if (def.id === 'earn') return Math.max(1, baseCps() * C.DAILY.EARN_SECONDS * def.target);
+    return def.target;
+  }
+  // progress made TOWARD today's goal since the day-roll baseline (never negative).
+  function dailyGoalProgress(def) {
+    if (!def) return 0;
+    if (def.id === 'taps') return Math.max(0, (state.taps || 0) - (state.dailyTapsBase || 0));
+    if (def.id === 'ship') return Math.max(0, (state.modelGen || 0) - (state.dailyShipBase || 0));
+    if (def.id === 'earn') return Math.max(0, (state.totalEarnedAllTime || 0) - (state.dailyEarnBase || 0));
+    return 0;
+  }
+  // public snapshot for the UI: { id, target, progress, frac (0..1), done }.
+  function dailyGoalInfo() {
+    ensureDailyGoal();
+    var def = dailyGoalDef(); if (!def) return null;
+    var target = dailyGoalTarget(def), prog = dailyGoalProgress(def);
+    var done = !!state.dailyGoalDone || prog >= target;
+    return { id: def.id, target: target, progress: prog, frac: target > 0 ? Math.min(1, prog / target) : 0, done: done };
+  }
+  function dailyGoalReady() { var i = dailyGoalInfo(); return !!(i && i.done && !state.dailyGoalDone); }
+  // claim the daily-goal reward (one boost token). Idempotent per day; returns the token count or null.
+  function claimDailyGoal() {
+    var i = dailyGoalInfo(); if (!i || !i.done || state.dailyGoalDone) return null;
+    state.dailyGoalDone = true;
+    var tok = C.DAILY.GOAL_REWARD_TOKENS || 1;
+    grantBoostToken(tok);
+    emit('change');
+    return { tokens: tok };
+  }
+  function markDailySeen() { state.dailySeen = true; emit('change'); }
+
   function addCashBurst() {
     var v = windfallCash(C.ADS.CASH_BURST_SECONDS, C.WINDFALL.CAP_FRAC, 50);
     addCash(v);
@@ -2930,6 +3084,7 @@
     state.gameOver = true; state.ending = ending; state.won = !!won;
     state.endings[ending] = true;
     recordGameEnd(ending, !!won);   // PHASE 9: persist this game's outcome to the difficulty's record
+    state._lastRunBadges = awardRunGoals(!!won); // v19: award alt-goal badges → records[diff].badges + ending card
     checkAchievements();
     emit('ending', { id: ending, won: !!won });
     return true;
@@ -3280,6 +3435,7 @@
 
     state.playtime += dt;
     trackRecords();      // PHASE 9: continuously track bests (share/valuation) for this difficulty
+    trackRunGoals();     // v19: latch non-win alt-goals (e.g. Monopoly) the moment they're met
     checkAchievements();
   }
 
@@ -3808,7 +3964,24 @@
         r.games = Math.floor(clean(r.games, 0, 0));
         r.wins = Math.floor(clean(r.wins, 0, 0));
         r.noBankruptcyWin = !!r.noBankruptcyWin;
+        if (!r.badges || typeof r.badges !== 'object' || Array.isArray(r.badges)) r.badges = {}; // v19: alt-goal badge ledger
       });
+    }
+    // ---- v19: run-objective badges + daily-loop goal state (all default safely) ----
+    if (!s.runGoalsMet || typeof s.runGoalsMet !== 'object' || Array.isArray(s.runGoalsMet)) s.runGoalsMet = {};
+    if (typeof s.dailyGoalDay !== 'number') s.dailyGoalDay = 0;
+    if (typeof s.dailyGoalDone !== 'boolean') s.dailyGoalDone = false;
+    if (typeof s.dailyTapsBase !== 'number') s.dailyTapsBase = 0;
+    if (typeof s.dailyEarnBase !== 'number') s.dailyEarnBase = 0;
+    if (typeof s.dailyShipBase !== 'number') s.dailyShipBase = 0;
+    if (typeof s.dailySeen !== 'boolean') s.dailySeen = false;
+    // v19 BILL FIX: pre-v19 saves stored lastElecDay/lastTaxDay against a REAL-day index (a
+    // duplicate dayIndex() shadowed the in-game one). dayIndex() is now in-game days, so those
+    // huge anchors would force an immediate settle on the first tick. Re-anchor to in-game days.
+    if ((s.version || 0) < 19) {
+      var igDay = Math.floor(finiteNum(s.playtime) / (C.DAY_SEC || 60));
+      if ((s.lastElecDay || 0) > igDay + (C.BILLS ? C.BILLS.ELEC_PERIOD_DAYS : 7)) s.lastElecDay = igDay;
+      if ((s.lastTaxDay || 0) > igDay + (C.BILLS ? C.BILLS.TAX_PERIOD_DAYS : 30)) s.lastTaxDay = igDay;
     }
     s.version = C.SETTINGS.SAVE_VERSION;
     return s;
@@ -3899,7 +4072,11 @@
       totalEarnedAllTime: state.totalEarnedAllTime,
       sound: state.sound, music: state.music, haptics: state.haptics, buyMode: state.buyMode,
       sfxVol: state.sfxVol, musicVol: state.musicVol,
-      difficulty: state.difficulty
+      difficulty: state.difficulty,
+      // v19: daily-loop streak/goal is REAL-CALENDAR, not run-scoped — carry it through a new run.
+      lastDailyDay: state.lastDailyDay, dailyStreak: state.dailyStreak, dailySeen: state.dailySeen,
+      dailyGoalDay: state.dailyGoalDay, dailyGoalDone: state.dailyGoalDone,
+      dailyTapsBase: state.dailyTapsBase, dailyEarnBase: state.dailyEarnBase, dailyShipBase: state.dailyShipBase
     };
     state = newState();
     for (var k in keep) if (keep[k] !== undefined) state[k] = keep[k];
@@ -4077,6 +4254,11 @@
     applyBoost: applyBoost, addCashBurst: addCashBurst,
     grantBoostToken: grantBoostToken, activateBoostToken: activateBoostToken,
     dailyAvailable: dailyAvailable, claimDaily: claimDaily,
+    // v19 daily-goal loop + run-objective alt-goals
+    dailyGoalInfo: dailyGoalInfo, dailyGoalReady: dailyGoalReady, claimDailyGoal: claimDailyGoal,
+    realDayIndex: realDayIndex, markDailySeen: markDailySeen,
+    runGoalState: runGoalState, runGoalCondMet: runGoalCondMet, awardRunGoals: awardRunGoals,
+    runGoalBadges: function () { return (recordFor(state.difficulty).badges) || {}; },
     // achievements
     checkAchievements: checkAchievements,
     // tick / offline
