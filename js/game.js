@@ -600,7 +600,8 @@
   function processSpeed() {
     var s = 1 + Math.min(C.PROCESS.RESEARCHER_SPEED_CAP, state.researchers * C.PROCESS.RESEARCHER_SPEED_PER)
               + Math.min(C.PROCESS.RESEARCH_SPEED_CAP, (state.researchLevel || 0) * C.RESEARCH2.speedBonus);
-    return s * (boostActive() ? C.ADS.BOOST_MULT : 1);
+    // CONSEQUENCE: morale scales research/training speed (≈1.0 at default; low = slower).
+    return s * (boostActive() ? C.ADS.BOOST_MULT : 1) * moraleResearchMult();
   }
   // ---- datacenter build process (money + time -> permanent compute capacity) ----
   function datacenterMult() { return 1 + (state.datacenters || 0) * C.DATACENTER.bonus; }
@@ -670,7 +671,10 @@
     //             × (1 + share%/100) × trust
     // Difficulty's revenueMult is applied in revenuePerSec() so it bites alongside burnMult.
     var adoption = Math.pow(Math.max(0, computeRate()), C.CORE.ADOPTION_EXP) * C.CORE.REV_COMPUTE_COEF;
-    return adoption * revGenFactor() * fundingRevMult() * (1 + state.marketShare / 100) * trust;
+    // METER hooks: low Public Approval drags product revenue (boycotts); a clean+trusted lab
+    // (high Safety / low risk) earns a "trusted release" premium — Safety's POSITIVE pull.
+    return adoption * revGenFactor() * fundingRevMult() * (1 + state.marketShare / 100) * trust
+         * (worldUnlocked() ? approvalRevMult() * trustedReleaseMult() : 1);
   }
   // Company worth in the SAME universe as the player's cash: liquid cash + physical
   // compute assets + goodwill from proven lifetime earnings, × a market-dominance premium.
@@ -812,7 +816,8 @@
     state.powerOwed = finiteNum((state.powerOwed || 0) + electricityPerSec() * dt);
     // taxes accrue as a % of POSITIVE revenue (before first profit/revenue = $0).
     var rev = Math.max(0, revenuePerSec()) * dt;
-    state.taxOwed = finiteNum((state.taxOwed || 0) + rev * C.BILLS.TAX_RATE);
+    // CONSEQUENCE: low Gov Loyalty → higher tax pressure (the state taxes you harder).
+    state.taxOwed = finiteNum((state.taxOwed || 0) + rev * C.BILLS.TAX_RATE * govTaxPressure());
   }
   // settle ONE category online (player pressed "pay now" OR a boundary auto-settled). NO fee.
   // Rolls any shortfall into debt + sets the partial throttle; full payment clears the throttle.
@@ -823,6 +828,8 @@
     var short = finiteNum(owed - paid);
     if (kind === 'tax') state.taxOwed = 0; else state.powerOwed = 0;
     if (kind === 'tax') state.lastTaxDay = dayIndex(); else state.lastElecDay = dayIndex();
+    // DRIVER: paying taxes in FULL pleases the state (govLoyalty ↑); a shortfall (evasion) dings it.
+    if (kind === 'tax') moveGov(short > 0 ? C.METERS.TAX_SHORT_GOV : C.METERS.TAX_PAID_GOV);
     if (short > 0) rollUnpaidIntoDebt(short);
     else clearShutoffIfClear();
     emit('change');
@@ -873,6 +880,7 @@
     var c = researcherCost();
     if (state.cash < c) return false;
     state.cash -= c; state.researchers++;
+    moveMorale(C.METERS.HIRE_MORALE);   // DRIVER: a growing team is a small morale lift
     checkAchievements(); emit('change');
     return true;
   }
@@ -929,6 +937,9 @@
     var g = C.MODELGEN[state.training.gen];
     state.modelGen = state.training.gen + 1;
     state.marketShare = Math.min(100, state.marketShare + (g ? g.share : 0));
+    // DRIVER: shipping a new generation pleases the public AND lifts team morale.
+    state.trust = clampTrust((state.trust || 0) + C.METERS.RELEASE_APPROVAL);
+    moveMorale(C.METERS.RELEASE_MORALE);
     state.training = { active: false, gen: -1, startedAt: 0, endsAt: 0 };
     checkAchievements();
     emitNews('milestone', ['nh_gen_1', 'nh_gen_2'], { name: g ? t_safe(g.id) : '', n: state.modelGen });
@@ -1032,6 +1043,7 @@
     var cut = Math.floor(before * C_CR.LAYOFF_FRAC);
     state.researchers = Math.max(0, before - cut);
     state.trust = clampTrust((state.trust || 0) + C_CR.LAYOFF_TRUST);
+    moveMorale(C.METERS.LAYOFF_MORALE);   // DRIVER: layoffs gut team morale
     // also frees a small cash cushion (severance avoided / runway reclaimed) sized to NEW burn.
     var cash = monthlyBurn() * 0 + netBurnFloor() * C_CR.LAYOFF_MIN_CASH_MONTHS;
     addCash(cash);
@@ -1113,7 +1125,9 @@
     var lowRunway = !isProfitable() && runwayMonths() < C_CR.ACQ_RUNWAY_MONTHS;
     var trustGone = (state.trust || 0) < C_CR.ACQ_TRUST;
     var shareSlip = (cr.sharePeak || 0) - (state.marketShare || 0) >= C_CR.ACQ_SHARE_DROP;
-    return lowRunway || trustGone || shareSlip;
+    // CONSEQUENCE: bad Industry Relations make rivals circle — a hostile-takeover signal.
+    var industryHostile = (state.industryRel || 0) < C.METERS.IND_ACQ;
+    return lowRunway || trustGone || shareSlip || industryHostile;
   }
   function acquisitionActive() { return !!(state.crisis && state.crisis.acq); }
   function maybeTriggerAcquisition() {
@@ -1160,7 +1174,8 @@
         return;
       }
       // each surviving turn, the predator poaches researchers + licenses your model (share dip).
-      var poach = Math.ceil((state.researchers || 0) * C_CR.ACQ_POACH_FRAC);
+      // CONSEQUENCE: low morale = a leaky team — the poach (mole/defection) bites harder.
+      var poach = Math.ceil((state.researchers || 0) * C_CR.ACQ_POACH_FRAC * (1 + moraleMoleBonus()));
       state.researchers = Math.max(0, (state.researchers || 0) - poach);
       a.poached += poach;
       state.marketShare = Math.max(0, (state.marketShare || 0) - 1);
@@ -1200,7 +1215,11 @@
     if (state.gameOver) return false;
     if ((state.modelGen || 0) < C_CR.NAT_MIN_GEN) return false;
     if (valuation() < C_CR.NAT_MIN_VALUATION) return false;
-    return (state.trust || 0) < C_CR.NAT_TRUST || (state.vec && state.vec.reg >= C_CR.NAT_REG_VEC);
+    // CONSEQUENCE: low Gov Loyalty now FEEDS the nationalization gate (augments the old
+    // trust/reg trigger) — the state moves on labs it doesn't trust politically.
+    return (state.govLoyalty || 0) < C.METERS.GOV_NAT
+        || (state.trust || 0) < C_CR.NAT_TRUST
+        || (state.vec && state.vec.reg >= C_CR.NAT_REG_VEC);
   }
   function updateNationalization() {
     var cr = state.crisis;
@@ -1756,7 +1775,12 @@
   }
   // ---- CONSEQUENCES (where low meters bite) + POSITIVE PULLS -----------------
   // morale → research-speed multiplier (low morale = slower research).
-  function moraleResearchMult() { var M = C.METERS; return M.MORALE_RESEARCH_LO + (M.MORALE_RESEARCH_HI - M.MORALE_RESEARCH_LO) * ((state.morale || 0) / 100); }
+  // pivots at START_MORALE (~55) = neutral 1.0; below → slower (down to LO), above → faster (up to HI).
+  function moraleResearchMult() {
+    var M = C.METERS, m = state.morale || 0, p = M.START_MORALE;
+    if (m >= p) return 1 + (M.MORALE_RESEARCH_HI - 1) * ((m - p) / (100 - p));
+    return M.MORALE_RESEARCH_LO + (1 - M.MORALE_RESEARCH_LO) * (m / p);
+  }
   // morale → extra poach/leak fraction when a talent raid fires (low morale = more leaks).
   function moraleMoleBonus() { var M = C.METERS; var m = state.morale || 0; if (m >= M.MORALE_MOLE_LO) return 0; return M.MORALE_MOLE_BONUS * (1 - m / M.MORALE_MOLE_LO); }
   // govLoyalty → tax-accrual pressure multiplier (low loyalty = the state taxes you harder).
@@ -3401,6 +3425,8 @@
     state.lastElecDay = dayIndex(); state.lastTaxDay = dayIndex();
     if (elec > 0) { var ep = payFromCash(elec); res.elecPaid = ep; res.elecShort = finiteNum(elec - ep); }
     if (tax  > 0) { var tp = payFromCash(tax);  res.taxPaid  = tp; res.taxShort  = finiteNum(tax - tp); }
+    // DRIVER (offline): full tax payment raises govLoyalty; a shortfall dings it.
+    if (tax > 0) moveGov(res.taxShort > 0 ? C.METERS.TAX_SHORT_GOV : C.METERS.TAX_PAID_GOV);
     // service fee (charged only with an accountant; what it could cover, after the bills).
     var fee = finiteNum((off.elecFee || 0) + (off.taxFee || 0));
     if (fee > 0) res.fee = payFromCash(fee);
