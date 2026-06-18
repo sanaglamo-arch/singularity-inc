@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><iframe id="f" src="index.html" width="360" height="820"></iframe>
+<pre id="out" style="color:#0f0;background:#000;font-size:18px"></pre><script>
+try{localStorage.setItem('singularity_inc_lang','ru');localStorage.removeItem('singularity_inc_save_v2');}catch(e){}
+var f=document.getElementById('f');
+f.onload=function(){setTimeout(function(){var d=f.contentDocument,w=f.contentWindow;
+ var tk=d.getElementById('tickerText');
+ document.getElementById('out').textContent='LANG='+w.GAME_I18N.getLang()+'\nTICKER="'+(tk?tk.textContent:'(none)')+'"\nDATE="'+d.getElementById('dateHud').textContent+'"\nSOLV="'+d.getElementById('solvency').textContent+'"';
+},2200);};
+</script></body></html>

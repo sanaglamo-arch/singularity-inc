@@ -494,16 +494,47 @@
     setTimeout(function () { el.classList.remove('show'); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400); }, 3200);
   }
 
-  // ---------------- game over ----------------
+  // ---------------- game over (shareable ending card) ----------------
+  var GO_EMBLEM = { agi: '🏆', bankrupt: '💸', approval: '🚫', legality: '⚖', safety: '☢', beaten: '🥈' };
   function showGameOver(outcome) {
     var scr = $('gameOverScreen'); if (!scr) return;
-    txt('goTitle', t('go_' + outcome + '_title'));
-    txt('goFlavor', t('go_' + outcome + '_flavor'));
-    txt('goSummary', t('go_summary', { day: G.dayNumber(), ver: 'v' + s.version, cash: fmt(Math.max(0, s.cash)) }));
+    // the win outcome is emitted as 'agi'; its i18n keys live under 'go_win_*'
+    var key = (outcome === 'agi') ? 'win' : outcome;
+    var won = (outcome === 'agi');
+    var card = $('goCard');
+    if (card) { card.classList.toggle('win', won); card.classList.toggle('lose', !won); }
+    txt('goEmblem', GO_EMBLEM[outcome] || (won ? '🏆' : '💀'));
+    txt('goTitle', t('go_' + key + '_title'));
+    txt('goCompany', t('game_title'));
+    txt('goFlavor', t('go_' + key + '_flavor'));
+
+    // key stats (version reached, users, day, share) as labelled rows
+    var verLabel = won ? 'AGI' : ('v' + s.version);
+    var usersStr = fmt(Math.round(s.users || 0));
+    var shareStr = pct(G.playerShare());
+    var day = G.dayNumber();
+    var sum = $('goSummary');
+    if (sum) {
+      sum.innerHTML = '';
+      [[t('go_stat_version'), verLabel], [t('go_stat_users'), usersStr],
+       [t('go_stat_share'), shareStr + '%'], [t('go_stat_day'), String(day)]].forEach(function (kv) {
+        var row = document.createElement('div'); row.className = 'go-row';
+        var k = document.createElement('span'); k.className = 'go-k'; k.textContent = kv[0];
+        var v = document.createElement('span'); v.className = 'go-v'; v.textContent = kv[1];
+        row.appendChild(k); row.appendChild(v); sum.appendChild(row);
+      });
+    }
+    // shareable punchline card
+    var punch = won
+      ? t('go_punch_win', { day: day, users: usersStr, share: shareStr })
+      : t('go_punch_lose', { day: day, ver: verLabel, users: usersStr, share: shareStr });
+    txt('goPunch', punch);
+    txt('goBrag', t('go_brag'));
+
     txt('goNewGame', t('go_new_game'));
     var gs = $('goStats'); if (gs) gs.style.display = 'none';
     scr.classList.remove('hidden');
-    try { if (outcome === 'agi') AU.singularity(); else AU.incident(); } catch (e) {}
+    try { if (won) AU.singularity(); else AU.incident(); } catch (e) {}
   }
   function hideGameOver() { var scr = $('gameOverScreen'); if (scr) scr.classList.add('hidden'); }
 

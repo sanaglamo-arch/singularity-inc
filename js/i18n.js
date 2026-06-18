@@ -158,6 +158,14 @@
     go_beaten_flavor: 'A rival reached AGI first.',
     go_new_game: 'New Game',
     go_summary: 'Day {day} · Model {ver} · ${cash}',
+    // shareable ending card
+    go_stat_version: 'Version reached',
+    go_stat_users: 'Users',
+    go_stat_day: 'Day',
+    go_stat_share: 'Market share',
+    go_punch_win: 'I built AGI in {day} days — {users} users, {share}% of the market. Singularity reached. 🏆',
+    go_punch_lose: 'My AI empire fell on day {day} at {ver} — {users} users, {share}% share. Your turn. 💀',
+    go_brag: 'Screenshot this and challenge a friend.',
 
     // settings
     settings_title: 'Settings',
@@ -360,6 +368,14 @@
     go_beaten_flavor: 'Ривал достиг AGI первым.',
     go_new_game: 'Новая игра',
     go_summary: 'День {day} · Модель {ver} · ${cash}',
+    // шеримая карточка концовки
+    go_stat_version: 'Достигнутая версия',
+    go_stat_users: 'Юзеры',
+    go_stat_day: 'День',
+    go_stat_share: 'Доля рынка',
+    go_punch_win: 'Я создал AGI за {day} дн. — {users} юзеров, {share}% рынка. Сингулярность достигнута. 🏆',
+    go_punch_lose: 'Моя ИИ-империя пала на {day}-й день на {ver} — {users} юзеров, {share}% доли. Твой ход. 💀',
+    go_brag: 'Сделай скриншот и брось вызов другу.',
 
     settings_title: 'Настройки',
     lang_label: 'Язык',

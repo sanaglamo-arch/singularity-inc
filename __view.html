@@ -28,7 +28,7 @@ f.onload=function(){setTimeout(function(){var w=f.contentWindow,d=f.contentDocum
   else if(stage==='over'){ s.over=true; s.outcome=outcome; s.version= outcome==='agi'?9:3; s.users=4200; s.gameTime=18*60; s.cash= outcome==='bankrupt'?-12:5400; }
   try{w.location.hash='#'+tab;}catch(e){}
   var navs=d.querySelectorAll('#tabbar button'); for(var i=0;i<navs.length;i++){ if(navs[i].dataset.tab===tab){navs[i].click();break;} }
-  if(stage==='over'){ try{ w.GAME_UI.update(); }catch(e){} }
+  if(stage==='over'){ try{ G.emit('gameover', s.outcome); }catch(e){} }
   else { var mr=d.getElementById('modalRoot'); if(mr){mr.classList.add('hidden'); mr.innerHTML='';} }
   w.GAME_UI.update(); w.GAME_UI.update();
 }catch(e){document.body.insertAdjacentHTML('beforeend','<pre style="color:red">'+e+'</pre>');}},2000);};
