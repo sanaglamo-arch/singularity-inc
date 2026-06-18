@@ -53,11 +53,18 @@
 .ritual-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:26px;color:#fff;letter-spacing:2px;text-shadow:0 0 24px var(--violet)}
 .ritual-sub{color:var(--text-dim);font-size:13px;margin-top:8px}
 
-/* ---- splash ---- */
-#splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  background:radial-gradient(120% 80% at 50% -10%,#0c1020,#080a12);transition:opacity .55s,visibility .55s}
+/* ---- splash (restored classic loader) ---- */
+#splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:radial-gradient(circle at 50% 38%,#16123a 0%,#0b0b18 55%,#06060f 100%);transition:opacity .55s,visibility .55s}
 #splash.hide{opacity:0;visibility:hidden;pointer-events:none}
-.splash-orb{width:120px;height:120px;animation:fx-pulse 2.4s var(--ease) infinite}
-@keyframes fx-pulse{0%,100%{transform:scale(.94);opacity:.85}50%{transform:scale(1.06);opacity:1}}
-.splash-title{font-size:20px;color:var(--text);letter-spacing:3px}
-.splash-tag{font-size:12px;color:var(--text-dim);max-width:260px;text-align:center;padding:0 24px}
+.splash-orb{position:relative;width:132px;height:132px;display:grid;place-items:center;filter:drop-shadow(0 0 30px rgba(139,92,246,.55));animation:fx-pulse 2.4s var(--ease) infinite}
+.splash-orb svg{width:132px;height:132px;position:relative;z-index:1}
+.splash-orb::before{content:'';position:absolute;inset:-22px;border-radius:50%;background:conic-gradient(from 0deg,transparent,rgba(167,139,250,.5),transparent 35%,transparent 65%,rgba(52,225,232,.4),transparent);animation:orbSpin 6s linear infinite}
+@keyframes fx-pulse{0%,100%{transform:scale(.96);opacity:.9}50%{transform:scale(1.06);opacity:1}}
+@keyframes orbSpin{to{transform:rotate(360deg)}}
+.splash-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:24px;letter-spacing:3px;color:#fff;text-shadow:0 0 26px rgba(139,92,246,.7)}
+.splash-tag{font-size:12.5px;color:var(--text-dim);max-width:300px;text-align:center;padding:0 24px}
+.splash-bar{width:180px;height:4px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.splash-bar>div{height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,var(--violet),var(--cyan));animation:splashBar 1.1s ease-in-out infinite}
+@keyframes splashBar{0%{transform:translateX(-120%)}100%{transform:translateX(380%)}}
+@media(prefers-reduced-motion:reduce){.splash-orb,.splash-orb::before,.splash-bar>div{animation:none}}
