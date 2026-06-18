@@ -302,7 +302,7 @@
 
   // ---------- costs ----------
   function elecPerSec() { return totalKw() * C.BILLS.elecRateKwh / 3600; }
-  function upkeepPerSec() { return C.PREMBYID[state.premise].upkeep; }
+  function upkeepPerSec() { var pm = C.PREMBYID[state.premise]; return pm ? pm.upkeep : 0; }
   function salaryPerSec() {
     var s = 0; C.STAFF.forEach(function (st) { s += state.staff[st.id] * st.salary; }); return s;
   }
