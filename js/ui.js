@@ -25,13 +25,93 @@
   // ---------------- boot ----------------
   function init(offline) {
     s = G.state;
+    if (!s.ftue) s.ftue = {};
     bindStatic();
     applyLang();
     G.on('release', onRelease);
     G.on('gameover', showGameOver);
+    G.on('ftue', onFtue);
+    G.on('bill', onBill);
+    G.on('event', onGameEvent);
     if (offline && offline.earned > 0) { try { G.applyOffline(offline.earned, offline); } catch (e) {} }
     if (s.over) showGameOver(s.outcome);
     update();
+  }
+
+  // ---------------- FTUE / teach-on-first popups (progressive disclosure) ----------------
+  var modalQueue = [], modalOpen = false;
+  // show a simple one-time teach popup. key gates it (saved in s.ftue).
+  function teachOnce(key, titleKey, bodyKey) {
+    if (!s.ftue) s.ftue = {};
+    if (s.ftue[key]) return;
+    s.ftue[key] = 1;
+    queueModal({ title: t(titleKey), body: t(bodyKey), btn: t('ftue_got_it') });
+    try { G.save(); } catch (e) {}
+  }
+  function queueModal(m) { modalQueue.push(m); if (!modalOpen) showNextModal(); }
+  function showNextModal() {
+    var root = $('modalRoot'); if (!root) return;
+    if (!modalQueue.length) { modalOpen = false; root.classList.add('hidden'); root.innerHTML = ''; return; }
+    modalOpen = true;
+    var m = modalQueue.shift();
+    root.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'modal ftue-modal';
+    var h = document.createElement('h3'); h.textContent = m.title; box.appendChild(h);
+    var p = document.createElement('p'); p.textContent = m.body; box.appendChild(p);
+    var rowDiv = document.createElement('div'); rowDiv.className = 'row';
+    var b = document.createElement('button'); b.className = 'primary'; b.textContent = m.btn || t('ftue_got_it');
+    on(b, 'click', function () { sfx('buy'); showNextModal(); });
+    rowDiv.appendChild(b); box.appendChild(rowDiv);
+    root.appendChild(box);
+    root.classList.remove('hidden');
+  }
+
+  function onFtue(kind) {
+    if (kind === 'rent') teachOnce('rent', 'ftue_rent_title', 'ftue_rent_body');
+    else if (kind && kind.indexOf('meter:') === 0) {
+      var which = kind.split(':')[1];
+      teachOnce('meter', 'ftue_meter_title', 'ftue_meter_' + which + '_body');
+    }
+  }
+  function onBill() { teachOnce('bill', 'ftue_bill_title', 'ftue_bill_body'); }
+
+  // dismissable telegraph card (top-right). variant: 'warn' | 'down' | 'up'
+  function shareNoti(msg, variant) {
+    var root = $('shareNotis'); if (!root) return;
+    var el = document.createElement('div');
+    el.className = 'share-noti ' + (variant || 'warn');
+    var span = document.createElement('span'); span.className = 'sn-txt'; span.textContent = msg;
+    var x = document.createElement('button'); x.className = 'sn-x'; x.textContent = '×';
+    function close() { el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 280); }
+    on(x, 'click', close);
+    el.appendChild(span); el.appendChild(x);
+    root.appendChild(el);
+    setTimeout(close, 9000);
+  }
+
+  // ---------------- events as consequences ----------------
+  function onGameEvent(e) {
+    if (!e || !e.type) return;
+    switch (e.type) {
+      case 'fireWarn':  shareNoti(t('ev_fire_warn', { v: Math.round(e.safety) }), 'warn'); sfx('error'); break;
+      case 'lawWarn':   shareNoti(t('ev_law_warn', { v: Math.round(e.legality) }), 'warn'); sfx('error'); break;
+      case 'boardWarn': shareNoti(t('ev_board_warn'), 'warn'); sfx('error'); break;
+      case 'fire':
+        sfx('incident');
+        try { FX.incident && FX.incident(); } catch (er) {}
+        queueModal({ title: t('ev_fire_title'), body: t('ev_fire_body', { n: e.lostUnits }), btn: t('ftue_got_it') });
+        rebuildHwList = true; update();
+        break;
+      case 'lawsuit':
+        sfx('incident');
+        queueModal({ title: t('ev_lawsuit_title'), body: t('ev_lawsuit_body', { v: fmt(e.fine) }), btn: t('ftue_got_it') });
+        update();
+        break;
+      case 'boardConvene':
+        queueModal({ title: t('ev_board_convene_title'), body: t('ev_board_convene_body'), btn: t('ftue_got_it') });
+        break;
+    }
   }
 
   function applyLang() {
@@ -374,6 +454,8 @@
     toast(t('release_done', { label: 'v' + ver }));
     var sl = $('priceSlider'); if (sl) sl.value = s.price;
     update();
+    // teach the price slider on the very first release (after the celebration registers)
+    if (ver === 1) teachOnce('release', 'ftue_release_title', 'ftue_release_body');
   }
 
   function toast(msg) {

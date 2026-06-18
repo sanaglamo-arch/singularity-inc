@@ -54,9 +54,18 @@
       lifetimeRevenue: 0,
       lifetimeRent: 0,
       clicks: 0,
+      // FTUE: one-time teach popups already shown (progressive disclosure)
+      ftue: {},                     // { rent:1, release:1, bill:1, meter:1, fire:1, lawsuit:1, board:1 }
+      // event/consequence bookkeeping (telegraphed set-pieces — see GDD §7)
+      boardActive: false,           // board of directors convened (after first funding round)
+      lastFireWarn: 0,              // gameTime of last fire hazard warning (throttle)
+      lastLawWarn: 0,
+      lastFire: 0,                  // gameTime of last fire event (recovery cooldown)
+      lastEventDay: 0,              // last in-game day events were rolled
+      boardWarned: false,          // board issued its liquidity warning
       // outcome
       over: false,
-      outcome: null,                // 'agi' | 'bankrupt' | 'approval' | 'safety' | 'legality'
+      outcome: null,                // 'agi' | 'bankrupt' | 'approval' | 'safety' | 'legality' | 'beaten'
       // rivals snapshot (computed)
       lang: null,
       sound: true, music: true, sfxVol: 0.8, musicVol: 0.6, haptics: true,
@@ -356,6 +365,19 @@
     state.safety = Math.max(0, Math.min(100, state.safety));
     state.approval = Math.max(0, Math.min(100, state.approval));
     state.legality = Math.max(0, Math.min(100, state.legality));
+    // FTUE: first time any risk meter drifts meaningfully off its start value
+    if (!state.ftue.meter && state.version >= 1) {
+      var moved = Math.abs(state.safety - C.RISK.start) > 2 ||
+                  Math.abs(state.approval - C.RISK.start) > 2 ||
+                  Math.abs(state.legality - C.RISK.start) > 2;
+      if (moved) {
+        // which meter moved most + whether it's falling (the teachable case)
+        var which = 'safety', md = Math.abs(state.safety - C.RISK.start);
+        if (Math.abs(state.approval - C.RISK.start) > md) { which = 'approval'; md = Math.abs(state.approval - C.RISK.start); }
+        if (Math.abs(state.legality - C.RISK.start) > md) { which = 'legality'; }
+        emit('ftue', 'meter:' + which);
+      }
+    }
     // floor => lose
     if (!state.over) {
       if (state.approval <= C.RISK.floorLose) endGame('approval');
@@ -478,6 +500,90 @@
     emit('change');
   }
 
+  // ---------- events as consequences (telegraphed; never pure RNG) ----------
+  // hardware currently AT this premises (everything — there's one premises at a time)
+  function hardwareTotalUnits() {
+    var n = 0;
+    C.HARDWARE.forEach(function (h) { n += state.hw[h.id] + state.committed[h.id]; });
+    return n;
+  }
+  // a FIRE: lose this premises' hardware (power + rent drop), drop back to the garage to recover
+  function triggerFire() {
+    // wipe all hardware (it was at the burned premises); keep version/model but power collapses
+    var lostUnits = hardwareTotalUnits();
+    var lostPower = power();
+    C.HARDWARE.forEach(function (h) { state.hw[h.id] = 0; state.committed[h.id] = 0; });
+    // fall back to the garage (free, safe-ish) so the player can rebuild
+    state.premise = C.START.premise;
+    state.lastFire = state.gameTime;
+    emit('event', { type: 'fire', lostUnits: lostUnits, lostPower: lostPower });
+    emit('change');
+  }
+  // a LAWSUIT: a fine (liquidity hit) + a legality drop
+  function triggerLawsuit() {
+    var cfg = C.EVENTS.lawsuit;
+    var fine = Math.max(cfg.fineMin, state.cash * cfg.finePctCash);
+    fine = Math.min(fine, Math.max(0, state.cash) + cfg.fineMin); // can push into the red a little
+    state.cash -= fine;
+    state.legality = Math.max(0, state.legality - cfg.legalityHit);
+    emit('event', { type: 'lawsuit', fine: fine });
+    emit('change');
+    if (!state.over && state.legality <= C.RISK.floorLose) endGame('legality');
+  }
+
+  function updateEvents(dt) {
+    if (state.over) return;
+    var DAY = C.DAY_SEC;
+    var fcfg = C.EVENTS.fire, lcfg = C.EVENTS.lawsuit, bcfg = C.EVENTS.board;
+
+    // telegraph warnings (continuous, throttled) — fire only matters once you own hardware
+    if (state.safety < fcfg.warnBelow && hardwareTotalUnits() > 0 &&
+        state.gameTime - state.lastFireWarn >= fcfg.warnCooldownDays * DAY &&
+        state.gameTime - state.lastFire >= fcfg.recoverCooldownDays * DAY) {
+      state.lastFireWarn = state.gameTime;
+      emit('event', { type: 'fireWarn', safety: state.safety });
+    }
+    if (state.legality < lcfg.warnBelow && state.version >= 1 &&
+        state.gameTime - state.lastLawWarn >= lcfg.warnCooldownDays * DAY) {
+      state.lastLawWarn = state.gameTime;
+      emit('event', { type: 'lawWarn', legality: state.legality });
+    }
+
+    // BOARD convenes the first time the company has real money (proxy for a funding round)
+    if (!state.boardActive && state.version >= 1 && state.cash >= bcfg.conveneCash) {
+      state.boardActive = true;
+      emit('event', { type: 'boardConvene' });
+    }
+    // board liquidity warning: overdue + board active, before bankruptcy grace expires
+    if (state.boardActive && state.overdue && state.overdueSince > 0 && !state.boardWarned) {
+      var overdueDays = (state.gameTime - state.overdueSince) / DAY;
+      if (overdueDays >= (C.BILLS.bankruptGraceDays - bcfg.warnGraceDays)) {
+        state.boardWarned = true;
+        emit('event', { type: 'boardWarn' });
+      }
+    }
+    if (!state.overdue) state.boardWarned = false; // reset once you recover
+
+    // day-boundary dice for the actual set-pieces (so chances are per game-day, not per tick)
+    var today = Math.floor(state.gameTime / DAY);
+    if (today > state.lastEventDay) {
+      state.lastEventDay = today;
+      // FIRE: armed only when safety is dangerously low and you have hardware to lose
+      if (state.safety < fcfg.armBelow && hardwareTotalUnits() > 0 &&
+          state.gameTime - state.lastFire >= fcfg.recoverCooldownDays * DAY) {
+        var fchance = Math.min(fcfg.chancePerDayMax,
+          fcfg.chancePerDayMax * (fcfg.armBelow - state.safety) / fcfg.armBelow);
+        if (Math.random() < fchance) triggerFire();
+      }
+      // LAWSUIT: armed when legality is low and you have a live (revenue-making) model
+      if (!state.over && state.legality < lcfg.armBelow && state.version >= 1) {
+        var lchance = Math.min(lcfg.chancePerDayMax,
+          lcfg.chancePerDayMax * (lcfg.armBelow - state.legality) / lcfg.armBelow);
+        if (Math.random() < lchance) triggerLawsuit();
+      }
+    }
+  }
+
   // ---------- main tick ----------
   function tick(dt) {
     if (!state || state.over) return;
@@ -487,9 +593,12 @@
     var rev = revenuePerSec() * outputMult() * dt;
     var rent = rentPerSec() * outputMult() * dt;
     state.cash += rev + rent;
+    var hadRent = state.lifetimeRent;
     state.lifetimeRevenue += rev;
     state.lifetimeRent += rent;
     state.monthRevenue += rev;
+    // FTUE: first time idle hardware actually earns rent
+    if (hadRent <= 0 && rent > 0 && !state.ftue.rent) emit('ftue', 'rent');
 
     // accrue bills (these are deferred, not subtracted from cash here)
     state.elecAccrued += costPerSec() * dt;
@@ -509,6 +618,8 @@
 
     // meters
     updateMeters(dt);
+    // events as consequences (fire / lawsuit / board) — telegraphed, day-boundary dice
+    updateEvents(dt);
 
     // weekly bill cut
     if (state.gameTime - state.lastBillCut >= C.WEEK_DAYS * C.DAY_SEC) cutWeeklyBill();
@@ -641,6 +752,8 @@
     dayNumber: dayNumber, timeOfDay: timeOfDay, dateLabel: dateLabel,
     // rivals
     standings: standings, agiLeaderDays: agiLeaderDays, rivalReachedAgi: rivalReachedAgi,
+    // events (consequences)
+    triggerFire: triggerFire, triggerLawsuit: triggerLawsuit, hardwareTotalUnits: hardwareTotalUnits,
     // meta
     endGame: endGame
   };

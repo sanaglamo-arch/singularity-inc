@@ -120,6 +120,36 @@
     driftRate: 0.08          // pts/sec toward target
   };
 
+  // ---- events as CONSEQUENCES (telegraphed set-pieces, never pure RNG) ----
+  //  chances are evaluated per in-game day, scaled by how unsafe / illegal the premises are.
+  var EVENTS = {
+    // FIRE — caused by low physical safety. risk grows as safety drops below this floor.
+    fire: {
+      warnBelow: 60,         // telegraph a hazard warning when safety% < this
+      armBelow: 45,          // below this, a fire can actually ignite
+      // per-day ignition chance = base * ((armBelow - safety) / armBelow), capped
+      chancePerDayMax: 0.18,
+      warnCooldownDays: 6,   // don't nag more often than this
+      recoverCooldownDays: 5 // can't be hit again immediately after a fire
+    },
+    // LAWSUIT — caused by low legality. fine scales with your scale (cash on hand).
+    lawsuit: {
+      warnBelow: 60,
+      armBelow: 45,
+      chancePerDayMax: 0.16,
+      finePctCash: 0.18,     // fine = 18% of current cash (liquidity hit), min floor below
+      fineMin: 40,
+      legalityHit: 8,        // legality drops by this many points on a suit
+      warnCooldownDays: 6
+    },
+    // BOARD OF DIRECTORS — convenes once the company is a real business (first model + scale).
+    // If liquidity stays critical it warns, then the existing bankruptcy path forces shutdown.
+    board: {
+      conveneCash: 5000,     // board convenes the first time cash crosses this (you "raised")
+      warnGraceDays: 3       // once overdue, board warns this many days before the plug (cfg below)
+    }
+  };
+
   // ---- rivals (scripted power/price curves vs real time) ----
   // each: power(t) and price are functions of elapsed game-days. V computed like player.
   var RIVALS = [
@@ -154,7 +184,7 @@
     HARDWARE: HARDWARE, HWBYID: HWBYID,
     PREMISES: PREMISES, PREMBYID: PREMBYID,
     VERSIONS: VERSIONS, AGI_VERSION: AGI_VERSION,
-    TRAIN: TRAIN, ECON: ECON, BILLS: BILLS,
+    TRAIN: TRAIN, ECON: ECON, BILLS: BILLS, EVENTS: EVENTS,
     STAFF: STAFF, STAFFBYID: STAFFBYID, STAFF_CFG: STAFF_CFG,
     RISK: RISK, RIVALS: RIVALS, RIVAL_CFG: RIVAL_CFG,
     START: START, ADS: ADS, SETTINGS: SETTINGS

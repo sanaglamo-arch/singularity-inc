@@ -1123,6 +1123,9 @@ button { font-family: var(--font-ui); color: var(--fg); }
 }
 .share-noti.up { border-color: var(--green); box-shadow: 0 0 22px -10px var(--green), var(--shadow-2); }
 .share-noti.down { border-color: var(--rose); box-shadow: 0 0 22px -10px var(--glow-rose), var(--shadow-2); }
+/* telegraph warnings (fire/lawsuit/board) — amber, multi-line, align top */
+.share-noti.warn { border-color: var(--gold, #fbbf24); box-shadow: 0 0 22px -10px var(--glow-gold, #fbbf24), var(--shadow-2); align-items: flex-start; }
+.share-noti.warn .sn-txt { white-space: normal; line-height: 1.4; }
 .share-noti .sn-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .share-noti .sn-x {
   flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; border: none; cursor: pointer;

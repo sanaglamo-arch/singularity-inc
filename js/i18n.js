@@ -170,7 +170,31 @@
     credits: 'Singularity Inc. v2 — phase 1 base.',
 
     common_free: 'free',
-    common_max: 'max'
+    common_max: 'max',
+
+    // ---- FTUE teach-on-first popups (one-time, dismissable) ----
+    ftue_got_it: 'Got it',
+    ftue_rent_title: 'Passive income unlocked',
+    ftue_rent_body: 'Idle hardware rents out to other companies — that\'s passive income, ticking in even while you\'re away. When you release a model, this hardware switches from renting to powering your model instead.',
+    ftue_release_title: 'First model released — set your price',
+    ftue_release_body: 'Your hardware now powers a live model. Use the Token Price slider: lower price = more users but thinner margin; too high = users leave AND the public gets angry. Aim for the sweet spot — it drifts as you grow.',
+    ftue_bill_title: 'Your first bill',
+    ftue_bill_body: 'Electricity, upkeep and salaries pile into a weekly bill. You have 1 in-game day to pay it. Overdue = output drops −30% until you settle — and if it stays unpaid, the board steps in. Keep cash ready.',
+    ftue_meter_title: 'A risk meter just moved',
+    ftue_meter_safety_body: 'Safety reflects your premises. Cheap places run low — and low Safety risks a FIRE that can wipe a premises and its hardware. Hit 0 and regulators shut you down.',
+    ftue_meter_approval_body: 'Public approval falls when you price-gouge. Hit 0 and your model gets cancelled. Fair pricing and marketers bring it back.',
+    ftue_meter_legality_body: 'State & law reflects how legal your premises are. Low legality invites lawsuits and fines. Hit 0 and you get banned. Lawyers and legit premises help.',
+
+    // ---- events as consequences (telegraphed) ----
+    ev_fire_warn: '⚠ Your cheap premises is a fire hazard (safety {v}%). Move up or hire security before it burns.',
+    ev_law_warn: '⚠ Your premises is barely legal ({v}%). The state may sue. Go legit or hire a lawyer.',
+    ev_fire_title: '🔥 FIRE',
+    ev_fire_body: 'Your unsafe premises caught fire. You lost it and all {n} hardware units on site (Power and rent gone). You\'re back in the garage — rebuild, and pick safer premises this time.',
+    ev_lawsuit_title: '⚖ LAWSUIT',
+    ev_lawsuit_body: 'The state sued your barely-legal operation. Fine: ${v}. State & law took a hit. Move to legit premises or hire lawyers.',
+    ev_board_convene_title: 'A board of directors is formed',
+    ev_board_convene_body: 'Your company is now big enough to have a board. They\'ll back you — but if liquidity stays critical, they will step in and shut the company down. Keep your bills paid.',
+    ev_board_warn: '⚠ The board is alarmed: pay your overdue bill or they pull the plug.'
   };
 
   var RU = {
@@ -327,7 +351,31 @@
     credits: 'Singularity Inc. v2 — база фазы 1.',
 
     common_free: 'бесплатно',
-    common_max: 'макс'
+    common_max: 'макс',
+
+    // ---- FTUE обучающие попапы (одноразовые) ----
+    ftue_got_it: 'Понятно',
+    ftue_rent_title: 'Пассивный доход открыт',
+    ftue_rent_body: 'Простаивающее железо сдаётся в аренду другим компаниям — это твой пассивный доход, капает даже пока тебя нет. Когда выпустишь модель, это железо перейдёт из аренды в продакшен и будет давать Мощность.',
+    ftue_release_title: 'Первая модель выпущена — поставь цену',
+    ftue_release_body: 'Теперь железо крутит живую модель. Используй слайдер цены токенов: ниже цена = больше юзеров, но тоньше маржа; слишком высокая = юзеры уходят И общество злится. Целься в сладкую точку — она дрейфует по мере роста.',
+    ftue_bill_title: 'Твой первый счёт',
+    ftue_bill_body: 'Электричество, обслуживание и зарплаты копятся в недельный счёт. На оплату — 1 игровой день. Просрочка = выработка −30% до оплаты, а если не платить дальше — вмешается совет директоров. Держи деньги наготове.',
+    ftue_meter_title: 'Метрика риска сдвинулась',
+    ftue_meter_safety_body: 'Безопасность зависит от помещения. Дешёвые места держат её низкой — а низкая Безопасность грозит ПОЖАРОМ, который может уничтожить помещение и его железо. Дойдёт до 0 — регуляторы закроют тебя.',
+    ftue_meter_approval_body: 'Одобрение общества падает, когда ты задираешь цену. Дойдёт до 0 — модель отменят. Честная цена и маркетологи возвращают его.',
+    ftue_meter_legality_body: 'Государство и закон отражает, насколько легально твоё помещение. Низкая законность ведёт к искам и штрафам. Дойдёт до 0 — запрет. Юристы и легальные помещения помогают.',
+
+    // ---- события как следствие (телеграфируются) ----
+    ev_fire_warn: '⚠ Твой дешёвый подвал — пожароопасен (безопасность {v}%). Переезжай выше или найми безопасника, пока не сгорело.',
+    ev_law_warn: '⚠ Помещение едва легально ({v}%). Государство может подать иск. Стань легальным или найми юриста.',
+    ev_fire_title: '🔥 ПОЖАР',
+    ev_fire_body: 'Небезопасное помещение загорелось. Ты потерял его и всё железо на месте — {n} ед. (Мощность и аренда пропали). Ты снова в гараже — отстраивайся и выбери место безопаснее.',
+    ev_lawsuit_title: '⚖ ИСК',
+    ev_lawsuit_body: 'Государство подало в суд на твою полулегальную контору. Штраф: ${v}. Государство и закон просело. Переезжай в легальное помещение или найми юристов.',
+    ev_board_convene_title: 'Сформирован совет директоров',
+    ev_board_convene_body: 'Компания доросла до совета директоров. Они тебя поддержат — но если ликвидность останется критической, они вмешаются и закроют компанию. Плати по счетам.',
+    ev_board_warn: '⚠ Совет директоров встревожен: оплати просроченный счёт, иначе закроют проект.'
   };
 
   var DICTS = { en: EN, ru: RU };

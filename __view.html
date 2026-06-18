@@ -1,17 +1,35 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0}iframe{border:0;display:block}</style></head>
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#06060f}iframe{border:0;display:block}</style></head>
 <body><iframe id="f" src="index.html"></iframe><script>
-var p=new URLSearchParams(location.search), tab=p.get('tab')||'company', stage=p.get('stage')||'mid', W=+p.get('w')||390, H=+p.get('h')||820, lang=p.get('lang')||'';
+/* v2 screenshot harness. params: tab, stage(fresh|early|released|late|over), w, h, lang, outcome */
+var p=new URLSearchParams(location.search),
+    tab=p.get('tab')||'company', stage=p.get('stage')||'released',
+    W=+p.get('w')||390, H=+p.get('h')||820, lang=p.get('lang')||'ru',
+    outcome=p.get('outcome')||'agi';
 if(lang){try{localStorage.setItem('singularity_inc_lang',lang);}catch(e){}}
+try{localStorage.removeItem('singularity_inc_save_v2');}catch(e){}
 var f=document.getElementById('f'); f.width=W; f.height=H;
 f.onload=function(){setTimeout(function(){var w=f.contentWindow,d=f.contentDocument;try{
   if(lang&&w.GAME_I18N){try{w.GAME_I18N.setLang(lang);}catch(e){}}
-  var s=w.GAME.state; if(stage!=='fresh'){s.act=9; s.seen={u_buymodes:1,u_upgrades:1,u_breakthrough:1,u_managers:1,u_research:1,u_risk:1,world:1,u_sing:1};}else{s.seen=s.seen||{};}
-  if(stage==='fresh'){ /* leave fresh */ }
-  else if(stage==='mid'){ s.modelGen=3;s.cash=2e6;s.totalEarnedAllTime=1e7;s.taps=300;s.compute=8e5;s.marketShare=12;s.boostTokens=2;s.researchers=4;s.researchLevel=3;s.datacenters=2;s.gens.laptop=40;s.gens.gpuRig=18;s.gens.serverRack=6;s.funding={seed:true};s.align=4;s.trust=62; }
-  else if(stage==='late'){ s.modelGen=8;s.cash=1e15;s.totalEarnedAllTime=1e16;s.taps=500;s.compute=1e12;s.marketShare=57;s.boostTokens=3;s.researchers=200;s.researchLevel=16;s.datacenters=14;['laptop','gpuRig','serverRack','gpuCluster','dataCenter','superComp','neuroArray'].forEach((id,i)=>s.gens[id]=200-i*10);s.funding={seed:true,a:true,b:true,c:true};s.align=10;s.trust=70; }
-  else if(stage==='finale'){ s.modelGen=11;s.gameOver=true;s.ending='aligned';s.won=true;s.marketShare=100;s.gens.laptop=200;s.gens.gpuRig=150;s.endings={aligned:true,quiet:true};s.legacyCount=1; }
+  var G=w.GAME,s=G.state;
+  s.boughtLaptop=true; s.tapLevel=4;
+  if(stage==='early'){ s.cash=120; s.hw.miniserver=2; }
+  else if(stage==='released'||stage==='late'){
+    s.cash= stage==='late'? 4.2e6 : 850;
+    s.premise= stage==='late'?'office':'basement';
+    s.committed.miniserver=6; s.committed.workstation= stage==='late'?20:1;
+    if(stage==='late'){ s.committed.gpuserver=8; s.committed.rack1u=2; }
+    s.version= stage==='late'?4:1;
+    s.users= stage==='late'? 9200:140;
+    s.price= 6;
+    s.safety= stage==='late'?42:68; s.approval=61; s.legality= stage==='late'?34:60;
+    s.gameTime= stage==='late'? 22*60 : 4*60;
+    s.billDue= stage==='late'? 0 : 0;
+  }
+  else if(stage==='over'){ s.over=true; s.outcome=outcome; s.version= outcome==='agi'?9:3; s.users=4200; s.gameTime=18*60; s.cash= outcome==='bankrupt'?-12:5400; }
   try{w.location.hash='#'+tab;}catch(e){}
-  var navs=d.querySelectorAll('#tabbar button'); for(var i=0;i<navs.length;i++){ if(navs[i].dataset.tab===tab){navs[i].click();break;} if(tab==='more'&&navs[i].dataset.more){navs[i].click();break;} }
-  w.GAME_UI.update(); w.GAME_UI.update(); var mr=d.getElementById('modalRoot'); if(mr){mr.classList.add('hidden'); mr.innerHTML='';} try{w.location.hash='#'+tab;}catch(e){} for(var i2=0;i2<navs.length;i2++){ if(navs[i2].dataset.tab===tab){navs[i2].click();break;} } w.GAME_UI.update();
-}catch(e){document.body.insertAdjacentHTML('beforeend','<pre style="color:red">'+e+'</pre>');}},2200);};
+  var navs=d.querySelectorAll('#tabbar button'); for(var i=0;i<navs.length;i++){ if(navs[i].dataset.tab===tab){navs[i].click();break;} }
+  if(stage==='over'){ try{ w.GAME_UI.update(); }catch(e){} }
+  else { var mr=d.getElementById('modalRoot'); if(mr){mr.classList.add('hidden'); mr.innerHTML='';} }
+  w.GAME_UI.update(); w.GAME_UI.update();
+}catch(e){document.body.insertAdjacentHTML('beforeend','<pre style="color:red">'+e+'</pre>');}},2000);};
 </script></body></html>
