@@ -1375,6 +1375,8 @@ button:focus:not(:focus-visible) { outline: none; }
 #labSummary .sum-grid .res:nth-child(5) .rval,
 #labSummary .sum-grid .res:nth-child(6) .rval { color: var(--fg); }
 #labSummaryMeters { display: flex; flex-direction: column; gap: 10px; }
+/* the right column is wide on desktop — give the RU meter names room (no ellipsis) */
+#labSummaryMeters .rel-name { flex: 0 0 150px; }
 @media (min-width: 720px) {
   .deskonly { display: block; }
   .tab[data-tab="company"] #genList { padding: 0 0 8px; }
