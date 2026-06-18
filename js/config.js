@@ -137,6 +137,9 @@
     premise: 'garage'
   };
 
+  // minimal ads stub (infra ads.js reads this; SDK-gated, no-op on plain web)
+  var ADS = { INTERSTITIAL_COOLDOWN: 120 };
+
   var SETTINGS = {
     SAVE_KEY: 'singularity_inc_save_v2',
     SAVE_VERSION: 1,
@@ -153,6 +156,6 @@
     TRAIN: TRAIN, ECON: ECON, BILLS: BILLS,
     STAFF: STAFF, STAFFBYID: STAFFBYID, STAFF_CFG: STAFF_CFG,
     RISK: RISK, RIVALS: RIVALS, RIVAL_CFG: RIVAL_CFG,
-    START: START, SETTINGS: SETTINGS
+    START: START, ADS: ADS, SETTINGS: SETTINGS
   };
 })();

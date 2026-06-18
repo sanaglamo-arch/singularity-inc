@@ -542,7 +542,10 @@
       var json = JSON.stringify(state);
       localStorage.setItem(C.SETTINGS.SAVE_KEY, json);
       localStorage.setItem(C.SETTINGS.SAVE_KEY + '_t', String(Date.now()));
-      if (window.GAME_SDK && window.GAME_SDK.savePlayerData) window.GAME_SDK.savePlayerData(json);
+      if (window.GAME_SDK && window.GAME_SDK.savePlayerData) {
+        var p = window.GAME_SDK.savePlayerData(json);
+        if (p && p.catch) p.catch(function () {});
+      }
     } catch (e) {}
   }
   function load() {

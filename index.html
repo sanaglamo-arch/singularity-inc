@@ -5,293 +5,142 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06060f">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=14">
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="fonts.css?v=15">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
-<div id="app">
-  <!-- Top bar -->
+<div id="app" class="v2">
+  <!-- ===== Top bar: brand · cash · net/s ===== -->
   <header id="topbar">
-    <div id="brand"><span id="brandIcon"></span><span id="brandText"><span id="brandName">Singularity Inc.</span><span id="actTag" class="hidden"></span></span></div>
-    <div id="trustHud" class="hidden"><span class="thi"></span><span id="trustVal">60</span></div>
+    <div id="brand"><span id="brandName">Singularity Inc.</span></div>
     <div id="cashBox">
-      <div id="cashVal">0</div>
-      <div id="cpsVal">0/sec</div>
+      <div id="cashVal">$0</div>
+      <div id="netVal" class="muted small">+$0/s</div>
     </div>
-    <button id="inboxBadge" class="hidden" aria-label="decisions inbox"><span class="ib-ico">✉</span><span id="inboxCount">0</span></button>
   </header>
 
-  <!-- Runway HUD (Phase 2 burn→runway headline): "Runway: 14 mo" headline only.
-       Color states green(>6mo)/amber(3-6mo)/red(<3mo)/profitable. Tap for burn/revenue
-       detail (full breakdown lives in Stats). Race-status badge sits inline on the right.
-       Hidden until you ship v1. -->
-  <div id="runwayBar" class="hidden" data-tip-dyn="runway">
-    <div class="rw-main"><span id="runwayLabel"></span><span id="runwayVal"></span></div>
-    <!-- inline status chips: live boost / world event / race standing (consolidated here so
-         the header is one strip, not four floating bands) -->
-    <div id="boostBadge" class="hidden"></div>
-    <div id="eventBadge" class="hidden"></div>
-    <div id="raceBadge" class="hidden"></div>
-    <!-- Phase 3: in-danger CTA — re-opens the recovery / ultimatum panel any time -->
-    <button id="crisisCta" class="hidden"></button>
+  <!-- date/time + solvency line (always visible) -->
+  <div id="hudbar">
+    <div id="dateHud" class="muted small"></div>
+    <div id="solvency" class="muted small"></div>
   </div>
 
-  <!-- Day counter + always-on finance line + pre-revenue hint + debt banner (DESIGN §2/§5/§6).
-       The finance line is ALWAYS visible (owner's #1 complaint: costs must never be hidden).
-       Tap it for the full per-line breakdown. The debt banner only shows when cash < 0. -->
-  <div id="financeWrap">
-    <div id="dayCounter"><span id="dayLabel"></span></div>
-    <div id="financeLine" data-tip-dyn="finance" role="button" tabindex="0"></div>
-    <div id="preRevHint" class="hidden"></div>
-    <div id="debtBanner" class="hidden" role="button" tabindex="0">
-      <span id="debtBannerIcon">⚠</span><span id="debtBannerText"></span>
-    </div>
+  <!-- live model HUD (power · users · share) — shown after v1 -->
+  <div id="modelHud" class="hidden">
+    <div class="mh"><span class="mhl" id="mhPowerL"></span><span class="mhv" id="mhPower">0</span></div>
+    <div class="mh"><span class="mhl" id="mhUsersL"></span><span class="mhv" id="mhUsers">0</span></div>
+    <div class="mh"><span class="mhl" id="mhShareL"></span><span class="mhv" id="mhShare">0%</span></div>
+    <div class="mh"><span class="mhl" id="mhVerL"></span><span class="mhv" id="mhVer">—</span></div>
   </div>
 
-  <!-- Satirical news ticker (narrative arc, stage-based) — hidden until the World/News layer unlocks -->
-  <div id="ticker" class="hidden"><span class="tk-ico"></span><span id="tickerText"></span></div>
-  <!-- Act / campaign progress: thin hairline only (the act is named under the brand) -->
-  <div id="actBar" class="hidden"><div class="actbar-track"><div id="actFill"></div></div></div>
+  <!-- BILL plaque (weekly, 1-day deadline) -->
+  <div id="billPlaque" class="hidden">
+    <span id="billText"></span>
+    <button id="billPayBtn"></button>
+  </div>
 
-  <!-- Content tabs -->
   <main id="content">
+    <!-- ===== COMPANY: click + onboarding + meters + bills + premises ===== -->
     <section class="tab active" data-tab="company">
-      <div id="tapZone">
-        <button id="tapBtn" aria-label="train">
-          <span id="orbSheen" aria-hidden="true"></span>
-          <span id="orbRing" aria-hidden="true"></span>
-          <span id="tapIcon"></span>
-          <span id="tapLabel">TRAIN</span>
-          <span id="tapValue"></span>
-        </button>
-        <div id="tapHint"></div>
-        <div id="comboWrap">
-          <div id="comboLabel"><span id="comboName"></span><span id="comboMult"></span></div>
-          <div id="comboBar"><div id="comboFill"></div></div>
+      <div class="scroll" id="companyPane">
+        <div id="tapZone">
+          <button id="tapBtn" aria-label="click">
+            <span id="tapLabel"></span>
+            <span id="tapValue"></span>
+          </button>
+          <div id="tapHint" class="muted small"></div>
+          <button id="clickUpBtn" class="wide"></button>
         </div>
-        <button id="breakthroughBtn" class="hidden"></button>
-        <div id="riskMini">
-          <div id="riskMiniLabel"></div>
-          <div class="bar"><div id="riskMiniFill"></div></div>
-        </div>
-      </div>
-      <div id="labMain">
-        <div id="nudge" class="hidden"><span class="nicon"></span><span id="nudgeText"></span></div>
-        <!-- GDD v3: continuous model-generation training (replaces prestige) -->
-        <div id="modelPanel" class="glass-panel">
-          <div id="resRow">
-            <div class="res"><span class="rlabel" id="rlCompute"></span><span class="rval" id="computeVal">0</span><span class="rsub" id="computeRate"></span></div>
-            <div class="res"><span class="rlabel" id="rlShare"></span><span class="rval" id="shareVal">0%</span></div>
-            <div class="res"><span class="rlabel" id="rlVal"></span><span class="rval" id="valVal">$0</span></div>
-          </div>
-          <div id="modelHead"><span id="modelTitle"></span><span id="modelProg" class="muted small"></span></div>
-          <div id="trainBox">
-            <button id="trainBtn"></button>
-            <div id="trainProg" class="hidden"><div class="bar"><div id="trainFill"></div></div><div id="trainTimer" class="muted small"></div></div>
-            <div id="trainHint" class="muted small"></div>
-          </div>
-          <button id="fundingBtn" class="hidden"></button>
-          <div id="fundNote" class="muted small hidden"></div>
-          <button id="boostBtn" class="hidden"></button>
-          <div id="buildBox">
-            <button id="buildBtn"></button>
-            <div id="buildProg" class="hidden"><div class="bar"><div id="buildFill"></div></div><div id="buildTimer" class="muted small"></div></div>
-          </div>
-        </div>
-        <!-- v17 BILLS: accruing electricity + next tax + pay-now (online, no fee). Gen-gated. -->
-        <div id="billsPanel" class="glass-panel hidden">
-          <div id="billsHead"><span id="billsTitle"></span><span id="billsAccountant" class="muted small"></span></div>
-          <div id="billsList"></div>
-        </div>
-        <!-- Discoverable orb cosmetics: a small swatch row right on the Lab (item 6) -->
-        <div id="labOrbRow" class="hidden"><span id="labOrbLabel" class="cos-label"></span><div id="labOrbList" class="cos-list"></div></div>
-        <!-- Guided first model-release CTA (appears only when the first prestige is worth it) -->
-        <button id="prestigeCta" class="hidden"><span class="cta-title"></span><span class="cta-sub"></span></button>
-        <!-- Buy-mode selector: compact inline segmented control at the TOP of the generator
-             list (item 2). Scrolls with the page; sits right where you buy. -->
-        <div id="buyModeBar" class="hidden">
-          <button data-mode="1">x1</button>
-          <button data-mode="10">x10</button>
-          <button data-mode="100">x100</button>
-          <button data-mode="max">Max</button>
-        </div>
-        <div class="scroll" id="genList"></div>
-      </div>
-    </section>
 
-    <section class="tab" data-tab="upgrades">
-      <div class="scroll" id="upgradesPane">
-        <h2 id="upgradesTitle"></h2>
-        <div id="upgradeList"></div>
-        <div id="upgradeEmpty" class="empty-state hidden"></div>
-        <h2 id="managersTitle"></h2>
-        <div id="managerList"></div>
-        <div id="managerEmpty" class="empty-state hidden"></div>
-      </div>
-    </section>
+        <div id="trainPanel" class="glass-panel">
+          <div id="trainHead"></div>
+          <button id="trainBtn" class="wide"></button>
+          <div id="trainProg" class="hidden"><div class="bar"><div id="trainFill"></div></div><div id="trainTimer" class="muted small"></div></div>
+          <div id="trainHint" class="muted small"></div>
+        </div>
 
-    <!-- GDD v3: the old prestige 'Research' tab is repurposed as the TEAM (hiring) view -->
-    <section class="tab" data-tab="research">
-      <div class="scroll" id="researchPane">
-        <h2 id="teamTitle"></h2>
-        <p id="teamDesc" class="muted small"></p>
-        <div id="teamPanel" class="glass-panel">
-          <div id="teamStats"></div>
-          <button id="hireBtn"></button>
+        <!-- price slider (after v1) -->
+        <div id="pricePanel" class="glass-panel hidden">
+          <h2 id="priceTitle"></h2>
+          <p id="priceIntro" class="muted small"></p>
+          <div id="priceLabel" class="accent"></div>
+          <input id="priceSlider" type="range" min="0.5" max="40" step="0.25" class="vol-slider" />
+          <div id="pricePreview" class="muted small"></div>
+          <div id="priceSweet" class="muted small"></div>
+          <button id="priceSweetBtn"></button>
         </div>
-        <!-- Managing Director (executive ladder): current director, next recruit, mandate -->
-        <h2 id="execTitle"></h2>
-        <div id="execPanel" class="glass-panel">
-          <div id="execCurrent"></div>
-          <div id="execNext"></div>
-          <button id="execRecruitBtn"></button>
-          <div id="execProg" class="hidden"><div class="bar"><div id="execFill"></div></div><div id="execTimer" class="muted small"></div></div>
-          <div id="execGate" class="muted small hidden"></div>
-          <div id="mandateLabel" class="exec-mandate-label muted small"></div>
-          <div class="seg seg-wrap" id="mandateSeg">
-            <button data-mandate="growth"></button><button data-mandate="balance"></button><button data-mandate="safety"></button><button data-mandate="share"></button>
-          </div>
-          <div id="mandateDesc" class="muted small"></div>
+
+        <!-- risk meters (after v1) -->
+        <div id="metersPanel" class="glass-panel hidden">
+          <h2 id="metersTitle"></h2>
+          <div id="metersList"></div>
         </div>
-        <h2 id="rndTitle"></h2>
-        <div id="rndPanel" class="glass-panel">
-          <div id="researchStats"></div>
-          <button id="researchBtn"></button>
-          <div id="researchProg2" class="hidden"><div class="bar"><div id="researchFill"></div></div><div id="researchTimer" class="muted small"></div></div>
+
+        <!-- premises -->
+        <div id="premPanel" class="glass-panel">
+          <h2 id="premTitle"></h2>
+          <p id="premIntro" class="muted small"></p>
+          <div id="premInfo" class="muted small"></div>
+          <button id="premBtn" class="wide"></button>
         </div>
       </div>
     </section>
 
-
-    <section class="tab" data-tab="alignment">
-      <div class="scroll" id="alignPane">
-        <h2 id="alignTitle"></h2>
-        <p id="alignIntro" class="muted"></p>
-        <div id="incidentBox" class="hidden"></div>
-        <div id="riskPanel">
-          <div id="vectorBars"></div>
-          <div class="meterRow" style="margin-top:14px"><span id="alignLabel"></span><span id="alignOwned"></span></div>
-          <div id="alignSuppressTxt" class="muted small"></div>
-          <button id="buyAlignBtn"></button>
-          <button id="auditBtn"></button>
-        </div>
-        <div class="minigrid" id="alignMini"></div>
-        <div class="tip" id="alignTip"></div>
+    <!-- ===== HARDWARE ===== -->
+    <section class="tab" data-tab="hardware">
+      <div class="scroll" id="hardwarePane">
+        <h2 id="hwTitle"></h2>
+        <p id="hwIntro" class="muted small"></p>
+        <div id="hwCapacity" class="muted small"></div>
+        <div id="hwList"></div>
       </div>
     </section>
 
+    <!-- ===== MODEL / TEAM ===== -->
+    <section class="tab" data-tab="model">
+      <div class="scroll" id="modelPane">
+        <h2 id="staffTitle"></h2>
+        <p id="staffIntro" class="muted small"></p>
+        <div id="staffList"></div>
+      </div>
+    </section>
+
+    <!-- ===== WORLD / RIVALS ===== -->
     <section class="tab" data-tab="world">
       <div class="scroll" id="worldPane">
-        <div id="worldLocked" class="empty-state hidden"></div>
-        <!-- 4 RELATIONSHIP METERS strip (icon + colored bar each) -->
-        <div id="relMetersPanel" class="glass-panel hidden">
-          <div id="relMetersHead"><span id="relMetersTitle"></span></div>
-          <div id="relMeters"></div>
-        </div>
-        <!-- GDD v3: AGI finale banner (win / beaten) + optional Founder's Legacy -->
-        <div id="finaleBanner" class="glass-panel hidden">
-          <div id="finaleTitle"></div>
-          <div id="finaleDesc" class="muted small"></div>
-          <div id="finaleEndingsProgress" class="accent small"></div>
-          <div id="finaleEndingsGrid"></div>
-          <button id="legacyBtn"></button>
-          <div id="legacyNote" class="muted small"></div>
-        </div>
-        <!-- GDD v3: rival market-share race (the central goal) -->
-        <div id="standingsPanel" class="glass-panel">
-          <div id="standingsHead"><span id="standingsTitle"></span><span id="standingsStatus" class="muted small"></span></div>
-          <div id="standingsRows"></div>
-          <div id="agiRace" class="muted small"></div>
-          <button id="acquireBtn" class="hidden"></button>
-          <button id="raceOpenBtn" class="hidden"></button>
-        </div>
-        <h2 id="worldNewsTitle"></h2>
-        <div id="cardList"></div>
-        <h2 id="newsFlavorTitle"></h2>
-        <div id="newsFlavor"></div>
+        <h2 id="worldTitle"></h2>
+        <p id="worldIntro" class="muted small"></p>
+        <div id="raceStatus" class="accent"></div>
+        <h2 id="standingsTitle"></h2>
+        <div id="standingsRows"></div>
       </div>
     </section>
 
-    <section class="tab" data-tab="stats">
-      <div class="scroll" id="statsPane">
-        <h2 id="statsTitle"></h2>
-        <div id="statList"></div>
-        <h3 id="hofTitle" class="hofTitle"></h3>
-        <div id="hofList"></div>
-      </div>
-    </section>
-
-    <section class="tab" data-tab="achievements">
-      <div class="scroll" id="achPane">
-        <h2 id="achTitle"></h2>
-        <div id="dailyPanel" class="dailyPanel"></div>
-        <div id="goalsPanel" class="goalsPanel"></div>
-        <div id="achProgress" class="muted"></div>
-        <div id="achList"></div>
-      </div>
-    </section>
-
+    <!-- ===== SETTINGS ===== -->
     <section class="tab" data-tab="settings">
       <div class="scroll" id="settingsPane">
         <h2 id="settingsTitle"></h2>
-        <div class="setting-row"><span id="companyNameLabel"></span>
-          <div class="name-edit">
-            <input id="companyNameInput" class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" />
-            <button id="companyNameSave" class="name-save"></button>
-          </div>
-        </div>
         <div class="setting-row"><span id="langLabel"></span>
-          <div class="seg" id="langSeg">
-            <button data-lang="en">EN</button><button data-lang="ru">RU</button>
-          </div>
+          <div class="seg" id="langSeg"><button data-lang="en">EN</button><button data-lang="ru">RU</button></div>
         </div>
         <div class="setting-row"><span id="soundLabel"></span>
-          <div class="seg" id="soundSeg">
-            <button data-sound="on"></button><button data-sound="off"></button>
-          </div>
-        </div>
-        <div class="setting-row"><span id="sfxVolLabel"></span>
-          <div class="vol-wrap"><input id="sfxVol" class="vol-slider" type="range" min="0" max="100" step="1" /><span id="sfxVolPct" class="vol-pct"></span></div>
+          <div class="seg" id="soundSeg"><button data-sound="on"></button><button data-sound="off"></button></div>
         </div>
         <div class="setting-row"><span id="musicLabel"></span>
-          <div class="seg" id="musicSeg">
-            <button data-music="on"></button><button data-music="off"></button>
-          </div>
-        </div>
-        <div class="setting-row"><span id="musicVolLabel"></span>
-          <div class="vol-wrap"><input id="musicVol" class="vol-slider" type="range" min="0" max="100" step="1" /><span id="musicVolPct" class="vol-pct"></span></div>
-        </div>
-        <div class="setting-row"><span id="hapticsLabel"></span>
-          <div class="seg" id="hapticsSeg">
-            <button data-haptics="on"></button><button data-haptics="off"></button>
-          </div>
-        </div>
-        <div class="setting-row"><span id="adBoostLabel"></span><button id="adBoostBtn" class="adbtn"></button></div>
-        <div class="setting-row"><span id="adCashLabel"></span><button id="adCashBtn" class="adbtn"></button></div>
-        <h2 id="cosmeticsTitle" style="margin-top:18px"></h2>
-        <div class="cos-row"><span id="cosOrbLabel" class="cos-label"></span><div id="cosOrbList" class="cos-list"></div></div>
-        <div class="cos-row"><span id="cosThemeLabel" class="cos-label"></span><div id="cosThemeList" class="cos-list"></div></div>
-        <button id="saveBtn" class="wide"></button>
-        <h2 id="backupTitle" style="margin-top:18px"></h2>
-        <p id="backupHint" class="muted small"></p>
-        <div class="backup-row">
-          <button id="exportBtn" class="wide"></button>
-          <button id="importBtn" class="wide"></button>
+          <div class="seg" id="musicSeg"><button data-music="on"></button><button data-music="off"></button></div>
         </div>
         <button id="resetBtn" class="wide danger"></button>
         <p id="creditsTxt" class="muted small"></p>
-        <p id="versionTxt" class="muted small"></p>
       </div>
     </section>
   </main>
 
-  <!-- Bottom tab nav: 5 primary slots (World reveals when unlocked); the rest live in More -->
   <nav id="tabbar">
-    <button data-tab="company" class="active"><span class="ti"></span><span class="tl" id="nav_company"></span></button>
-    <button data-tab="upgrades" id="navUpgradesBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_upgrades"></span></button>
-    <button data-tab="research" id="navResearchBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_research"></span></button>
-    <button data-tab="world" id="navWorldBtn" class="hidden"><span class="ti"></span><span class="tl" id="nav_world"></span></button>
-    <button data-more="1" id="navMoreBtn"><span class="ti"></span><span class="tl" id="nav_more"></span></button>
+    <button data-tab="company" class="active"><span class="tl" id="nav_company"></span></button>
+    <button data-tab="hardware"><span class="tl" id="nav_hardware"></span></button>
+    <button data-tab="model"><span class="tl" id="nav_model"></span></button>
+    <button data-tab="world" id="navWorldBtn"><span class="tl" id="nav_world"></span></button>
+    <button data-tab="settings"><span class="tl" id="nav_settings"></span></button>
   </nav>
 </div>
 
@@ -342,17 +191,17 @@
   <div class="splash-bar"><div></div></div>
 </div>
 
-<script src="js/config.js?v=14"></script>
-<script src="js/format.js?v=14"></script>
-<script src="js/i18n.js?v=14"></script>
-<script src="js/sdk.js?v=14"></script>
-<script src="js/ads.js?v=14"></script>
-<script src="js/game.js?v=14"></script>
-<script src="js/audio.js?v=14"></script>
-<script src="js/fx.js?v=14"></script>
-<script src="js/icons.js?v=14"></script>
-<script src="js/music.js?v=14"></script>
-<script src="js/ui.js?v=14"></script>
-<script src="js/main.js?v=14"></script>
+<script src="js/config.js?v=15"></script>
+<script src="js/format.js?v=15"></script>
+<script src="js/i18n.js?v=15"></script>
+<script src="js/sdk.js?v=15"></script>
+<script src="js/ads.js?v=15"></script>
+<script src="js/game.js?v=15"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/fx.js?v=15"></script>
+<script src="js/icons.js?v=15"></script>
+<script src="js/music.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
+<script src="js/main.js?v=15"></script>
 </body>
 </html>
