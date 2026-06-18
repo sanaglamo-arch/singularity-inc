@@ -428,7 +428,7 @@
     syncPricePreview();
   }
   function pvTile(k, id) {
-    return '<div class="res" style="align-items:center;text-align:center"><span class="rlabel">' + esc(k) + '</span><span class="rval" id="' + id + '"></span></div>';
+    return '<div class="res" style="align-items:center;text-align:center;gap:4px;padding:8px 5px"><span class="rlabel" style="white-space:normal;line-height:1.2;min-height:22px;display:flex;align-items:center">' + esc(k) + '</span><span class="rval" id="' + id + '" style="font-size:14px"></span></div>';
   }
   function syncPricePreview() {
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;
