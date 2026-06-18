@@ -74,7 +74,7 @@
       var off = window.GAME.computeOffline(elapsed, false);
       // v17: settle accrued electricity + taxes via the accountant too (pass `off`), even when
       // there were no earnings — bills don't pause while you're away.
-      if (off.earned > 0 || off.elecBill > 0 || off.taxBill > 0) window.GAME.applyOffline(off.earned, off.compute, off);
+      if (off.earned > 0 || off.elecBill > 0 || off.taxBill > 0) window.GAME.applyOffline(off.earned, off);
     }
     lastActive = now;
   }
