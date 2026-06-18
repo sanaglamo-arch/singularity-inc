@@ -537,9 +537,9 @@
     var t = Math.min(elapsed, cap);
     var earned = incomePerSec() * t;
     var elecBill = costPerSec() * t;
-    return { earned: earned, t: t, elecBill: elecBill, taxBill: 0, compute: 0 };
+    return { earned: earned, t: t, elecBill: elecBill, taxBill: 0 };
   }
-  function applyOffline(earned, compute, off) {
+  function applyOffline(earned, off) {
     if (earned > 0) state.cash += earned;
     if (off && off.t) {
       state.gameTime += off.t;

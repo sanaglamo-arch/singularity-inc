@@ -74,8 +74,8 @@
     },
     // two-note confirm
     buy: function () { voice(540, 0.09, 'sine', 0.055); setTimeout(function () { voice(720, 0.10, 'sine', 0.045); }, 55); },
-    // ascending arpeggio sting with octave shimmer
-    prestige: function () { seq([392, 523, 659, 784, 1047], 85, function (f) { voice(f, 0.32, 'sawtooth', 0.045); voice(f * 2, 0.18, 'sine', 0.02); }); },
+    // ascending arpeggio sting with octave shimmer (model-release fanfare)
+    release: function () { seq([392, 523, 659, 784, 1047], 85, function (f) { voice(f, 0.32, 'sawtooth', 0.045); voice(f * 2, 0.18, 'sine', 0.02); }); },
     achievement: function () { voice(660, 0.12, 'sine', 0.055); setTimeout(function () { voice(880, 0.16, 'sine', 0.055); }, 85); },
     // bright triad chime
     milestone: function () { seq([523, 659, 784], 55, function (f) { voice(f, 0.22, 'triangle', 0.06); }); },

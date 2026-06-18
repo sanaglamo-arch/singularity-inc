@@ -29,7 +29,7 @@
     applyLang();
     G.on('release', onRelease);
     G.on('gameover', showGameOver);
-    if (offline && offline.earned > 0) { try { G.applyOffline(offline.earned, offline.compute, offline); } catch (e) {} }
+    if (offline && offline.earned > 0) { try { G.applyOffline(offline.earned, offline); } catch (e) {} }
     if (s.over) showGameOver(s.outcome);
     update();
   }
@@ -369,7 +369,7 @@
 
   // ---------------- events ----------------
   function onRelease(ver) {
-    sfx('prestige');
+    sfx('release');
     try { FX.celebrate(window.innerWidth / 2, window.innerHeight / 2); } catch (e) {}
     toast(t('release_done', { label: 'v' + ver }));
     var sl = $('priceSlider'); if (sl) sl.value = s.price;

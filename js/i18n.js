@@ -331,15 +331,15 @@
   };
 
   var DICTS = { en: EN, ru: RU };
-  var lang = 'en';
+  var lang = 'ru';
 
   function detect() {
     try {
       var saved = localStorage.getItem('singularity_inc_lang');
       if (saved && DICTS[saved]) return saved;
     } catch (e) {}
-    var nav = (navigator.language || 'en').toLowerCase();
-    return nav.indexOf('ru') === 0 ? 'ru' : 'en';
+    // Default language is RU (owner plays in Russian). EN is still selectable in Settings.
+    return 'ru';
   }
   function setLang(l) {
     if (!DICTS[l]) return;
