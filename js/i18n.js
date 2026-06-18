@@ -194,7 +194,27 @@
     ev_lawsuit_body: 'The state sued your barely-legal operation. Fine: ${v}. State & law took a hit. Move to legit premises or hire lawyers.',
     ev_board_convene_title: 'A board of directors is formed',
     ev_board_convene_body: 'Your company is now big enough to have a board. They\'ll back you — but if liquidity stays critical, they will step in and shut the company down. Keep your bills paid.',
-    ev_board_warn: '⚠ The board is alarmed: pay your overdue bill or they pull the plug.'
+    ev_board_warn: '⚠ The board is alarmed: pay your overdue bill or they pull the plug.',
+
+    // ---- satire news ticker (rotating headlines about rivals + the AI race) ----
+    news_ticker: [
+      'OpenMind unveils model so smart it asked for a raise.',
+      'DeepCore CEO: "We are 18 months from AGI." (archived since 2019)',
+      'Nebula trains new model on 100% of the internet, including the lies.',
+      'Investors pour $4B into startup whose pitch was just the word "AGI".',
+      'Regulators announce committee to schedule a meeting about AI.',
+      'OpenMind\'s chatbot now refuses tasks it finds "boring".',
+      'DeepCore datacenter so hot it qualifies as a national park.',
+      'Survey: 9 of 10 founders believe their model is "basically conscious".',
+      'Nebula lays off humans, replaces them with a model that also wants a raise.',
+      'Power grid operator politely asks AI labs to "maybe chill".',
+      'Rival lab claims AGI, demo turns out to be an intern typing fast.',
+      'Token prices surge after CEO tweets a single robot emoji.',
+      'Ethics board resigns; replaced by a model trained on their resignation letters.',
+      'Breaking: every lab simultaneously announces they are "the safe one".',
+      'Analyst warns the AI bubble may pop; analyst is an AI.'
+    ],
+    ticker_live: 'LIVE'
   };
 
   var RU = {
@@ -375,7 +395,27 @@
     ev_lawsuit_body: 'Государство подало в суд на твою полулегальную контору. Штраф: ${v}. Государство и закон просело. Переезжай в легальное помещение или найми юристов.',
     ev_board_convene_title: 'Сформирован совет директоров',
     ev_board_convene_body: 'Компания доросла до совета директоров. Они тебя поддержат — но если ликвидность останется критической, они вмешаются и закроют компанию. Плати по счетам.',
-    ev_board_warn: '⚠ Совет директоров встревожен: оплати просроченный счёт, иначе закроют проект.'
+    ev_board_warn: '⚠ Совет директоров встревожен: оплати просроченный счёт, иначе закроют проект.',
+
+    // ---- сатира-тикер (заголовки про ривалов и гонку ИИ) ----
+    news_ticker: [
+      'OpenMind показала модель настолько умную, что та попросила прибавку.',
+      'Глава DeepCore: «До AGI 18 месяцев». (повторяется с 2019 года)',
+      'Nebula обучила модель на 100% интернета, включая всё враньё.',
+      'В стартап влили $4 млрд за питч, состоящий из одного слова «AGI».',
+      'Регуляторы создали комитет, чтобы назначить встречу по поводу ИИ.',
+      'Чат-бот OpenMind теперь отказывается от задач, которые считает «скучными».',
+      'ЦОД DeepCore так раскалился, что его признали национальным парком.',
+      'Опрос: 9 из 10 основателей уверены, что их модель «почти в сознании».',
+      'Nebula уволила людей и заменила их моделью, которая тоже хочет прибавку.',
+      'Оператор энергосети вежливо просит ИИ-лаборатории «немного остыть».',
+      'Лаборатория заявила об AGI; на демо это оказался стажёр, быстро печатающий.',
+      'Цены на токены взлетели после твита гендира с одним эмодзи робота.',
+      'Совет по этике ушёл; заменён моделью, обученной на их заявлениях об уходе.',
+      'Срочно: все лаборатории разом объявили себя «той самой безопасной».',
+      'Аналитик предупреждает о пузыре ИИ; аналитик сам — ИИ.'
+    ],
+    ticker_live: 'LIVE'
   };
 
   var DICTS = { en: EN, ru: RU };

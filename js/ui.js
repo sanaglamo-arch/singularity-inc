@@ -35,7 +35,32 @@
     G.on('event', onGameEvent);
     if (offline && offline.earned > 0) { try { G.applyOffline(offline.earned, offline); } catch (e) {} }
     if (s.over) showGameOver(s.outcome);
+    startTicker();
     update();
+  }
+
+  // ---------------- satire news ticker ----------------
+  var tickerIdx = 0, tickerTimer = null;
+  function tickerHeadlines() {
+    var d = I.DICTS[I.getLang()] || I.DICTS.en;
+    return d.news_ticker || I.DICTS.en.news_ticker || [];
+  }
+  function renderTicker() {
+    var el = $('tickerText'); if (!el) return;
+    var list = tickerHeadlines(); if (!list.length) return;
+    if (tickerIdx >= list.length) tickerIdx = 0;
+    el.textContent = list[tickerIdx];
+    // restart the fade-in animation
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  }
+  function startTicker() {
+    if (tickerTimer) clearInterval(tickerTimer);
+    renderTicker();
+    tickerTimer = setInterval(function () {
+      var list = tickerHeadlines(); if (!list.length) return;
+      tickerIdx = (tickerIdx + 1) % list.length;
+      renderTicker();
+    }, 6000);
   }
 
   // ---------------- FTUE / teach-on-first popups (progressive disclosure) ----------------
@@ -148,6 +173,7 @@
     document.querySelectorAll('#soundSeg button').forEach(function (b) { b.textContent = t(b.dataset.sound === 'on' ? 'on' : 'off'); });
     document.querySelectorAll('#musicSeg button').forEach(function (b) { b.textContent = t(b.dataset.music === 'on' ? 'on' : 'off'); });
     syncSettingsSegs();
+    renderTicker();
     rebuildHwList = true; rebuildStaffList = true;
   }
 
