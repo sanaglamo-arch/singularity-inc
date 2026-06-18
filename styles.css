@@ -1357,3 +1357,26 @@ button:focus:not(:focus-visible) { outline: none; }
 /* §5 acquisition button (Race tab) */
 #acquireBtn { width: 100%; min-height: 48px; margin-top: 10px; border: 1px solid rgba(139,92,246,0.5); border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 13px; color: #06121a; background: linear-gradient(100deg, var(--violet-2), var(--rose)); box-shadow: 0 8px 24px -10px var(--glow-violet); transition: transform 0.09s var(--ease-spring), filter 0.2s; }
 #acquireBtn:active { transform: scale(0.98); filter: brightness(1.07); }
+
+/* ---------- Lab company snapshot (desktop-only; fills the wide right column) ---------- */
+/* additive: mobile keeps the empty #genList (page just ends); desktop packs it. */
+.deskonly { display: none; }
+#labSummary { margin: 0; }
+#labSummaryHead { margin-bottom: 12px; }
+#labSummaryTitle { font-family: var(--font-display); font-weight: 800; font-size: 14px; letter-spacing: 0.4px; color: var(--fg); }
+#labSummary .sum-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-bottom: 14px; }
+#labSummary .sum-grid .res { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 9px 11px; box-shadow: var(--inset-hi); min-width: 0; }
+#labSummary .sum-grid .rlabel { font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#labSummary .sum-grid .rval { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#labSummary .sum-grid .res:nth-child(2) .rval { color: var(--violet-2); }
+#labSummary .sum-grid .res:nth-child(3) .rval { color: var(--gold); }
+#labSummary .sum-grid .res:nth-child(5) .rval,
+#labSummary .sum-grid .res:nth-child(6) .rval { color: var(--fg); }
+#labSummaryMeters { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 720px) {
+  .deskonly { display: block; }
+  .tab[data-tab="company"] #genList { padding: 0 0 8px; }
+  #labSummary { margin-top: 10px; }
+}

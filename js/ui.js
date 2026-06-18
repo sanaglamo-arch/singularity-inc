@@ -270,6 +270,55 @@
     syncPremiseBox();
     // bills panel
     syncBills();
+    // desktop-only company snapshot that fills the wide right column
+    syncLabSummary();
+  }
+
+  // Company snapshot — fills the empty #genList area on wide screens so the Lab's
+  // right column reads dense + intentional (the old design packed it). CSS hides it
+  // below 720px, so mobile is untouched. Reuses .glass-panel / .res / rel-row styling.
+  function syncLabSummary() {
+    var st = s(), list = $('genList'); if (!list) return;
+    if (!list.__sumInit) {
+      list.__sumInit = 1;
+      list.innerHTML =
+        '<div id="labSummary" class="glass-panel deskonly">' +
+        '<div id="labSummaryHead"><span id="labSummaryTitle"></span></div>' +
+        '<div id="resRowSum" class="sum-grid">' +
+          sumTile('sm-power', 'rlSmPower') + sumTile('sm-users', 'rlSmUsers') +
+          sumTile('sm-share', 'rlSmShare') + sumTile('sm-net', 'rlSmNet') +
+          sumTile('sm-rigs', 'rlSmRigs') + sumTile('sm-rank', 'rlSmRank') +
+        '</div>' +
+        '<div id="labSummaryMeters"></div>' +
+        '</div>';
+    }
+    setText($('labSummaryTitle'), t('lab_summary_title'));
+    setText($('rlSmPower'), t('power_label')); setText($('rlSmUsers'), t('users_label'));
+    setText($('rlSmShare'), t('share_label')); setText($('rlSmNet'), t('res_power') === 'Power' ? 'Net/' + ruS() : 'Итог/' + ruS());
+    setText($('rlSmRigs'), t('summary_rigs')); setText($('rlSmRank'), t('summary_rank'));
+    setText($('sm-power'), fmt(G.power()));
+    setText($('sm-users'), fmt(st.users));
+    setText($('sm-share'), pct(G.playerShare()) + '%');
+    var net = G.netPerSec(), nEl = $('sm-net');
+    if (nEl) { nEl.textContent = (net >= 0 ? '+$' : '−$') + fmt(Math.abs(net)); setStyleP(nEl, 'color', net >= 0 ? 'var(--green)' : 'var(--rose)'); }
+    var rigs = 0; C.HARDWARE.forEach(function (h) { rigs += st.committed[h.id]; });
+    setText($('sm-rigs'), fmt(rigs));
+    var rows = G.standings(), rank = 0; for (var i = 0; i < rows.length; i++) if (rows[i].isPlayer) { rank = i + 1; break; }
+    setText($('sm-rank'), '#' + rank + ' / ' + rows.length);
+    // three risk meters (reuse rel-row strip styling)
+    var meters = [[t('meter_safety'), st.safety, '◆'], [t('meter_approval'), st.approval, '●'], [t('meter_legality'), st.legality, '▲']];
+    var mh = '';
+    meters.forEach(function (m) {
+      var v = Math.round(m[1]), col = meterColor(v);
+      mh += '<div class="rel-row" style="cursor:default"><span class="rel-ic">' + m[2] + '</span>' +
+        '<span class="rel-name">' + esc(m[0]) + '</span>' +
+        '<span class="rel-bar"><span class="rel-fill" style="width:' + v + '%;background:' + col + '"></span></span>' +
+        '<span class="rel-val" style="color:' + col + '">' + v + '%</span></div>';
+    });
+    setHTML($('labSummaryMeters'), mh);
+  }
+  function sumTile(valId, lblId) {
+    return '<div class="res"><span class="rlabel" id="' + lblId + '"></span><span class="rval" id="' + valId + '"></span></div>';
   }
 
   // Premises live in the #buildBox slot under the model panel (old build button styling).
