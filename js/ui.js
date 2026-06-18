@@ -583,6 +583,8 @@
     if ($('sfxVolPct')) $('sfxVolPct').textContent = Math.round((st.sfxVol || 0) * 100) + '%';
     var mv = $('musicVol'); if (mv && document.activeElement !== mv) mv.value = Math.round((st.musicVol || 0) * 100);
     if ($('musicVolPct')) $('musicVolPct').textContent = Math.round((st.musicVol || 0) * 100) + '%';
+    // company-name input always reflects the live name (unless the player is mid-edit)
+    var cni = $('companyNameInput'); if (cni && document.activeElement !== cni) cni.value = st.companyName || '';
   }
   function wireSettings() {
     function on(sel, fn) { var n = document.querySelectorAll(sel); for (var i = 0; i < n.length; i++) (function (b) { b.onclick = function () { fn(b); }; })(n[i]); }
