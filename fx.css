@@ -1,0 +1,63 @@
+/* FX + splash layer for Singularity Inc. v2.
+   Effect/animation infra that fx.js + main.js depend on (not design-system components).
+   The visual design system lives in styles.css. */
+
+/* ---- fx particle layer ---- */
+#fxRoot{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.particle{position:absolute;border-radius:50%;pointer-events:none;will-change:transform,opacity;
+  animation:fx-particle var(--ease) forwards}
+@keyframes fx-particle{
+  0%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}
+}
+.float{position:absolute;font-family:'Orbitron',sans-serif;font-weight:700;font-size:16px;
+  color:var(--gold);text-shadow:0 1px 4px #000;pointer-events:none;
+  animation:fx-float 1.1s var(--ease) forwards}
+.float.crit{font-size:22px;color:var(--cyan)}
+@keyframes fx-float{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-46px);opacity:0}}
+.ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%) scale(.2);
+  border:2px solid rgba(167,139,255,.7);pointer-events:none;animation:fx-ripple .6s var(--ease) forwards}
+@keyframes fx-ripple{0%{transform:translate(-50%,-50%) scale(.2);opacity:.8}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.shockwave{position:absolute;border-radius:50%;border:2px solid;transform:translate(-50%,-50%) scale(.1);
+  width:var(--sw);height:var(--sw);pointer-events:none;animation:fx-shock .76s var(--ease) forwards}
+@keyframes fx-shock{0%{transform:translate(-50%,-50%) scale(.1);opacity:.9}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.screenflash{position:fixed;inset:0;pointer-events:none;z-index:55;animation:fx-flash .6s ease-out forwards}
+@keyframes fx-flash{0%{opacity:.9}100%{opacity:0}}
+
+/* ---- incident shake + vignette ---- */
+.app.shake{animation:fx-shake .45s}
+@keyframes fx-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:54;opacity:0;
+  box-shadow:inset 0 0 120px 20px rgba(255,93,115,.0);transition:opacity .3s}
+#vignette.on{opacity:1;box-shadow:inset 0 0 120px 30px rgba(255,93,115,.55);animation:fx-vig 1.2s ease-out}
+@keyframes fx-vig{0%{opacity:1}100%{opacity:0}}
+.card.flash{animation:fx-cardflash .5s var(--ease)}
+@keyframes fx-cardflash{0%{box-shadow:0 0 0 0 rgba(167,139,255,.6)}100%{box-shadow:0 0 0 14px rgba(167,139,255,0)}}
+
+/* ---- ritual cinematic (release / win) ---- */
+.ritual{position:fixed;inset:0;z-index:70;display:grid;place-items:center;pointer-events:auto;
+  background:radial-gradient(circle at 50% 45%,rgba(139,92,246,.25),rgba(4,6,12,.9));animation:fx-fadein .3s}
+.ritual.singularity{background:radial-gradient(circle at 50% 45%,rgba(52,225,232,.28),rgba(4,6,12,.92))}
+.ritual.out{animation:fx-fadeout .35s forwards}
+@keyframes fx-fadein{from{opacity:0}to{opacity:1}}
+@keyframes fx-fadeout{from{opacity:1}to{opacity:0}}
+.ritual-core{position:absolute;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,#fff,var(--violet-bright) 50%,transparent 72%);
+  animation:fx-core 2s var(--ease) infinite}
+.ritual.singularity .ritual-core{background:radial-gradient(circle,#fff,var(--cyan) 50%,transparent 72%)}
+@keyframes fx-core{0%,100%{transform:scale(.8);opacity:.7}50%{transform:scale(1.3);opacity:1}}
+.ritual-sweep{position:absolute;width:300px;height:300px;border-radius:50%;
+  border-top:3px solid var(--violet-bright);animation:fx-spin 1.4s linear infinite}
+@keyframes fx-spin{to{transform:rotate(360deg)}}
+.ritual-text{position:relative;text-align:center;z-index:2}
+.ritual-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:26px;color:#fff;letter-spacing:2px;text-shadow:0 0 24px var(--violet)}
+.ritual-sub{color:var(--text-dim);font-size:13px;margin-top:8px}
+
+/* ---- splash ---- */
+#splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:radial-gradient(120% 80% at 50% -10%,#0c1020,#080a12);transition:opacity .55s,visibility .55s}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-orb{width:120px;height:120px;animation:fx-pulse 2.4s var(--ease) infinite}
+@keyframes fx-pulse{0%,100%{transform:scale(.94);opacity:.85}50%{transform:scale(1.06);opacity:1}}
+.splash-title{font-size:20px;color:var(--text);letter-spacing:3px}
+.splash-tag{font-size:12px;color:var(--text-dim);max-width:260px;text-align:center;padding:0 24px}

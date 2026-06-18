@@ -2,185 +2,50 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#06060f">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080a12">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=15">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="fonts.css?v=20">
+<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="fx.css?v=20">
 </head>
 <body>
-<div id="app" class="v2">
-  <!-- ===== Top bar: brand · cash · net/s ===== -->
-  <header id="topbar">
-    <div id="brand"><span id="brandName">Singularity Inc.</span></div>
-    <div id="cashBox">
-      <div id="cashVal">$0</div>
-      <div id="netVal" class="muted small">+$0/s</div>
+<div id="app" class="app">
+  <!-- ===== top HUD (money · rate · date · solvency · ticker) ===== -->
+  <header class="hud" id="hud">
+    <div class="hud-row">
+      <span class="brand display" id="brand">SINGULARITY INC.</span>
+      <span class="rate num" id="hudRate"></span>
     </div>
+    <div class="money num" id="hudMoney">$0</div>
+    <div class="hud-sub">
+      <span class="num" id="hudDate"></span>
+      <span class="solvency num" id="hudSolvency"></span>
+    </div>
+    <div class="ticker" id="hudTicker"><b id="tickerTag"></b><span id="tickerText"></span></div>
   </header>
 
-  <!-- date/time + solvency line (always visible) -->
-  <div id="hudbar">
-    <div id="dateHud" class="muted small"></div>
-    <div id="solvency" class="muted small"></div>
-  </div>
+  <!-- ===== screen: active tab content renders here ===== -->
+  <main class="screen" id="screen"></main>
 
-  <!-- satire news ticker (identity flavor; rotates ~every 6s) -->
-  <div id="ticker"><span class="tk-ico"></span><span id="tickerText"></span></div>
-
-  <!-- live model HUD (power · users · share) — shown after v1 -->
-  <div id="modelHud" class="hidden">
-    <div class="mh"><span class="mhl" id="mhPowerL"></span><span class="mhv" id="mhPower">0</span></div>
-    <div class="mh"><span class="mhl" id="mhUsersL"></span><span class="mhv" id="mhUsers">0</span></div>
-    <div class="mh"><span class="mhl" id="mhShareL"></span><span class="mhv" id="mhShare">0%</span></div>
-    <div class="mh"><span class="mhl" id="mhVerL"></span><span class="mhv" id="mhVer">—</span></div>
-  </div>
-
-  <!-- BILL plaque (weekly, 1-day deadline) -->
-  <div id="billPlaque" class="hidden">
-    <span id="billText"></span>
-    <button id="billPayBtn"></button>
-  </div>
-
-  <main id="content">
-    <!-- ===== COMPANY: click + onboarding + meters + bills + premises ===== -->
-    <section class="tab active" data-tab="company">
-      <div class="scroll" id="companyPane">
-        <div id="tapZone">
-          <button id="tapBtn" aria-label="click">
-            <span id="tapLabel"></span>
-            <span id="tapValue"></span>
-          </button>
-          <div id="tapHint" class="muted small"></div>
-          <button id="clickUpBtn" class="wide"></button>
-        </div>
-
-        <div id="trainPanel" class="glass-panel">
-          <div id="trainHead"></div>
-          <button id="trainBtn" class="wide"></button>
-          <div id="trainProg" class="hidden"><div class="bar"><div id="trainFill"></div></div><div id="trainTimer" class="muted small"></div></div>
-          <div id="trainHint" class="muted small"></div>
-        </div>
-
-        <!-- price slider (after v1) -->
-        <div id="pricePanel" class="glass-panel hidden">
-          <h2 id="priceTitle"></h2>
-          <p id="priceIntro" class="muted small"></p>
-          <div id="priceLabel" class="accent"></div>
-          <input id="priceSlider" type="range" min="0.5" max="40" step="0.25" class="vol-slider" />
-          <div id="pricePreview" class="muted small"></div>
-          <div id="priceSweet" class="muted small"></div>
-          <button id="priceSweetBtn"></button>
-        </div>
-
-        <!-- risk meters (after v1) -->
-        <div id="metersPanel" class="glass-panel hidden">
-          <h2 id="metersTitle"></h2>
-          <div id="metersList"></div>
-        </div>
-
-        <!-- premises -->
-        <div id="premPanel" class="glass-panel">
-          <h2 id="premTitle"></h2>
-          <p id="premIntro" class="muted small"></p>
-          <div id="premInfo" class="muted small"></div>
-          <button id="premBtn" class="wide"></button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== HARDWARE ===== -->
-    <section class="tab" data-tab="hardware">
-      <div class="scroll" id="hardwarePane">
-        <h2 id="hwTitle"></h2>
-        <p id="hwIntro" class="muted small"></p>
-        <div id="hwCapacity" class="muted small"></div>
-        <div id="hwList"></div>
-      </div>
-    </section>
-
-    <!-- ===== MODEL / TEAM ===== -->
-    <section class="tab" data-tab="model">
-      <div class="scroll" id="modelPane">
-        <h2 id="staffTitle"></h2>
-        <p id="staffIntro" class="muted small"></p>
-        <div id="staffList"></div>
-      </div>
-    </section>
-
-    <!-- ===== WORLD / RIVALS ===== -->
-    <section class="tab" data-tab="world">
-      <div class="scroll" id="worldPane">
-        <h2 id="worldTitle"></h2>
-        <p id="worldIntro" class="muted small"></p>
-        <div id="raceStatus" class="accent"></div>
-        <h2 id="standingsTitle"></h2>
-        <div id="standingsRows"></div>
-      </div>
-    </section>
-
-    <!-- ===== SETTINGS ===== -->
-    <section class="tab" data-tab="settings">
-      <div class="scroll" id="settingsPane">
-        <h2 id="settingsTitle"></h2>
-        <div class="setting-row"><span id="langLabel"></span>
-          <div class="seg" id="langSeg"><button data-lang="en">EN</button><button data-lang="ru">RU</button></div>
-        </div>
-        <div class="setting-row"><span id="soundLabel"></span>
-          <div class="seg" id="soundSeg"><button data-sound="on"></button><button data-sound="off"></button></div>
-        </div>
-        <div class="setting-row"><span id="musicLabel"></span>
-          <div class="seg" id="musicSeg"><button data-music="on"></button><button data-music="off"></button></div>
-        </div>
-        <button id="resetBtn" class="wide danger"></button>
-        <p id="creditsTxt" class="muted small"></p>
-      </div>
-    </section>
-  </main>
-
-  <nav id="tabbar">
-    <button data-tab="company" class="active"><span class="tl" id="nav_company"></span></button>
-    <button data-tab="hardware"><span class="tl" id="nav_hardware"></span></button>
-    <button data-tab="model"><span class="tl" id="nav_model"></span></button>
-    <button data-tab="world" id="navWorldBtn"><span class="tl" id="nav_world"></span></button>
-    <button data-tab="settings"><span class="tl" id="nav_settings"></span></button>
+  <!-- ===== bottom nav (5 tabs) ===== -->
+  <nav class="nav" id="nav">
+    <button class="nav-item active" data-tab="company"><span class="ni" id="navIco-company"></span><span id="navLbl-company"></span></button>
+    <button class="nav-item" data-tab="hardware"><span class="ni" id="navIco-hardware"></span><span id="navLbl-hardware"></span></button>
+    <button class="nav-item" data-tab="model"><span class="ni" id="navIco-model"></span><span id="navLbl-model"></span></button>
+    <button class="nav-item" data-tab="world"><span class="ni" id="navIco-world"></span><span id="navLbl-world"></span></button>
+    <button class="nav-item" data-tab="settings"><span class="ni" id="navIco-settings"></span><span id="navLbl-settings"></span></button>
   </nav>
 </div>
 
-<div id="toastRoot" role="status" aria-live="polite" aria-atomic="false"></div>
-<!-- Share-change notifications (owner's request): small dismissable cards, top-right -->
-<div id="shareNotis" role="status" aria-live="polite"></div>
-<div id="modalRoot" class="hidden"></div>
-
-<!-- GAME-OVER screen (DESIGN §4): full-screen BLOCKING overlay shown when any finale fires
-     (bankrupt / absorbed / nationalized / beaten / AGI-win). The dead game is not tappable
-     behind it. "New Game" → difficulty select → fresh run. "View Stats" → Stats tab. -->
-<div id="gameOverScreen" class="hidden" role="dialog" aria-modal="true">
-  <div id="goCard">
-    <div id="goEmblem"></div>
-    <div id="goTitle"></div>
-    <div id="goCompany" class="muted"></div>
-    <div id="goFlavor" class="muted small"></div>
-    <div id="goRecord" class="hidden"></div>
-    <div id="goSummary"></div>
-    <!-- v19: alt-goal badges earned this run (also persisted to Hall of Fame) -->
-    <div id="goBadges" class="go-badges hidden"></div>
-    <!-- Shareable ending card: a one-line punchline + stat line, made to screenshot -->
-    <div id="goPunch"></div>
-    <div id="goBrag" class="muted small"></div>
-    <div id="goButtons">
-      <button id="goNewGame"></button>
-      <button id="goStats" class="ghost"></button>
-    </div>
-  </div>
-</div>
-
-<!-- HOOK: screen-edge glow that intensifies as you approach the first v1 release -->
-<div id="v1Glow" aria-hidden="true"></div>
-
+<!-- modal / scrim root (FTUE, events, endings) -->
+<div id="modalRoot"></div>
+<!-- telegraph warnings (fire / lawsuit hazard) -->
+<div id="telegraphRoot"></div>
+<!-- fx particle layer -->
 <div id="fxRoot"></div>
 
-<!-- Splash / loading screen (shown instantly, before JS parses; faded out on boot) -->
+<!-- splash (faded out on boot by main.js) -->
 <div id="splash">
   <div class="splash-orb">
     <svg viewBox="0 0 120 120" fill="none" stroke="#bfa6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -189,22 +54,21 @@
       <path d="M60 13v12M60 95v12M13 60h12M95 60h12M27 27l8 8M85 85l8 8M93 27l-8 8M35 85l-8 8"/>
     </svg>
   </div>
-  <div class="splash-title">SINGULARITY INC.</div>
-  <div class="splash-tag">From a garage script to an artificial god.</div>
-  <div class="splash-bar"><div></div></div>
+  <div class="splash-title display">SINGULARITY INC.</div>
+  <div class="splash-tag">От гаражного скрипта до искусственного бога.</div>
 </div>
 
-<script src="js/config.js?v=15"></script>
-<script src="js/format.js?v=15"></script>
-<script src="js/i18n.js?v=15"></script>
-<script src="js/sdk.js?v=15"></script>
-<script src="js/ads.js?v=15"></script>
-<script src="js/game.js?v=15"></script>
-<script src="js/audio.js?v=15"></script>
-<script src="js/fx.js?v=15"></script>
-<script src="js/icons.js?v=15"></script>
-<script src="js/music.js?v=15"></script>
-<script src="js/ui.js?v=15"></script>
-<script src="js/main.js?v=15"></script>
+<script src="js/config.js?v=20"></script>
+<script src="js/i18n.js?v=20"></script>
+<script src="js/format.js?v=20"></script>
+<script src="js/icons.js?v=20"></script>
+<script src="js/fx.js?v=20"></script>
+<script src="js/audio.js?v=20"></script>
+<script src="js/music.js?v=20"></script>
+<script src="js/sdk.js?v=20"></script>
+<script src="js/ads.js?v=20"></script>
+<script src="js/game.js?v=20"></script>
+<script src="js/ui.js?v=20"></script>
+<script src="js/main.js?v=20"></script>
 </body>
 </html>
