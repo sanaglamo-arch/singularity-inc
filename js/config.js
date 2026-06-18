@@ -86,6 +86,7 @@
     // electricity per sec = ΣkW × 0.15 / 3600
     overduePenalty: 0.30,    // -30% output while a bill is overdue
     payDeadlineDays: 1,      // 1 in-game day to pay the weekly bill
+    bankruptGraceDays: 6,    // a bill overdue this many in-game days => board pulls the plug (bankrupt)
     taxRate: 0.18            // 18% of revenue earned in the month
   };
 

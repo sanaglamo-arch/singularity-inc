@@ -45,6 +45,7 @@
       billDueAt: 0,                 // gameTime by which it must be paid (deadline)
       lastBillCut: 0,               // gameTime of last weekly cut
       overdue: false,
+      overdueSince: 0,              // gameTime when the current bill first went overdue (0 = not overdue)
       taxAccrued: 0,                // revenue accumulated this month (taxed at cut)
       lastTaxCut: 0,
       taxDue: 0,
@@ -376,11 +377,18 @@
     return state.elecAccrued + (elecPerSec() + upkeepPerSec() + salaryPerSec()) * remain;
   }
   function cutWeeklyBill() {
-    state.billDue = state.elecAccrued;
+    var carried = state.billDue;            // unpaid balance rolls forward
+    state.billDue = carried + state.elecAccrued;
     state.elecAccrued = 0;
-    state.billDueAt = state.gameTime + C.BILLS.payDeadlineDays * C.DAY_SEC;
     state.lastBillCut = state.gameTime;
-    state.overdue = false;
+    if (carried > 0.01) {
+      // already in arrears — keep the overdue clock running; just refresh the headline
+      if (!state.overdue) { state.overdue = true; if (!state.overdueSince) state.overdueSince = state.gameTime; }
+    } else {
+      state.billDueAt = state.gameTime + C.BILLS.payDeadlineDays * C.DAY_SEC;
+      state.overdue = false;
+      state.overdueSince = 0;
+    }
     emit('bill', state.billDue);
     emit('change');
   }
@@ -397,6 +405,7 @@
     state.cash -= state.billDue;
     state.billDue = 0;
     state.overdue = false;
+    state.overdueSince = 0;
     emit('change');
     return true;
   }
@@ -503,15 +512,19 @@
 
     // weekly bill cut
     if (state.gameTime - state.lastBillCut >= C.WEEK_DAYS * C.DAY_SEC) cutWeeklyBill();
-    // overdue check
-    if (state.billDue > 0 && state.gameTime > state.billDueAt) state.overdue = true;
+    // overdue check + board grace timer
+    if (state.billDue > 0 && state.gameTime > state.billDueAt) {
+      if (!state.overdue) { state.overdue = true; state.overdueSince = state.gameTime; }
+    } else if (state.billDue <= 0.01) {
+      state.overdue = false; state.overdueSince = 0;
+    }
     // monthly tax
     if (state.gameTime - state.lastTaxCut >= C.MONTH_DAYS * C.DAY_SEC) cutMonthlyTax();
 
-    // bankruptcy: deeply negative cash with an unpaid bill and no way out
-    if (state.cash < 0) {
-      // allow a small grace; bankrupt if cash very negative
-      if (state.cash < -Math.max(50, billForecast() * 2)) endGame('bankrupt');
+    // BANKRUPTCY: the board pulls the plug if a bill stays overdue past the grace window
+    // (long low liquidity → forced shutdown). Income is never shown negative; this is the lever.
+    if (!state.over && state.overdue && state.overdueSince > 0) {
+      if (state.gameTime - state.overdueSince >= C.BILLS.bankruptGraceDays * C.DAY_SEC) endGame('bankrupt');
     }
     // rival reaches AGI first => lose the race
     if (!state.over && rivalReachedAgi() && state.version < C.AGI_VERSION) endGame('beaten');
