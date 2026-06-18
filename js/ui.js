@@ -395,6 +395,24 @@
       meterHtml('approval', t('meter_approval'), 'var(--m-approval)', '●') +
       meterHtml('legality', t('meter_legality'), 'var(--m-law)', '▲');
     screenEl.appendChild(mc);
+
+    // TEAM: staff nudge the meters / taxes (game API exists; surfaced here next to the meters)
+    var tc = el('div', 'card');
+    var rowsHtml = C.STAFF.map(function (st2) {
+      return '<div class="row">' +
+        '<span class="row-ico">' + IC.ic_manager + '</span>' +
+        '<div class="row-main"><div class="row-name">' + t('staff_name_' + st2.id) + '</div>' +
+        '<div class="row-sub" id="staffdesc-' + st2.id + '"></div></div>' +
+        '<button class="btn row-buy num" id="staffhire-' + st2.id + '"></button></div>';
+    }).join('');
+    tc.innerHTML = '<h3 class="card-title">' + t('staff_title') + '</h3>' +
+      '<div class="muted" style="font-size:11.5px;margin-bottom:var(--s2)">' + t('staff_intro') + '</div>' + rowsHtml;
+    screenEl.appendChild(tc);
+    C.STAFF.forEach(function (st2) {
+      $('staffhire-' + st2.id).onclick = (function (id) {
+        return function () { if (G.hire(id)) { if (s().sound) A.hireDone(); refreshAll(); } else if (s().sound) A.error(); };
+      })(st2.id);
+    });
   }
   function meterHtml(id, label, color, glyph) {
     return '<div class="meter">' +
@@ -431,6 +449,15 @@
     [['safety', st.safety], ['approval', st.approval], ['legality', st.legality]].forEach(function (m) {
       setText('m-' + m[0] + 'V', Math.round(m[1]) + '%');
       var bar = $('m-' + m[0] + 'Bar'); if (bar) bar.style.width = m[1] + '%';
+    });
+
+    C.STAFF.forEach(function (st2) {
+      var d = $('staffdesc-' + st2.id); if (!d) return;
+      d.textContent = t('staff_desc_' + st2.id) + ' · ' + t('staff_count', { n: st.staff[st2.id] });
+      var b = $('staffhire-' + st2.id);
+      b.textContent = t('staff_hire', { c: FMT.fmt(G.staffHireCost(st2.id)) });
+      b.disabled = !G.canHire(st2.id);
+      b.classList.toggle('btn-violet', G.canHire(st2.id));
     });
   }
 
