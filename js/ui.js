@@ -993,9 +993,14 @@
       // sound cue when a tutorial step is completed (entering a new step or finishing)
       if (s().sound) { try { A.buy(); } catch (e) {} }
       // right after buying the laptop: one-time teach about the start (garage + laptop + premises)
-      if (step === 'click' && !s().ftue.start) {
-        s().ftue.start = 1;
-        teachModal({ icon: ic('ic_insight'), title: t('ftue_start_title'), body: t('ftue_start_body') });
+      if (step === 'click') {
+        // remember the click count at the moment we enter the click step, so Phase A/B
+        // is driven by clicks-SINCE-entering (robust across saves), not lifetime clicks.
+        _clickStepBase = (s().clicks | 0);
+        if (!s().ftue.start) {
+          s().ftue.start = 1;
+          teachModal({ icon: ic('ic_insight'), title: t('ftue_start_title'), body: t('ftue_start_body') });
+        }
       }
       if (!step) {                       // onboarding complete -> unlock everything
         clearTutorialChrome();
@@ -1055,6 +1060,8 @@
   function clearTutorialChrome() {
     var nav = $('tabbar').children;
     for (var i = 0; i < nav.length; i++) setClass(nav[i], 'tut-blocked', false);
+    // drop the coach's HUD treatments when onboarding ends
+    var cb = $('cashBox'); if (cb) { setClass(cb, 'ftue-lift', false); setClass(cb, 'ftue-goal-glow', false); }
   }
 
   // ============================== CINEMATIC GUIDED FTUE COACHMARK ==============================
@@ -1065,6 +1072,8 @@
   // still drives the real action — this is pure guidance chrome, fully additive.
   var _coach = null;          // { root, spot, card, title, body, arrow, hint }
   var _coachRO = null;        // reposition hook (resize/scroll)
+  var _clickStepBase = 0;     // clicks counter when the 'click' step was entered (Phase A/B pivot)
+  var _coachRectCache = null; // { key, rect } — stable target rect, only recomputed on layout change
   function buildCoach() {
     if (_coach) return _coach;
     var root = el('div', 'ftue-coach hidden');
@@ -1090,7 +1099,9 @@
       hint: root.querySelector('.ftue-hint')
     };
     if (!_coachRO) {
-      _coachRO = function () { try { syncFtueCoach(); } catch (e) {} };
+      // resize/scroll genuinely move the target — invalidate the cached rect so it
+      // re-measures. (Plain per-click renders do NOT, so the coach never jitters.)
+      _coachRO = function () { _coachRectCache = null; try { syncFtueCoach(); } catch (e) {} };
       window.addEventListener('resize', _coachRO);
       window.addEventListener('scroll', _coachRO, true);
     }
@@ -1105,12 +1116,24 @@
     }
     if (step === 'click') {
       // after buying the laptop you may still be on Hardware — guide back to the Lab
-      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain' };
-      return { sel: '#tapBtn', dir: 'down', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain' };
+      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain', light: true };
+      // LIGHT coach on the orb — it's the obvious huge central element, so no full dim.
+      // Phase A (just entered, few clicks): teach the action — "Click here!" + arrow.
+      // Phase B (after ~2-3 clicks): point at the goal — live $cur/$goal toward the
+      //   upgrade, with the HUD balance highlighted so progress is obvious.
+      var goal = G.tapUpgradeCost(), cur = s().cash;
+      var clicks = (s().clicks | 0) - (_clickStepBase | 0);
+      if (clicks >= 2) {
+        return { sel: '#tapBtn', dir: 'down', icon: 'ic_cash', light: true, hudGlow: true,
+          title: 'ftue_click_goal_title', body: 'ftue_click_goal_body', hint: 'ftue_click_goal_hint',
+          vars: { goal: money(goal), cur: money(Math.min(cur, goal)) } };
+      }
+      return { sel: '#tapBtn', dir: 'down', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain', light: true };
     }
     if (step === 'upgrade') {
-      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash' };
-      return { sel: '#tapUpgradeBtn', dir: 'down', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash' };
+      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash', light: true };
+      // upgrade button is already on-screen + obvious — light coach, no heavy dim.
+      return { sel: '#tapUpgradeBtn', dir: 'down', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash', light: true };
     }
     if (step === 'server') {
       if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_server_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_serverRack' };
@@ -1118,20 +1141,49 @@
     }
     return null;
   }
+  // STABLE rect for the coach target. CSS transforms (e.g. the orb's .squash scale on
+  // every click) change getBoundingClientRect(), which would make the spotlight/arrow
+  // re-snap and jitter. offsetWidth/offsetHeight return the UNTRANSFORMED layout size,
+  // and a centered scale keeps the visual center fixed — so we reconstruct the stable
+  // layout box from the current center ± half the layout size. The result is cached per
+  // target+step and only invalidated on real layout changes (resize/scroll/step/tab), so
+  // per-click renders reuse it verbatim and the coach stays perfectly still.
+  function coachHide() { if (_coach) setClass(_coach.root, 'hidden', true); liftCashBox(false); hudGoalGlow(false); }
+  function stableRect(target, key) {
+    if (_coachRectCache && _coachRectCache.key === key) return _coachRectCache.rect;
+    var r = target.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var lw = target.offsetWidth || r.width, lh = target.offsetHeight || r.height;
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var rect = { left: cx - lw / 2, top: cy - lh / 2, width: lw, height: lh };
+    _coachRectCache = { key: key, rect: rect };
+    return rect;
+  }
+  // raise #cashBox above the coach dim so the money balance is ALWAYS visible during
+  // the tutorial (even on the dimmed BUY steps), per owner intent.
+  function liftCashBox(on) { var cb = $('cashBox'); if (cb) setClass(cb, 'ftue-lift', !!on); }
+  // Phase B: subtly highlight the HUD balance so the player watches it grow.
+  function hudGoalGlow(on) { var cb = $('cashBox'); if (cb) setClass(cb, 'ftue-goal-glow', !!on); }
   function syncFtueCoach() {
     var step = G.tutorialStep();
     // hide while a cutscene or any modal (naming/teach) is up — they own the screen
     var blocked = !step ||
       (window.GAME_CUTSCENE && window.GAME_CUTSCENE.isActive()) ||
       !$('modalRoot').classList.contains('hidden');
-    if (blocked) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    if (blocked) { coachHide(); return; }
     var plan = coachPlan(step);
-    if (!plan) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    if (!plan) { coachHide(); return; }
     var target = plan.node || (plan.sel && document.querySelector(plan.sel));
-    if (!target) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
-    var r = target.getBoundingClientRect();
-    if (!r.width || !r.height) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    if (!target) { coachHide(); return; }
+    // cache key changes whenever the chosen target changes (step + selector/dir + tab)
+    var rkey = step + '|' + (plan.sel || 'node') + '|' + plan.dir + '|' + currentTab;
+    var r = stableRect(target, rkey);
+    if (!r) { coachHide(); return; }
+    // money balance is always visible during the whole tutorial; Phase B also glows it.
+    liftCashBox(true);
+    hudGoalGlow(!!plan.hudGlow);
     var c = buildCoach();
+    setClass(c.root, 'coach-light', !!plan.light);
     var vw = window.innerWidth, vh = window.innerHeight;
     // spotlight: a rounded ring exactly over the target; CSS box-shadow dims the rest
     var pad = 8;
@@ -1150,9 +1202,9 @@
     c.spot.style.width = sw + 'px'; c.spot.style.height = sh + 'px';
     // content first (so the card can be measured for height)
     c.ic.innerHTML = ic(plan.icon || 'ic_insight');
-    setText(c.title, t(plan.title));
-    setText(c.body, t(plan.body));
-    setText(c.hint, t(plan.hint));
+    setText(c.title, t(plan.title, plan.vars));
+    setText(c.body, t(plan.body, plan.vars));
+    setText(c.hint, t(plan.hint, plan.vars));
     var cw = Math.min(360, vw - 28);
     c.card.style.width = cw + 'px';
     var clx = Math.min(Math.max(14, cxv - cw / 2), vw - cw - 14);
