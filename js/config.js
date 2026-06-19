@@ -9,15 +9,23 @@
   var MONTH_DAYS = 30;       // tax every 30 in-game days
 
   // ---- bootstrap clicking ----
+  //  COLD click = base. ENGAGED rapid clicking builds "heat" (разгон / overclock 0..1):
+  //  effective value = base * gain^level * (1 + heat*COMBO_BONUS). Tuned so a real fast
+  //  tapper averages ~$0.10/click at lvl 0 → ~100 rapid clicks ≈ $10 (owner's scenario).
   var TAP = {
-    base: 0.10,              // $ per click at level 0
+    base: 0.063,             // $ per COLD click at level 0 (engaged avg ≈ $0.10 with разгон)
     upgrade: {
       baseCost: 10,          // first click upgrade
       costMult: 2.0,         // ×2 cost curve
       gain: 2.0,             // each upgrade ×2 the click value
       maxLevel: 30
     },
-    accel: 0.04              // a click during training adds this fraction of a "tick" of progress
+    accel: 0.04,             // a click during training adds this fraction of a "tick" of progress
+    // --- overclock / разгон combo ---
+    comboBonus: 0.7,         // heat=1 → ×1.7 click value
+    comboWindow: 0.6,        // clicks < 600ms apart build heat
+    comboStep: 0.085,        // heat added per fast click (≈12 fast clicks to redline)
+    comboDecay: 0.65         // heat lost per second when you stop clicking
   };
 
   // ---- hardware tiers (buy with money). idle => rent/s; committed => power ----

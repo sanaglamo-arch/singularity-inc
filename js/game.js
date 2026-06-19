@@ -22,6 +22,9 @@
       v: C.SETTINGS.SAVE_VERSION,
       cash: C.START.cash,
       tapLevel: 0,
+      // overclock / разгон combo (transient — resets on reload, that's fine)
+      heat: 0,                      // 0..1 click "heat"; rapid clicks build it, idle decays it
+      lastClickAt: -999,            // gameTime of the previous click (for the combo window)
       boughtLaptop: false,          // forced first action
       // forced hands-on tutorial step: 'laptop'->'click'->'upgrade'->'server'->null(done)
       tutorial: 'laptop',
@@ -131,8 +134,14 @@
   }
 
   // ---------- click / tap ----------
+  // current overclock multiplier (cold = 1.0, fully heated = 1 + comboBonus)
+  function comboMult() {
+    var h = state ? state.heat : 0;
+    if (h < 0) h = 0; else if (h > 1) h = 1;
+    return 1 + h * C.TAP.comboBonus;
+  }
   function tapValue() {
-    return C.TAP.base * Math.pow(C.TAP.upgrade.gain, state.tapLevel);
+    return C.TAP.base * Math.pow(C.TAP.upgrade.gain, state.tapLevel) * comboMult();
   }
   function tapUpgradeCost() {
     if (state.tapLevel >= C.TAP.upgrade.maxLevel) return Infinity;
@@ -154,6 +163,12 @@
     if (state.over) return 0;
     if (!state.boughtLaptop) return 0;
     state.clicks++;
+    // overclock / разгон: a click inside the combo window heats up (capped at 1);
+    // the heat then decays in tick() once you slow down.
+    if (state.gameTime - state.lastClickAt <= C.TAP.comboWindow) {
+      state.heat = Math.min(1, state.heat + C.TAP.comboStep);
+    }
+    state.lastClickAt = state.gameTime;
     // if training, accelerate it; clicks during training also still earn
     if (state.training) {
       state.trainElapsed += C.TRAIN.clickAccel;
@@ -619,6 +634,11 @@
   function tick(dt) {
     if (!state || state.over) return;
     state.gameTime += dt;
+    // overclock heat decays toward 0 whenever you stop clicking
+    if (state.heat > 0) {
+      state.heat -= C.TAP.comboDecay * dt;
+      if (state.heat < 0) state.heat = 0;
+    }
     if (state.tutorial) advanceTutorial();
 
     // continuous income/costs
@@ -760,7 +780,7 @@
     init: init, save: save, load: load, reset: reset,
     tick: tick, computeOffline: computeOffline, applyOffline: applyOffline,
     // clicking
-    tapValue: tapValue, click: click,
+    tapValue: tapValue, click: click, comboMult: comboMult,
     tapUpgradeCost: tapUpgradeCost, canUpgradeTap: canUpgradeTap, upgradeTap: upgradeTap,
     // forced tutorial
     tutorialStep: tutorialStep, tutorialActive: tutorialActive, advanceTutorial: advanceTutorial,
