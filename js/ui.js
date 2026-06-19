@@ -1024,6 +1024,11 @@
       else if (e.type === 'fire') { teachModal({ icon: ic('ic_risk'), title: t('ev_fire_title'), body: t('ev_fire_body', { n: e.lostUnits }) }); FX.incident(); if (s().sound) A.incident(); }
       else if (e.type === 'lawsuit') { teachModal({ icon: ic('ic_risk'), title: t('ev_lawsuit_title'), body: t('ev_lawsuit_body', { v: fmt(e.fine) }) }); FX.incident(); if (s().sound) A.incident(); }
       else if (e.type === 'boardConvene') teachModal({ icon: ic('ic_insight'), title: t('ev_board_convene_title'), body: t('ev_board_convene_body') });
+      else if (e.type === 'priceNudge') {
+        toast(t('ev_price_nudge'), 'bad', { routine: true });
+        // draw the eye to the Model tab where the price slider lives
+        var rb = $('navResearchBtn'); if (rb) { setClass(rb, 'nav-glow', true); setTimeout(function () { setClass(rb, 'nav-glow', false); }, 4000); }
+      }
     });
     G.on('gameover', function (outcome) { showEnding(outcome); });
     G.on('tutorial', function (step) {

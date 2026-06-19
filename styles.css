@@ -2084,3 +2084,14 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .card .hwCommit-dot { animation: none; opacity: 1; }
 }
+
+/* price re-tune nudge: gently pulse the Model nav button so the eye finds the slider */
+@keyframes navGlowPulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(251,191,36,0); color: var(--fg-muted); }
+  50%      { box-shadow: inset 0 0 16px 0 var(--glow-gold); color: var(--gold); }
+}
+#tabbar button.nav-glow { animation: navGlowPulse 1.3s var(--ease) infinite; }
+#tabbar button.nav-glow.active { color: var(--cyan); }
+@media (prefers-reduced-motion: reduce) {
+  #tabbar button.nav-glow { animation: none; color: var(--gold); }
+}

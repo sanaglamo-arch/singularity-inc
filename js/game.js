@@ -71,6 +71,8 @@
       lastFire: 0,                  // gameTime of last fire event (recovery cooldown)
       lastEventDay: 0,              // last in-game day events were rolled
       boardWarned: false,          // board issued its liquidity warning
+      lastPriceChange: 0,          // gameTime the player last set a token price (nudge grace)
+      lastPriceNudge: 0,           // gameTime of last "re-check your price" nudge (throttle)
       // outcome
       over: false,
       outcome: null,                // 'agi' | 'bankrupt' | 'approval' | 'safety' | 'legality' | 'beaten'
@@ -376,6 +378,7 @@
     p = Math.max(C.ECON.priceMin, Math.min(C.ECON.priceMax, Number(p)));
     if (!isNaN(p)) {
       state.price = p;
+      state.lastPriceChange = state.gameTime;   // grace the re-tune nudge after a manual change
       // SOFT tutorial finale: setting a token price completes onboarding (free play)
       if (state.tutorial === 'price') setTutorial(null);
       emit('change');
@@ -669,6 +672,23 @@
         var lchance = Math.min(lcfg.chancePerDayMax,
           lcfg.chancePerDayMax * (lcfg.armBelow - state.legality) / lcfg.armBelow);
         if (Math.random() < lchance) triggerLawsuit();
+      }
+      // PRICE RE-TUNE NUDGE: the sweet spot drifts (rivals grow, you ship a bigger model).
+      // Nudge once in a while when the set price has wandered well off it — but not right
+      // after the player set a price, and not during onboarding (the price step guides that).
+      if (!state.over && state.version >= 1 && !state.training && !state.tutorial) {
+        var pn = C.PRICE_NUDGE;
+        if (state.gameTime - state.lastPriceChange >= pn.graceDays * DAY &&
+            state.gameTime - state.lastPriceNudge >= pn.cooldownDays * DAY) {
+          var sweetP = sweetSpotPrice();
+          if (sweetP > 0) {
+            var pr = state.price / sweetP;
+            if (pr < pn.lowRatio || pr > pn.highRatio) {
+              state.lastPriceNudge = state.gameTime;
+              emit('event', { type: 'priceNudge', high: pr > 1 });
+            }
+          }
+        }
       }
     }
   }

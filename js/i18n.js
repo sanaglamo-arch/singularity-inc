@@ -366,6 +366,7 @@
     ev_board_convene_title: 'A board of directors is formed',
     ev_board_convene_body: 'Your company is now big enough to have a board. They\'ll back you — but if liquidity stays critical, they will step in and shut the company down. Keep your bills paid.',
     ev_board_warn: '⚠ The board is alarmed: pay your overdue bill or they pull the plug.',
+    ev_price_nudge: '📈 The market shifted — re-check your token price.',
 
     // ---- satire news ticker (rotating headlines about rivals + the AI race) ----
     news_ticker: [
@@ -738,6 +739,7 @@
     ev_board_convene_title: 'Сформирован совет директоров',
     ev_board_convene_body: 'Компания доросла до совета директоров. Они тебя поддержат — но если ликвидность останется критической, они вмешаются и закроют компанию. Плати по счетам.',
     ev_board_warn: '⚠ Совет директоров встревожен: оплати просроченный счёт, иначе закроют проект.',
+    ev_price_nudge: '📈 Рынок сместился — перепроверь цену токенов.',
 
     // ---- сатира-тикер (заголовки про ривалов и гонку ИИ) ----
     news_ticker: [

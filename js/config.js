@@ -94,6 +94,18 @@
     priceDefault: 6
   };
 
+  // ---- price re-tune nudge ----
+  // The sweet spot DRIFTS (rivals grow, you ship a bigger model). Rather than make the
+  // player babysit the slider, nudge them occasionally when their set price has drifted
+  // well off the current sweet spot. Gentle + throttled (owner's vision: "перетюниваешь
+  // редко по подсказке «ривал обошёл — проверь цену»").
+  var PRICE_NUDGE = {
+    lowRatio: 0.7,        // price below 70% of sweet → leaving money on the table
+    highRatio: 1.6,       // price above 160% of sweet → gouging / losing share
+    graceDays: 2,         // don't nag within this many days of the player changing price
+    cooldownDays: 6       // min in-game days between nudges (vision: re-tune RARELY)
+  };
+
   // ---- bills / costs ----
   var BILLS = {
     elecRateKwh: 0.15,       // $/kWh
@@ -204,7 +216,7 @@
     HARDWARE: HARDWARE, HWBYID: HWBYID,
     PREMISES: PREMISES, PREMBYID: PREMBYID,
     VERSIONS: VERSIONS, AGI_VERSION: AGI_VERSION,
-    TRAIN: TRAIN, ECON: ECON, BILLS: BILLS, EVENTS: EVENTS,
+    TRAIN: TRAIN, ECON: ECON, BILLS: BILLS, EVENTS: EVENTS, PRICE_NUDGE: PRICE_NUDGE,
     STAFF: STAFF, STAFFBYID: STAFFBYID, STAFF_CFG: STAFF_CFG,
     RISK: RISK, RIVALS: RIVALS, RIVAL_CFG: RIVAL_CFG,
     START: START, ADS: ADS, SETTINGS: SETTINGS
