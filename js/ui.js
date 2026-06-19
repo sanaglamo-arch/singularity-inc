@@ -235,7 +235,7 @@
       // moved UP: the rival now directly BELOW the player is the one just overtaken
       var below = rows[idx + 1];
       var upName = below && !below.isPlayer ? t('rival_name_' + below.id) : '';
-      toast(t('rank_up', { rival: upName, rank: rank }), 'good');
+      toast(t('rank_up', { rival: upName, rank: rank }), 'good'); if (s().sound && A.milestone) A.milestone();
       _pulseRank = true;
     } else if (rank > _lastRank) {
       // dropped: the rival now directly ABOVE the player is the one who overtook
@@ -921,7 +921,7 @@
       if (!st.boughtLaptop) { if (st.sound) A.error(); toast(t('tap_hint_buy_laptop'), '', { routine: true }); return; }
       var v = G.click();
       if (v <= 0) return;
-      if (st.sound) A.tap(st.training ? 0.4 : 0);
+      if (st.sound) A.tap(Math.max(st.heat || 0, st.training ? 0.4 : 0));
       if (x == null) { var r = tapBtn.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
       floatText(x, y, '+' + money(v), st.training ? 'big' : 'crit');
       FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
