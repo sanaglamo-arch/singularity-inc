@@ -67,7 +67,7 @@
     { v: 6,  powerReq: 45000,    demandBase: 40,    label: 'v6' },
     { v: 7,  powerReq: 300000,   demandBase: 40,    label: 'v7' },
     { v: 8,  powerReq: 2.2e6,    demandBase: 40,    label: 'v8' },
-    { v: 9,  powerReq: 1.5e7,    demandBase: 40,    label: 'AGI' }   // final => WIN
+    { v: 9,  powerReq: 1.5e7,    demandBase: 40,    label: 'Singularity' }   // final => WIN (displayed name; internal const stays AGI_VERSION)
   ];
   var AGI_VERSION = 9;
 

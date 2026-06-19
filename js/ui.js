@@ -859,7 +859,7 @@
     else if (youRank === rows.length - 1) { msg = t('race_behind'); scol = 'var(--rose)'; }
     else { msg = t('race_close'); scol = 'var(--gold)'; }
     setHTML($('agiRace'), '<span style="color:' + scol + '">' + esc(msg) + '</span>' +
-      (isFinite(leaderDays) ? ' <span class="muted small">· AGI ≈ ' + FMT.fmtTime(leaderDays * C.DAY_SEC) + '</span>' : ''));
+      (isFinite(leaderDays) ? ' <span class="muted small">· ' + esc(t('race_eta', { t: FMT.fmtTime(leaderDays * C.DAY_SEC) })) + '</span>' : ''));
     setText($('standingsStatus'), youRank === 0 ? t('standings_status_lead') : (youRank === rows.length - 1 ? t('standings_status_behind') : t('standings_status_close')));
     // 3 risk meters (rel-row strip)
     syncMeterStrip('relMeters', [
@@ -950,7 +950,7 @@
     var st = s(), win = outcome === 'agi';
     var go = $('gameOverScreen'); if (!go) return;
     var title = t('go_' + (win ? 'win' : outcome) + '_title'), flavor = t('go_' + (win ? 'win' : outcome) + '_flavor');
-    var ver = win ? 'AGI' : ('v' + st.version);
+    var ver = win ? t('term_singularity') : ('v' + st.version);
     setText($('goTitle'), title);
     $('goTitle').style.color = win ? 'var(--gold)' : 'var(--rose)';
     setText($('goCompany'), st.companyName || t('game_title'));
