@@ -1556,3 +1556,10 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #priceVal, .sweet-badge { transition: none; }
 }
+
+/* Item 2: tab-content transition already ships via .tab.active { animation: tabIn }.
+   This adds the missing reduced-motion guard (additive — the existing rule is
+   untouched) so tab switches are instant when the user prefers reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .tab.active { animation: none; }
+}
