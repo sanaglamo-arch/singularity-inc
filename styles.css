@@ -1610,8 +1610,11 @@ button:focus:not(:focus-visible) { outline: none; }
 @keyframes csOut { to { opacity: 0; } }
 @keyframes csSceneIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes csLayer { from { opacity: 0; } to { opacity: 1; } }
-@keyframes csTitleIn { from { opacity: 0; transform: translateY(18px); letter-spacing: 6px; filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
-@keyframes csBodyIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* Reveal flourish is motion-only (slide + de-blur + letter-spacing) — opacity is NOT
+   animated, so the caption text is ALWAYS at its base opacity (1) and can never get
+   stuck invisible if the entrance animation stalls on a heavy scene. */
+@keyframes csTitleIn { from { transform: translateY(18px); letter-spacing: 6px; filter: blur(4px); } to { transform: none; letter-spacing: 1.6px; filter: blur(0); } }
+@keyframes csBodyIn { from { transform: translateY(12px); } to { transform: none; } }
 
 /* ====== reduced motion: kill heavy motion, keep beautiful static stills ====== */
 @media (prefers-reduced-motion: reduce) {
