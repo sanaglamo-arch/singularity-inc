@@ -1817,3 +1817,13 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #priceSlider.sweet::-webkit-slider-thumb { animation: none; }
 }
+
+/* Item 5 — active bottom-nav icon gets a subtle glow + 1px lift when its tab is
+   selected, easing in smoothly. Additive: the base #tabbar rules are untouched.
+   transform/filter only → no reflow. Reduced-motion drops the transition (state still
+   applies instantly). */
+#tabbar .ti { transition: transform 0.22s var(--ease), filter 0.22s var(--ease); }
+#tabbar button.active .ti { transform: translateY(-1px); filter: drop-shadow(0 0 7px var(--glow-cyan)); }
+@media (prefers-reduced-motion: reduce) {
+  #tabbar .ti { transition: none; }
+}
