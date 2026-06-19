@@ -1749,3 +1749,29 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .rel-fill, .standrow .sbar { transition: none !important; }
 }
+
+/* Item 2 — HUD value pulse on a meaningful step. JS adds these one-shot classes
+   (then removes them ~360ms later) only on discrete/large changes, throttled so the
+   per-second drip never pulses. transform+filter only → no reflow, no layout shift.
+   Gold = cash, violet = power, cyan = users/share. */
+#cashVal.hud-pulse-gold { animation: hudPulseGold 320ms var(--ease-spring); will-change: transform; }
+.rval.hud-pulse-violet { animation: hudPulseViolet 300ms var(--ease-spring); will-change: transform; }
+.rval.hud-pulse-cyan   { animation: hudPulseCyan 300ms var(--ease-spring); will-change: transform; }
+@keyframes hudPulseGold {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); filter: drop-shadow(0 0 14px rgba(251,191,36,0.85)); }
+  100% { transform: scale(1); }
+}
+@keyframes hudPulseViolet {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); filter: drop-shadow(0 0 12px rgba(167,139,250,0.85)); }
+  100% { transform: scale(1); }
+}
+@keyframes hudPulseCyan {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); filter: drop-shadow(0 0 12px rgba(34,211,238,0.85)); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #cashVal.hud-pulse-gold, .rval.hud-pulse-violet, .rval.hud-pulse-cyan { animation: none; }
+}

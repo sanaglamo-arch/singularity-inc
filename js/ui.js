@@ -9,6 +9,10 @@
   var ICON = window.GAME_ICONS || {};
   var t = function (k, v) { return I.t(k, v); };
   var fmt = FMT.fmt;
+  // reduced-motion guard for JS-driven juice (CSS @media handles the rest)
+  var _reduceMotion = false;
+  try { _reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  try { if (window.matchMedia) window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', function (e) { _reduceMotion = e.matches; }); } catch (e) {}
 
   // cached getElementById with isConnected guard (rebuilt nodes auto-refresh)
   var _elc = {};
@@ -27,6 +31,25 @@
   function pct(x) { return Math.round(x * 100); }
   function s() { return G.state; }
   var ruS = function () { return I.getLang() === 'ru' ? 'с' : 's'; };
+
+  // Item 2 — HUD value pulse on a MEANINGFUL step. A readout pulses (.hud-pulse-*) only
+  // when its numeric value jumps by more than `relStep` of the prior value, and at most
+  // once per `coolMs` — so the continuous per-second income/users drip never pulses,
+  // but a purchase / release / price change registers with a soft scale+glow.
+  function hudPulse(el, value, cls, relStep, coolMs) {
+    if (!el || _reduceMotion) return;
+    var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    var prev = el.__pv;
+    el.__pv = value;
+    if (prev == null || !isFinite(prev) || !isFinite(value)) return;          // first sample: just record
+    var base = Math.max(1, Math.abs(prev));
+    if (Math.abs(value - prev) / base < (relStep || 0.04)) return;            // change too small → drip
+    if (el.__pt && now - el.__pt < (coolMs || 550)) return;                   // throttled
+    el.__pt = now;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    var c = cls;
+    (function (e) { setTimeout(function () { e.classList.remove(c); }, 360); })(el);
+  }
 
   // ---------------- toasts (queued, coalesced, capped) ----------------
   var _toastQ = [], _toastLive = [], TOAST_MAX = 3, TOAST_MS = 3000, TOAST_Q_MAX = 4;
@@ -159,6 +182,7 @@
     var st = s();
     var cashEl = $('cashVal');
     setText(cashEl, fmt(st.cash));
+    hudPulse(cashEl, st.cash, 'hud-pulse-gold', 0.06, 600);
     var net = G.netPerSec();
     var rate = $('cpsVal');
     if (rate) {
@@ -392,10 +416,15 @@
     setClass($('modelPanel'), 'hidden', tutOn);
 
     // --- model panel (reuse #modelPanel / #resRow / #trainBtn / #trainProg) ---
-    setText($('computeVal'), fmt(G.power()));
+    var powEl = $('computeVal'), shEl = $('shareVal'), usEl = $('valVal');
+    setText(powEl, fmt(G.power()));
     setText($('computeRate'), '+' + fmt(G.rentPerSec()) + '/' + ruS());
-    setText($('shareVal'), pct(G.playerShare()) + '%');
-    setText($('valVal'), fmt(st.users));
+    setText(shEl, pct(G.playerShare()) + '%');
+    setText(usEl, fmt(st.users));
+    // pulse on a meaningful step (purchase / release / price change), not the drip
+    hudPulse(powEl, G.power(), 'hud-pulse-violet', 0.05, 600);
+    hudPulse(shEl, G.playerShare(), 'hud-pulse-cyan', 0.10, 700);
+    hudPulse(usEl, st.users, 'hud-pulse-cyan', 0.06, 600);
     var def = G.currentVersionDef();
     setText($('modelProg'), 'v' + st.version + ' / ' + (C.AGI_VERSION));
 
