@@ -1563,3 +1563,17 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .tab.active { animation: none; }
 }
+
+/* Item 3: idle orb breathing. Very subtle slow pulse (scale 1.0↔1.02 + soft glow)
+   when the player hasn't clicked for ~2s, so the centerpiece feels alive. JS removes
+   .idle-breathe on pointerdown (before :active/.squash), so it never fights the click
+   burst / ripple / squash / разгон combo. New selector only — #tapBtn untouched.
+   Reduced-motion → no pulse. */
+#tapBtn.idle-breathe { animation: orbBreathe 4.2s ease-in-out infinite; }
+@keyframes orbBreathe {
+  0%, 100% { transform: scale(1); filter: none; }
+  50% { transform: scale(1.02); filter: brightness(1.06) drop-shadow(0 0 16px rgba(167,139,250,0.28)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tapBtn.idle-breathe { animation: none; }
+}

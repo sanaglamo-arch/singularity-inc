@@ -867,6 +867,25 @@
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
+
+    // ADDITIVE polish: idle breathing. After ~2s with no interaction the orb does a
+    // very subtle breathing pulse (CSS) so it feels alive. It is removed the instant
+    // the player touches it (pointerdown) — BEFORE :active/.squash engage — so it never
+    // fights the existing click burst / ripple / squash / разгон combo.
+    var idleTimer = null;
+    function stopBreathe() { tapBtn.classList.remove('idle-breathe'); }
+    function armBreathe() {
+      if (idleTimer) clearTimeout(idleTimer);
+      stopBreathe();
+      idleTimer = setTimeout(function () {
+        var st = s();
+        // only breathe when the orb is actually live + interactable
+        if (st.boughtLaptop && !st.over && currentTab === 'company') tapBtn.classList.add('idle-breathe');
+      }, 2000);
+    }
+    tapBtn.addEventListener('pointerdown', function () { stopBreathe(); if (idleTimer) clearTimeout(idleTimer); });
+    tapBtn.addEventListener('click', armBreathe);
+    armBreathe();
   }
 
   // click-upgrade button (engine had upgradeTap() but no UI exposed it)
