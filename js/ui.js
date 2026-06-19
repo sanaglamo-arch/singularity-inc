@@ -51,6 +51,13 @@
     (function (e) { setTimeout(function () { e.classList.remove(c); }, 360); })(el);
   }
 
+  // Item 3 — owned-count "pop" after a purchase: scale up then settle. One-shot class.
+  function popBadge(el) {
+    if (!el || _reduceMotion) return;
+    el.classList.remove('count-pop'); void el.offsetWidth; el.classList.add('count-pop');
+    setTimeout(function () { el.classList.remove('count-pop'); }, 360);
+  }
+
   // ---------------- toasts (queued, coalesced, capped) ----------------
   var _toastQ = [], _toastLive = [], TOAST_MAX = 3, TOAST_MS = 3000, TOAST_Q_MAX = 4;
   function armToastTimer(rec) {
@@ -594,6 +601,7 @@
           var r = card.getBoundingClientRect();
           FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
           syncHardware(); syncHud();
+          popBadge(hwRefs[h.id] && hwRefs[h.id].badge);  // owned-count pop (item 3)
         } else if (s().sound) A.error();
       });
       pane.appendChild(card);
@@ -1145,7 +1153,7 @@
     // train button
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialActive()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
-    $('premBuyBtn').onclick = function () { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); update(); } else if (s().sound) A.error(); };
+    $('premBuyBtn').onclick = function (e) { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); } else if (s().sound) A.error(); };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;

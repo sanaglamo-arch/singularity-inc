@@ -1775,3 +1775,23 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #cashVal.hud-pulse-gold, .rval.hud-pulse-violet, .rval.hud-pulse-cyan { animation: none; }
 }
+
+/* Item 3 — purchase flourish. The owned-count badge "pops" (scale up, settle) right
+   after a buy; the premise card gets the same soft cyan highlight sweep that hardware
+   cards already use via FX.cardFlash (which adds .flash — here extended to #premCard,
+   a .glass-panel, additively). transform/box-shadow only → no layout shift. */
+.card .ownedBadge.count-pop { animation: countPop 360ms var(--ease-spring); transform-origin: top right; }
+@keyframes countPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.32); filter: drop-shadow(0 0 8px rgba(167,139,250,0.9)); }
+  100% { transform: scale(1); }
+}
+#premCard.flash { animation: premFlash 0.5s var(--ease); }
+@keyframes premFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(34,211,238,0.6), var(--inset-hi); border-color: var(--cyan); }
+  100% { box-shadow: 0 0 0 14px rgba(34,211,238,0), var(--inset-hi); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card .ownedBadge.count-pop { animation: none; }
+  #premCard.flash { animation: none; }
+}
