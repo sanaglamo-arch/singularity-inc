@@ -899,6 +899,125 @@
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
       };
+    },
+
+    // -------------------------------------------------- SERVERS (the $40 beat)
+    // Still the cramped garage, but a first little server rack now hums in the
+    // corner. While idle it RENTS out to other companies — coins drift out the
+    // door to two distant company towers. Floating labels read m² (area) and
+    // POWER (what runs the model). Cool-steel grade, motes. Focal content in
+    // .cs-g-prem so portrait recomposes it. Built around x=600.
+    serverRent: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gSrvWall" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#141029"/><stop offset="0.5" stop-color="#0c0a1f"/><stop offset="1" stop-color="#080611"/></linearGradient>' +
+          '<radialGradient id="gSrvDoor" cx="0.5" cy="0.5" r="0.6">' +
+            '<stop offset="0" stop-color="#16243c"/><stop offset="1" stop-color="#0a1020"/></radialGradient>' +
+          '<radialGradient id="gSrvCold" cx="0.5" cy="0.78" r="0.6">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.14) + '"/><stop offset="1" stop-color="' + rgba(CYAN2, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gSrvWall)"/>' +
+        // open garage door at the back-left letting in night + two distant
+        // company towers (the "other companies" that rent your idle gear)
+        '<g class="cs-g-srvdoor">' +
+          '<rect x="150" y="150" width="300" height="320" rx="4" fill="url(#gSrvDoor)"/>' +
+          starfield(53, 26, 158, 158, 284, 150, rgba(WHITE, 1)) +
+          // two faraway corporate towers, faintly lit
+          '<g fill="#0c1730">' +
+            '<rect x="210" y="300" width="40" height="150"/>' +
+            '<rect x="300" y="262" width="52" height="188"/>' +
+          '</g>' +
+          '<g fill="' + rgba(CYAN2, 0.7) + '">' +
+            '<rect x="220" y="318" width="5" height="6"/><rect x="234" y="340" width="5" height="6"/>' +
+            '<rect x="312" y="284" width="5" height="6"/><rect x="330" y="312" width="5" height="6"/><rect x="316" y="360" width="5" height="6"/>' +
+          '</g>' +
+          '<rect x="150" y="150" width="300" height="320" rx="4" fill="none" stroke="' + rgba(VIOLET2, 0.26) + '" stroke-width="4"/>' +
+        '</g>' +
+        // shelf of junk on the upper right — this is a borrowed, lived-in space
+        '<g fill="#0e0b20" stroke="' + rgba(VIOLET2, 0.12) + '" stroke-width="2">' +
+          line(800, 168, 1060, 168, rgba(VIOLET2, 0.14), 3) +
+          '<rect x="828" y="128" width="40" height="40" rx="3"/>' +
+          '<rect x="884" y="134" width="32" height="34" rx="3"/>' +
+          '<rect x="936" y="126" width="44" height="42" rx="3"/>' +
+        '</g>' +
+        '<rect width="1200" height="750" fill="url(#gSrvCold)"/>';
+
+      // a single short server rack of blinking units (the just-bought mini-server)
+      function rack(x, w, h) {
+        var top = 600 - h, s =
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="5" fill="#0b1018" stroke="' + rgba(CYAN2, 0.22) + '" stroke-width="2"/>' +
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="5" fill="none" stroke="' + rgba(WHITE, 0.05) + '" stroke-width="6"/>';
+        var uy, k = 0, rr = rng(x + 7);
+        for (uy = top + 12; uy < 600 - 12; uy += 28) {
+          s += '<rect x="' + (x + 8) + '" y="' + uy + '" width="' + (w - 16) + '" height="22" rx="2" fill="#101826"/>';
+          var lx;
+          for (lx = x + 18; lx < x + w - 16; lx += 18) {
+            var on = rr() > 0.4;
+            var col = rr() > 0.5 ? CYAN2 : (rr() > 0.5 ? VIOLET2 : GOLD);
+            s += circle(lx, uy + 11, 2.6, rgba(col, on ? 0.95 : 0.2),
+              on ? ' class="cs-pulse" style="--pd:' + (k % 6) + 's"' : '');
+            k++;
+          }
+        }
+        return s;
+      }
+
+      var mid =
+        '<defs>' + glowFilter('gSrvG', 9) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // concrete floor band + a cold pool of light under the rack
+        '<rect x="0" y="600" width="1200" height="150" fill="#070a12"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        '<ellipse cx="600" cy="612" rx="240" ry="40" fill="' + rgba(CYAN2, 0.08) + '"/>' +
+        // the rack, center stage
+        rack(520, 160, 300) +
+        // cold rim-light tracing its near edge
+        '<g fill="none" stroke-linecap="round">' +
+          line(520, 300, 520, 600, rgba(CYAN2, 0.3), 3) +
+          line(680, 300, 680, 600, rgba(CYAN2, 0.24), 3) +
+        '</g>' +
+        '</g>';
+
+      // foreground: rent coins drifting from the rack out toward the door
+      // (idle gear earning passive rent) + floating m² / POWER labels.
+      function coin(cx, cy, pd) {
+        return '<g class="cs-pulse" style="--pd:' + pd + 's">' +
+          circle(cx, cy, 9, rgba(GOLD, 0.92)) +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="none" stroke="' + rgba(WHITE, 0.5) + '" stroke-width="1.5"/>' +
+          '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#5b3d05">$</text>' +
+          '</g>';
+      }
+      var fg =
+        '<defs>' + glowFilter('gSrvF', 7) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a stream of rent coins arcing from the rack toward the open door
+        '<path d="M512 400 q-120 -36 -150 36" fill="none" stroke="' + rgba(GOLD, 0.18) + '" stroke-width="2" stroke-dasharray="3 7"/>' +
+        coin(460, 384, 0) + coin(420, 402, 2) + coin(384, 432, 4) +
+        // RENT badge near the door (money leaving to other companies)
+        '<g transform="translate(366,470)" font-family="system-ui,sans-serif" font-weight="800">' +
+          '<rect x="-50" y="-17" width="100" height="34" rx="17" fill="' + rgba(GOLD, 0.16) + '" stroke="' + rgba(GOLD, 0.6) + '" stroke-width="1.5"/>' +
+          '<text x="0" y="5" text-anchor="middle" font-size="16" fill="' + rgba(GOLD, 0.98) + '">' + esc(t('cut_lbl_rent')) + '</text>' +
+        '</g>' +
+        // spec callout pills floating above the rack (centered on x=600 so they
+        // never clip in the narrow portrait band): area (m²) and POWER
+        '<g font-family="system-ui,sans-serif" font-weight="800">' +
+          '<line x1="600" y1="300" x2="600" y2="262" stroke="' + rgba(CYAN2, 0.25) + '" stroke-width="1.5" stroke-dasharray="2 5"/>' +
+          '<g transform="translate(536,246)">' +
+            '<rect x="-52" y="-16" width="104" height="32" rx="16" fill="' + rgba(CYAN, 0.14) + '" stroke="' + rgba(CYAN2, 0.6) + '" stroke-width="1.5"/>' +
+            '<text x="0" y="5" text-anchor="middle" font-size="15" fill="' + rgba(CYAN2, 0.98) + '">' + esc(t('cut_lbl_area')) + '</text>' +
+          '</g>' +
+          '<g transform="translate(664,246)">' +
+            '<rect x="-56" y="-16" width="112" height="32" rx="16" fill="' + rgba(VIOLET, 0.16) + '" stroke="' + rgba(VIOLET2, 0.62) + '" stroke-width="1.5"/>' +
+            '<text x="0" y="5" text-anchor="middle" font-size="15" fill="' + rgba(VIOLET2, 1) + '">' + esc(t('cut_lbl_power')) + '</text>' +
+          '</g>' +
+        '</g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'motes', kb: 'kb-in'
+      };
     }
   };
 
@@ -1109,12 +1228,28 @@
     });
   }
 
+  // ---- servers cutscene (fires once when cash first reaches the mini-server) ----
+  // Beat 1: garage backstory (reuses the intro garage art for continuity).
+  // Beat 2: the first rack — idle gear rents out; hardware has area (m²) + power.
+  function servers(onDone) {
+    play({
+      kind: 'servers',
+      lastLabel: 'cut_continue',
+      beats: [
+        { scene: 'garage', title: 'cut_servers1_title', body: 'cut_servers1_body' },
+        { scene: 'serverRent', title: 'cut_servers2_title', body: 'cut_servers2_body' }
+      ],
+      onDone: onDone
+    });
+  }
+
   window.GAME_CUTSCENE = {
     play: play,
     intro: intro,
     firstModel: firstModel,
     agiVictory: agiVictory,
     premiseMove: premiseMove,
+    servers: servers,
     isActive: function () { return !!active; }
   };
 })();

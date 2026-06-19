@@ -1379,9 +1379,27 @@
     else if (currentTab === 'research') syncModelTab();
     else if (currentTab === 'world') syncWorldTab();
     else if (currentTab === 'settings') syncSettingsState();
+    // STORY: the $40 servers cutscene — fires once when cash first reaches the
+    // mini-server cost during the 'server' step (garage backstory + rentable gear).
+    try { maybeServersCut(); } catch (e) {}
     // cinematic guided onboarding coachmark — runs on every tab so it can point at
     // the Hardware nav (wrong tab) or the laptop/server card / orb / upgrade (right tab)
     try { syncFtueCoach(); } catch (e) {}
+  }
+
+  // STORY: when cash first reaches the mini-server cost during the 'server' tutorial
+  // step, auto-play the servers cutscene ONCE. Guarded so it never stacks on another
+  // cutscene, never replays (seenServersCut persists), and never breaks the forced
+  // tutorial — when it ends the 'server' coach resumes pointing at the orb/Hardware.
+  function maybeServersCut() {
+    var st = s();
+    if (!window.GAME_CUTSCENE) return;
+    if (st.over || st.seenServersCut) return;
+    if (G.tutorialStep() !== 'server') return;
+    if (st.cash < G.hwCost('miniserver')) return;
+    if (window.GAME_CUTSCENE.isActive()) return;
+    st.seenServersCut = true; G.save();
+    window.GAME_CUTSCENE.servers(function () { try { update(); } catch (e) {} });
   }
 
   // STORY: play the premise-move chapter ONCE per destination tier, right after a
