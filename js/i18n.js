@@ -71,6 +71,8 @@
     ftue_upgrade_arrow: 'Upgrade here',
     ftue_server_title: 'Buy a mini-server',
     ftue_server_body: 'Open Hardware and buy a mini-server — it rents out for passive income, even idle.',
+    ftue_server_earn_title: 'Keep clicking — earn ${goal}',
+    ftue_server_earn_body: 'A mini-server costs ${goal}. Keep clicking to earn it, then open Hardware to buy it.',
     ftue_server_arrow: 'Buy the server',
     ftue_goto_hw_server_body: 'Open Hardware to buy a mini-server for passive income.',
     // SOFT guided steps — ship the first model, then teach the price (the core loop)
@@ -440,6 +442,8 @@
     ftue_upgrade_arrow: 'Улучшай здесь',
     ftue_server_title: 'Купи мини-сервер',
     ftue_server_body: 'Открой «Железо» и купи мини-сервер — он сдаётся в аренду и даёт пассивный доход даже без кликов.',
+    ftue_server_earn_title: 'Кликай, пока не накопишь ${goal}',
+    ftue_server_earn_body: 'Мини-сервер стоит ${goal}. Кликай, чтобы накопить, потом открой «Железо» и купи его.',
     ftue_server_arrow: 'Купи сервер',
     ftue_goto_hw_server_body: 'Открой «Железо», чтобы купить мини-сервер для пассивного дохода.',
     // SOFT guided steps — выпусти первую модель, затем научи цене (ядро игры)

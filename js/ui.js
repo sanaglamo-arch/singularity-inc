@@ -563,7 +563,12 @@
       '<span class="bills-paid muted small">' + (G.billCovered() ? t('bill_covered') : t('bill_uncovered')) + '</span></div>';
     setHTML($('billsList'), rows);
     var pb = $('payBillBtn');
-    if (pb) pb.onclick = function () { if (G.payBill()) { if (st.sound) A.buy(); } else if (st.sound) A.error(); buzz(14); update(); };
+    if (pb) pb.onclick = function () {
+      // during the hard-lock onboarding only the current step's action is allowed —
+      // no paying bills in the background.
+      if (G.tutorialHardLock()) { tutDeny(); return; }
+      if (G.payBill()) { if (st.sound) A.buy(); } else if (st.sound) A.error(); buzz(14); update();
+    };
   }
 
   // ---------------------------------------------------------- HARDWARE (upgrades tab)
@@ -1047,7 +1052,11 @@
     switch (step) {
       case 'laptop':  return action === 'buyHw:laptop';
       case 'click':   return action === 'click';
-      case 'upgrade': return action === 'click' || action === 'upgradeTap';
+      // 'upgrade' step: ONLY the click-upgrade button. The player reaches this step
+      // already holding enough cash for the upgrade (the 'click' step advances on
+      // affordability and nothing can drain cash here), so locking the orb can't
+      // trap them — it just keeps the single onboarding action in focus.
+      case 'upgrade': return action === 'upgradeTap';
       case 'server':  return action === 'click' || action === 'upgradeTap' || action === 'buyHw:miniserver';
     }
     return true;
@@ -1154,6 +1163,16 @@
       return { sel: '#tapUpgradeBtn', dir: 'down', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash', light: true };
     }
     if (step === 'server') {
+      // Phase A: not enough cash for the mini-server yet — DON'T tell them to buy it.
+      // Send them back to the orb (Lab) with a live $cur/$goal toward the price, same
+      // as the click step. Only once they can afford it do we point at Hardware to buy.
+      var srvCost = G.hwCost('miniserver'), srvCash = s().cash;
+      if (srvCash < srvCost) {
+        if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_server_earn_title', body: 'ftue_server_earn_body', hint: 'ftue_click_arrow', icon: 'ic_cash', light: true, vars: { goal: fmt(srvCost) } };
+        return { sel: '#tapBtn', dir: 'down', icon: 'ic_cash', light: true, hudGlow: true,
+          title: 'ftue_server_earn_title', body: 'ftue_server_earn_body', hint: 'ftue_click_goal_hint',
+          vars: { goal: fmt(srvCost), cur: fmt(Math.min(srvCash, srvCost)) } };
+      }
       if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_server_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_serverRack' };
       return { node: (hwRefs.miniserver && hwRefs.miniserver.el), dir: 'down', title: 'ftue_server_title', body: 'ftue_server_body', hint: 'ftue_server_arrow', icon: 'gen_serverRack' };
     }
