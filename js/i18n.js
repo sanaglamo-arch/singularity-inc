@@ -318,6 +318,15 @@
     cut_victory_lead: 'Singularity reached. The world is transformed — and history bends around the machine you built.',
     cut_victory_safe: '…and you kept it under control.',
     cut_victory_reckless: '…at a cost still to be understood.',
+    // premise-move chapters (garage -> AGI), one per upgrade destination
+    cut_prem_basement_title: 'Out of the garage',
+    cut_prem_basement_body: 'You outgrew the garage. First real servers hum in a cheap basement — racks blinking in the dark.',
+    cut_prem_office_title: 'Going legit',
+    cut_prem_office_body: 'A real office, in the daylight. The team grows, the whiteboard fills up. The company is real now.',
+    cut_prem_bizpark_title: 'Industrial scale',
+    cut_prem_bizpark_body: 'A whole data hall — rows of racks, cold air, endless lights. Your model serves millions.',
+    cut_prem_megacampus_title: 'On the threshold',
+    cut_prem_megacampus_body: 'A campus of datacenters and power lines hums to the horizon. AGI is one step away.',
 
     // ---- FTUE teach-on-first popups (one-time, dismissable) ----
     ftue_got_it: 'Got it',
@@ -668,6 +677,15 @@
     cut_victory_lead: 'Сингулярность достигнута. Мир преобразился — и история изгибается вокруг машины, которую ты создал.',
     cut_victory_safe: '…и ты удержал её под контролем.',
     cut_victory_reckless: '…ценой, которую ещё предстоит понять.',
+    // главы переезда (гараж -> AGI), по одной на каждый новый офис
+    cut_prem_basement_title: 'Из гаража',
+    cut_prem_basement_body: 'Гараж стал тесен. В дешёвом подвале гудят первые серверы — стойки мигают в темноте.',
+    cut_prem_office_title: 'По-настоящему',
+    cut_prem_office_body: 'Настоящий офис, при дневном свете. Команда растёт, доска исписана. Теперь это компания.',
+    cut_prem_bizpark_title: 'Промышленный масштаб',
+    cut_prem_bizpark_body: 'Целый дата-зал — ряды стоек, холодный воздух, бесконечные огни. Модель служит миллионам.',
+    cut_prem_megacampus_title: 'На пороге',
+    cut_prem_megacampus_body: 'Кампус из дата-центров и ЛЭП гудит до горизонта. До AGI один шаг.',
 
     // ---- FTUE обучающие попапы (одноразовые) ----
     ftue_got_it: 'Понятно',

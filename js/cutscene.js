@@ -540,6 +540,365 @@
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
       };
+    },
+
+    // =====================================================================
+    // PREMISE-MOVE CHAPTERS (garage -> AGI). One cinematic beat per upgrade.
+    // Each is a bespoke composition in the master-craft style: layered SVG
+    // (bg/mid/fg parallax) + Ken-Burns + grade + particles, with a central
+    // focal group tagged .cs-g-prem so portrait recomposition lifts it into
+    // the visible band. Focal subjects are built around x=600 to survive the
+    // hard portrait crop.
+    // =====================================================================
+
+    // ------------------------------------------------- BASEMENT (chapter 1)
+    // Outgrew the garage. First real servers humming in a cheap basement —
+    // scrappy, illicit-feeling: a single caged bulb over two short racks of
+    // blinking server LEDs in the dark, cables snaking across a concrete floor.
+    premBasement: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gBsmW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0c1320"/><stop offset="0.55" stop-color="#080d18"/><stop offset="1" stop-color="#05080f"/></linearGradient>' +
+          '<radialGradient id="gBsmBulb" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="' + rgba(GOLD, 0.55) + '"/><stop offset="0.5" stop-color="' + rgba(GOLD, 0.14) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gBsmW)"/>' +
+        // bare concrete wall: faint horizontal seams + damp patches
+        '<g stroke="' + rgba(WHITE, 0.04) + '" stroke-width="2">' +
+          line(0, 250, 1200, 250, rgba(WHITE, 0.04), 2) +
+          line(0, 430, 1200, 430, rgba(WHITE, 0.04), 2) +
+        '</g>' +
+        '<g fill="' + rgba(CYAN, 0.03) + '">' +
+          '<ellipse cx="210" cy="200" rx="120" ry="70"/>' +
+          '<ellipse cx="1000" cy="320" rx="150" ry="90"/>' +
+        '</g>' +
+        // a small high basement window, barred (scrappy, illicit)
+        '<g class="cs-g-bsmwin" opacity="0.9">' +
+          '<rect x="120" y="110" width="150" height="74" rx="3" fill="#0d1a2c"/>' +
+          '<rect x="120" y="110" width="150" height="74" rx="3" fill="none" stroke="' + rgba(CYAN2, 0.22) + '" stroke-width="3"/>' +
+          line(170, 110, 170, 184, rgba(CYAN2, 0.30), 2) +
+          line(220, 110, 220, 184, rgba(CYAN2, 0.30), 2) +
+          line(120, 147, 270, 147, rgba(CYAN2, 0.20), 2) +
+        '</g>' +
+        // the caged hanging bulb, dead-center, its warm pool the only soft light
+        line(600, 30, 600, 150, rgba(WHITE, 0.18), 2) +
+        '<rect width="1200" height="750" fill="url(#gBsmBulb)" opacity="0.5"/>';
+
+      var mid =
+        '<defs>' + glowFilter('gBsmL', 9) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // caged bulb fixture
+        '<g>' +
+          '<circle cx="600" cy="162" r="11" fill="' + rgba(GOLD, 0.95) + '" filter="url(#gBsmL)"/>' +
+          '<g fill="none" stroke="' + rgba(WHITE, 0.16) + '" stroke-width="2">' +
+            '<path d="M584 150 q16 28 32 0"/>' +
+            '<path d="M580 162 h40"/>' +
+            line(600, 150, 600, 174, rgba(WHITE, 0.16), 2) +
+            line(586, 154, 614, 170, rgba(WHITE, 0.12), 2) +
+            line(614, 154, 586, 170, rgba(WHITE, 0.12), 2) +
+          '</g>' +
+        '</g>' +
+        // concrete floor band + the pool of light on it
+        '<rect x="0" y="600" width="1200" height="150" fill="#070a12"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        '<ellipse cx="600" cy="610" rx="300" ry="44" fill="' + rgba(GOLD, 0.07) + '"/>' +
+        // cables snaking across the floor toward the racks
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M470 600 q60 26 130 14 q70 -12 130 12" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="4"/>' +
+          '<path d="M500 612 q50 18 100 10 q70 -8 120 16" stroke="' + rgba(CYAN, 0.18) + '" stroke-width="3"/>' +
+        '</g>' +
+        '</g>';
+
+      // two short server racks flanking center, faces of blinking LEDs
+      function rack(x, w, h) {
+        var top = 600 - h, s =
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="4" fill="#0b1018" stroke="' + rgba(CYAN2, 0.18) + '" stroke-width="2"/>' +
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="4" fill="none" stroke="' + rgba(WHITE, 0.04) + '" stroke-width="6"/>';
+        // rack units with LED rows
+        var uy, k = 0, rr = rng(x);
+        for (uy = top + 10; uy < 600 - 10; uy += 26) {
+          s += '<rect x="' + (x + 6) + '" y="' + uy + '" width="' + (w - 12) + '" height="20" rx="2" fill="#101826"/>';
+          var lx;
+          for (lx = x + 14; lx < x + w - 14; lx += 16) {
+            var on = rr() > 0.45;
+            var col = rr() > 0.5 ? CYAN2 : (rr() > 0.5 ? VIOLET2 : GOLD);
+            s += circle(lx, uy + 10, 2.4, rgba(col, on ? 0.95 : 0.2),
+              on ? ' class="cs-pulse" style="--pd:' + (k % 6) + 's"' : '');
+            k++;
+          }
+        }
+        return s;
+      }
+      var fg =
+        '<g class="cs-g-prem">' +
+        rack(396, 150, 300) +
+        rack(654, 150, 330) +
+        // faint cold rim-light tracing the near edges of the racks
+        '<g fill="none" stroke-linecap="round">' +
+          line(396, 300, 396, 600, rgba(CYAN2, 0.30), 3) +
+          line(804, 300, 804, 600, rgba(CYAN2, 0.26), 3) +
+        '</g>' +
+        // a coil of slack cable on the floor between them
+        '<path d="M560 690 q40 -28 80 0 q40 28 -10 26 q-50 -2 -70 -26 z" fill="none" stroke="' + rgba(VIOLET2, 0.3) + '" stroke-width="3"/>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'embers', kb: 'kb-in'
+      };
+    },
+
+    // --------------------------------------------------- OFFICE (chapter 2)
+    // Gone legit. A real office: daylight floods through tall windows, desks
+    // with glowing monitors, a whiteboard of diagrams, a plant — the team
+    // grows, the company becomes real.
+    premOffice: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gOffW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#172338"/><stop offset="0.6" stop-color="#101a2c"/><stop offset="1" stop-color="#0b1320"/></linearGradient>' +
+          '<linearGradient id="gOffDay" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.85) + '"/><stop offset="0.6" stop-color="' + rgba(CYAN2, 0.35) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0.18) + '"/></linearGradient>' +
+          '<radialGradient id="gOffSun" cx="0.5" cy="0.3" r="0.7">' +
+            '<stop offset="0" stop-color="' + rgba(GOLD, 0.22) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gOffW)"/>' +
+        // a long wall of tall windows with daylight + a soft city beyond
+        '<g class="cs-g-offwin">' +
+          '<rect x="150" y="120" width="900" height="330" rx="6" fill="url(#gOffDay)" opacity="0.55"/>' +
+          cityline(150, 450, 900, rng(17), rgba(WHITE, 0.5)) +
+          // window mullions
+          '<g stroke="' + rgba(WHITE, 0.18) + '" stroke-width="3" fill="none">' +
+            '<rect x="150" y="120" width="900" height="330" rx="6"/>' +
+            line(375, 120, 375, 450, rgba(WHITE, 0.16), 3) +
+            line(600, 120, 600, 450, rgba(WHITE, 0.16), 3) +
+            line(825, 120, 825, 450, rgba(WHITE, 0.16), 3) +
+            line(150, 285, 1050, 285, rgba(WHITE, 0.12), 3) +
+          '</g>' +
+        '</g>' +
+        '<rect width="1200" height="750" fill="url(#gOffSun)"/>';
+
+      var mid =
+        '<defs>' + glowFilter('gOffM', 5) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // whiteboard of diagrams on the right wall
+        '<g>' +
+          '<rect x="864" y="300" width="170" height="118" rx="4" fill="#f4f6ff" opacity="0.9"/>' +
+          '<g stroke="' + rgba(VIOLET, 0.65) + '" stroke-width="2.5" fill="none" stroke-linecap="round">' +
+            '<circle cx="900" cy="340" r="12"/>' +
+            line(912, 340, 950, 332, rgba(VIOLET, 0.6), 2.5) +
+            line(912, 346, 956, 366, rgba(CYAN, 0.6), 2.5) +
+            '<circle cx="962" cy="330" r="8"/>' +
+            '<circle cx="968" cy="370" r="8"/>' +
+            line(884, 392, 1014, 392, rgba(GOLD, 0.55), 3) +
+            '<path d="M884 404 l30 -8 30 6 30 -10 26 6" stroke="' + rgba(CYAN, 0.6) + '" stroke-width="2.5"/>' +
+          '</g>' +
+        '</g>' +
+        // a potted plant by the window (life, legitimacy)
+        '<g transform="translate(170,470)">' +
+          '<path d="M0 60 l30 0 -4 -50 -22 0 z" fill="#2a1f14"/>' +
+          '<g fill="none" stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="4" stroke-linecap="round">' +
+            '<path d="M15 12 q-22 -34 -40 -36"/>' +
+            '<path d="M15 12 q4 -40 -10 -56"/>' +
+            '<path d="M15 12 q26 -30 44 -30"/>' +
+            '<path d="M15 12 q18 -36 36 -40"/>' +
+          '</g>' +
+        '</g>' +
+        '</g>';
+
+      // a row of desks across the lower third, each with a glowing monitor
+      function desk(x, mc) {
+        return '<g>' +
+          '<rect x="' + x + '" y="560" width="150" height="14" rx="3" fill="#1a2438"/>' +
+          '<rect x="' + (x + 14) + '" y="574" width="10" height="92" fill="#131b2b"/>' +
+          '<rect x="' + (x + 126) + '" y="574" width="10" height="92" fill="#131b2b"/>' +
+          // monitor on a stand
+          '<rect x="' + (x + 44) + '" y="500" width="62" height="42" rx="4" fill="#0a1018" stroke="' + rgba(mc, 0.5) + '" stroke-width="2"/>' +
+          '<rect x="' + (x + 48) + '" y="504" width="54" height="34" rx="2" fill="' + rgba(mc, 0.85) + '" filter="url(#gOffM)"/>' +
+          '<rect x="' + (x + 71) + '" y="542" width="8" height="14" fill="#0a1018"/>' +
+          '<rect x="' + (x + 60) + '" y="556" width="30" height="5" rx="2" fill="#0a1018"/>' +
+          // a seated teammate silhouette
+          '<g fill="#0b121e">' +
+            '<path d="M' + (x + 88) + ' 560 q6 -34 30 -34 q24 0 30 34 z"/>' +
+            '<circle cx="' + (x + 118) + '" cy="516" r="13"/>' +
+          '</g>';
+      }
+      var fg =
+        '<g class="cs-g-prem">' +
+        // floor
+        '<rect x="0" y="640" width="1200" height="110" fill="#0c1422"/>' +
+        line(0, 640, 1200, 640, rgba(WHITE, 0.06), 2) +
+        desk(360, CYAN2) +
+        desk(540, VIOLET2) +
+        desk(720, GOLD) +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-pan'
+      };
+    },
+
+    // -------------------------------------------------- BIZPARK (chapter 3)
+    // Industrial scale. A vast data hall: rows of server racks receding in
+    // one-point perspective, cooling glow underlit, the model serving millions.
+    premBizpark: function () {
+      var bg =
+        '<defs>' +
+          '<radialGradient id="gBizBg" cx="0.5" cy="0.42" r="0.8">' +
+            '<stop offset="0" stop-color="#101a30"/><stop offset="0.6" stop-color="#0a1022"/><stop offset="1" stop-color="#06080f"/></radialGradient>' +
+          '<linearGradient id="gBizFloor" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0d1424"/><stop offset="1" stop-color="#070b14"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gBizBg)"/>' +
+        // ceiling: receding light strips toward a bright vanishing point
+        '<g class="cs-g-bizceil" stroke-linecap="round">' +
+          line(0, 70, 540, 250, rgba(CYAN2, 0.16), 3) +
+          line(1200, 70, 660, 250, rgba(CYAN2, 0.16), 3) +
+          line(220, 40, 560, 250, rgba(CYAN2, 0.12), 2) +
+          line(980, 40, 640, 250, rgba(CYAN2, 0.12), 2) +
+        '</g>' +
+        // floor with cool reflective sheen
+        '<rect x="0" y="560" width="1200" height="190" fill="url(#gBizFloor)"/>' +
+        '<ellipse cx="600" cy="600" rx="360" ry="40" fill="' + rgba(CYAN, 0.06) + '"/>';
+
+      var mid =
+        '<defs>' + glowFilter('gBizV', 14) + '</defs>' +
+        // bright vanishing-point glow at the center horizon (the aisle's end)
+        '<g class="cs-g-prem">' +
+          '<g filter="url(#gBizV)"><ellipse cx="600" cy="300" rx="60" ry="120" fill="' + rgba(CYAN2, 0.5) + '"/></g>' +
+          '<ellipse cx="600" cy="300" rx="22" ry="70" fill="' + rgba(WHITE, 0.7) + '"/>' +
+        '</g>';
+
+      // two converging rows of racks (left + right of the central aisle),
+      // each rack smaller/closer to center as it recedes (one-point perspective)
+      function rackRow(side) {
+        // side = -1 left, +1 right
+        var s = '', i, n = 5;
+        for (i = 0; i < n; i++) {
+          var depth = i / (n - 1);            // 0 near .. 1 far
+          var scale = 1 - depth * 0.72;
+          var rw = 86 * scale, rh = 250 * scale;
+          // x marches from the frame edge inward toward the aisle (x=600)
+          var nearX = side < 0 ? 70 : 1130;
+          var aisleX = side < 0 ? 520 : 680;
+          var cx = nearX + (aisleX - nearX) * depth;
+          var x = cx - rw / 2;
+          var top = 560 - rh - depth * 6;
+          var col = i % 2 ? CYAN2 : VIOLET2;
+          s += '<g opacity="' + (1 - depth * 0.35).toFixed(2) + '">' +
+            '<rect x="' + x.toFixed(0) + '" y="' + top.toFixed(0) + '" width="' + rw.toFixed(0) + '" height="' + rh.toFixed(0) + '" rx="3" fill="#0a111e" stroke="' + rgba(col, 0.35) + '" stroke-width="1.6"/>' +
+            // underlit cooling glow at the rack base
+            '<rect x="' + (x - 2).toFixed(0) + '" y="' + (top + rh - 4).toFixed(0) + '" width="' + (rw + 4).toFixed(0) + '" height="8" rx="3" fill="' + rgba(col, 0.55) + '"/>';
+          // LED column
+          var ly, k = 0, rr = rng(side * 100 + i);
+          for (ly = top + 8; ly < top + rh - 8; ly += 18 * scale + 6) {
+            if (rr() > 0.4) {
+              s += circle(cx, ly, 2 * scale + 1, rgba(rr() > 0.5 ? CYAN2 : GOLD, 0.9),
+                ' class="cs-pulse" style="--pd:' + (k % 5) + 's"');
+            }
+            k++;
+          }
+          s += '</g>';
+        }
+        return s;
+      }
+      var fg =
+        '<g class="cs-g-prem">' +
+        rackRow(-1) +
+        rackRow(1) +
+        // overhead cable trays running down the aisle toward the vanishing point
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M150 250 L560 296" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="3"/>' +
+          '<path d="M1050 250 L640 296" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="3"/>' +
+          '<path d="M120 560 L572 318" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
+          '<path d="M1080 560 L628 318" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
+        '</g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'motes', kb: 'kb-zoom'
+      };
+    },
+
+    // ------------------------------------------------ MEGACAMPUS (chapter 4)
+    // Hyperscale. An aerial of a datacenter campus at dusk: vast halls,
+    // power substation pylons + transmission lines, a brilliant core rising
+    // on the horizon — on the threshold of AGI.
+    premMegacampus: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gMegSky" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0c2236"/><stop offset="0.45" stop-color="#0b1430"/><stop offset="1" stop-color="#0a0e22"/></linearGradient>' +
+          '<radialGradient id="gMegGlow" cx="0.5" cy="0.36" r="0.7">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.35) + '"/><stop offset="0.5" stop-color="' + rgba(VIOLET, 0.12) + '"/><stop offset="1" stop-color="transparent"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gMegSky)"/>' +
+        starfield(41, 60, 0, 0, 1200, 320, rgba(WHITE, 1)) +
+        '<rect width="1200" height="750" fill="url(#gMegGlow)"/>' +
+        // distant skyline haze on the horizon
+        cityline(0, 360, 1200, rng(29), rgba(CYAN2, 0.4)) +
+        line(0, 360, 1200, 360, rgba(CYAN, 0.18), 2);
+
+      // a rising AGI core on the horizon (the threshold)
+      var mid =
+        '<defs>' + glowFilter('gMegCore', 18) +
+          '<radialGradient id="gMegCoreFill" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="' + rgba(CYAN2, 1) + '"/><stop offset="0.75" stop-color="' + rgba(VIOLET, 0.55) + '"/><stop offset="1" stop-color="' + rgba(VIOLET, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+          '<g fill="none">' +
+            '<circle cx="600" cy="300" r="86" stroke="' + rgba(CYAN, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
+            '<circle cx="600" cy="300" r="130" stroke="' + rgba(VIOLET2, 0.2) + '" stroke-width="2" class="cs-ring2"/>' +
+          '</g>' +
+          '<g filter="url(#gMegCore)"><circle cx="600" cy="300" r="46" fill="url(#gMegCoreFill)" class="cs-breathe"/></g>' +
+        '</g>';
+
+      // the campus below: rows of long low datacenter halls in perspective,
+      // flanked by power-substation pylons + transmission lines.
+      function hall(x, y, w, h, col) {
+        return '<g>' +
+          '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="3" fill="#0b1322" stroke="' + rgba(col, 0.3) + '" stroke-width="1.5"/>' +
+          // roof ridge vents
+          '<g stroke="' + rgba(col, 0.5) + '" stroke-width="2">' +
+            line(x + 8, y + h * 0.4, x + w - 8, y + h * 0.4, rgba(col, 0.4), 2) +
+          '</g>' +
+          // a warm/cool edge glow along the near base
+          '<rect x="' + x + '" y="' + (y + h - 3) + '" width="' + w + '" height="5" fill="' + rgba(col, 0.45) + '"/>';
+      }
+      function pylon(x, y) {
+        return '<g stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="2" fill="none">' +
+          line(x, y, x, y + 70, rgba(CYAN2, 0.4), 2) +
+          line(x - 16, y + 14, x + 16, y + 14, rgba(CYAN2, 0.4), 2) +
+          line(x - 12, y + 30, x + 12, y + 30, rgba(CYAN2, 0.4), 2) +
+          line(x - 9, y + 70, x + 9, y + 70, rgba(CYAN2, 0.3), 2) +
+          '<path d="M' + (x - 16) + ' ' + (y + 14) + ' l16 16 16 -16" stroke="' + rgba(CYAN2, 0.3) + '"/>' +
+          '</g>';
+      }
+      var fg =
+        '<g class="cs-g-prem">' +
+        // ground plane
+        '<rect x="0" y="430" width="1200" height="320" fill="#070b16"/>' +
+        // far row of halls
+        '<g opacity="0.7">' +
+          hall(360, 396, 130, 34, VIOLET2) + hall(510, 396, 150, 34, CYAN2) + hall(680, 396, 130, 34, VIOLET2) +
+        '</g>' +
+        // mid row (larger)
+        hall(250, 470, 200, 60, CYAN2) + hall(480, 470, 240, 60, VIOLET2) + hall(750, 470, 200, 60, CYAN2) +
+        // near row (largest, foreground)
+        hall(150, 580, 270, 100, CYAN2) + hall(470, 580, 300, 100, VIOLET2) + hall(820, 580, 270, 100, CYAN2) +
+        // substation pylons + transmission line strung between them
+        pylon(120, 360) + pylon(1080, 360) +
+        '<path d="M120 374 q480 60 960 0" fill="none" stroke="' + rgba(CYAN2, 0.22) + '" stroke-width="1.5"/>' +
+        '<path d="M120 390 q480 70 960 0" fill="none" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="1.5"/>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
+      };
     }
   };
 
@@ -730,11 +1089,32 @@
     });
   }
 
+  // ---- premise-move chapters (one per upgrade destination) ----
+  // Maps the DESTINATION premise id -> { scene, title, body }. A punchy 1-beat
+  // cinematic (~7s, tap-to-skip) narrating that step on the garage->AGI journey.
+  var PREMISE_CHAPTERS = {
+    basement:   { scene: 'premBasement',   title: 'cut_prem_basement_title',   body: 'cut_prem_basement_body' },
+    office:     { scene: 'premOffice',     title: 'cut_prem_office_title',     body: 'cut_prem_office_body' },
+    bizpark:    { scene: 'premBizpark',    title: 'cut_prem_bizpark_title',    body: 'cut_prem_bizpark_body' },
+    megacampus: { scene: 'premMegacampus', title: 'cut_prem_megacampus_title', body: 'cut_prem_megacampus_body' }
+  };
+  function premiseMove(premiseId, onDone) {
+    var ch = PREMISE_CHAPTERS[premiseId];
+    if (!ch) { if (onDone) { try { onDone(); } catch (e) {} } return; }
+    play({
+      kind: 'premise',
+      lastLabel: 'cut_continue',
+      beats: [{ scene: ch.scene, title: ch.title, body: ch.body }],
+      onDone: onDone
+    });
+  }
+
   window.GAME_CUTSCENE = {
     play: play,
     intro: intro,
     firstModel: firstModel,
     agiVictory: agiVictory,
+    premiseMove: premiseMove,
     isActive: function () { return !!active; }
   };
 })();
