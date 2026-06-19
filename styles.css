@@ -1416,7 +1416,9 @@ button:focus:not(:focus-visible) { outline: none; }
    shared with the rest of the app. transform/opacity only for perf.
    prefers-reduced-motion: heavy motion dropped, static stills + instant text. */
 .cutscene {
-  position: fixed; inset: 0; z-index: 95;
+  /* above the game-over screen (z 9000) so the AGI finale plays ON TOP and,
+     when dismissed, reveals the ending stats card beneath it */
+  position: fixed; inset: 0; z-index: 9500;
   overflow: hidden; cursor: pointer;
   background: #04040c;
   animation: csIn 0.6s var(--ease);
