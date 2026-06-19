@@ -1057,6 +1057,124 @@
     for (var i = 0; i < nav.length; i++) setClass(nav[i], 'tut-blocked', false);
   }
 
+  // ============================== CINEMATIC GUIDED FTUE COACHMARK ==============================
+  // A premium, hand-holding overlay that LEADS the player through the first steps:
+  // dims everything but the one target, casts a glowing spotlight on it, and floats
+  // a cutscene-styled instruction card with a bouncing arrow pointing exactly at it.
+  // It NEVER swallows input (the cutout area is click-through) so the forced tutorial
+  // still drives the real action — this is pure guidance chrome, fully additive.
+  var _coach = null;          // { root, spot, card, title, body, arrow, hint }
+  var _coachRO = null;        // reposition hook (resize/scroll)
+  function buildCoach() {
+    if (_coach) return _coach;
+    var root = el('div', 'ftue-coach hidden');
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML =
+      '<div class="ftue-spot"></div>' +
+      '<div class="ftue-arrow"></div>' +
+      '<div class="ftue-card">' +
+        '<div class="ftue-ic"></div>' +
+        '<div class="ftue-tt"></div>' +
+        '<div class="ftue-bd"></div>' +
+        '<div class="ftue-hint"></div>' +
+      '</div>';
+    document.body.appendChild(root);
+    _coach = {
+      root: root,
+      spot: root.querySelector('.ftue-spot'),
+      arrow: root.querySelector('.ftue-arrow'),
+      card: root.querySelector('.ftue-card'),
+      ic: root.querySelector('.ftue-ic'),
+      title: root.querySelector('.ftue-tt'),
+      body: root.querySelector('.ftue-bd'),
+      hint: root.querySelector('.ftue-hint')
+    };
+    if (!_coachRO) {
+      _coachRO = function () { try { syncFtueCoach(); } catch (e) {} };
+      window.addEventListener('resize', _coachRO);
+      window.addEventListener('scroll', _coachRO, true);
+    }
+    return _coach;
+  }
+  // what each step points at: { target, dir('up'|'down'), title, body, hint, icon }
+  function coachPlan(step) {
+    var onHw = currentTab === 'upgrades';
+    if (step === 'laptop') {
+      if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_laptop' };
+      return { node: (hwRefs.laptop && hwRefs.laptop.el), dir: 'down', title: 'ftue_laptop_title', body: 'ftue_laptop_body', hint: 'ftue_laptop_arrow', icon: 'gen_laptop' };
+    }
+    if (step === 'click') {
+      // after buying the laptop you may still be on Hardware — guide back to the Lab
+      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain' };
+      return { sel: '#tapBtn', dir: 'down', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain' };
+    }
+    if (step === 'upgrade') {
+      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash' };
+      return { sel: '#tapUpgradeBtn', dir: 'down', title: 'ftue_upgrade_title', body: 'ftue_upgrade_body', hint: 'ftue_upgrade_arrow', icon: 'ic_cash' };
+    }
+    if (step === 'server') {
+      if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_server_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_serverRack' };
+      return { node: (hwRefs.miniserver && hwRefs.miniserver.el), dir: 'down', title: 'ftue_server_title', body: 'ftue_server_body', hint: 'ftue_server_arrow', icon: 'gen_serverRack' };
+    }
+    return null;
+  }
+  function syncFtueCoach() {
+    var step = G.tutorialStep();
+    // hide while a cutscene or any modal (naming/teach) is up — they own the screen
+    var blocked = !step ||
+      (window.GAME_CUTSCENE && window.GAME_CUTSCENE.isActive()) ||
+      !$('modalRoot').classList.contains('hidden');
+    if (blocked) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    var plan = coachPlan(step);
+    if (!plan) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    var target = plan.node || (plan.sel && document.querySelector(plan.sel));
+    if (!target) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    var r = target.getBoundingClientRect();
+    if (!r.width || !r.height) { if (_coach) setClass(_coach.root, 'hidden', true); return; }
+    var c = buildCoach();
+    var vw = window.innerWidth, vh = window.innerHeight;
+    // spotlight: a rounded ring exactly over the target; CSS box-shadow dims the rest
+    var pad = 8;
+    var sx = Math.max(0, r.left - pad), sy = Math.max(0, r.top - pad);
+    var sw = Math.min(r.width + pad * 2, vw - sx), sh = r.height + pad * 2;
+    var cxv = r.left + r.width / 2;
+    // Decide which side the card sits on by where the target lives. Targets in the
+    // lower 45% of the frame (nav bar, low cards) → card ABOVE, arrow points DOWN.
+    // Targets higher up → card BELOW, arrow points UP. This keeps the arrow on-screen
+    // and always pointing INTO the target regardless of the plan's nominal dir.
+    var below = (r.top + r.height / 2) > vh * 0.55;
+    setClass(c.root, 'hidden', false);
+    setClass(c.root, 'coach-up', !below);
+    setClass(c.root, 'coach-down', below);
+    c.spot.style.left = sx + 'px'; c.spot.style.top = sy + 'px';
+    c.spot.style.width = sw + 'px'; c.spot.style.height = sh + 'px';
+    // content first (so the card can be measured for height)
+    c.ic.innerHTML = ic(plan.icon || 'ic_insight');
+    setText(c.title, t(plan.title));
+    setText(c.body, t(plan.body));
+    setText(c.hint, t(plan.hint));
+    var cw = Math.min(360, vw - 28);
+    c.card.style.width = cw + 'px';
+    var clx = Math.min(Math.max(14, cxv - cw / 2), vw - cw - 14);
+    c.card.style.left = Math.round(clx) + 'px';
+    c.card.style.top = ''; c.card.style.bottom = '';
+    var aw = 46, ah = 46;
+    c.arrow.style.left = Math.round(cxv - aw / 2) + 'px';
+    if (below) {
+      // card ABOVE target, arrow between them pointing DOWN
+      c.arrow.innerHTML = ic('ic_arrow_down');
+      var arrowTop = Math.max(8, sy - ah - 4);
+      c.arrow.style.top = Math.round(arrowTop) + 'px';
+      c.card.style.bottom = Math.round(vh - (arrowTop - 8)) + 'px';
+    } else {
+      // card BELOW target, arrow between them pointing UP
+      c.arrow.innerHTML = ic('ic_arrow_up');
+      var arrowTop2 = Math.min(vh - ah - 8, sy + sh + 4);
+      c.arrow.style.top = Math.round(arrowTop2) + 'px';
+      c.card.style.top = Math.round(arrowTop2 + ah + 8) + 'px';
+    }
+  }
+
   // ============================== TAP ==============================
   function bindTap() {
     var tapBtn = $('tapBtn');
@@ -1150,6 +1268,9 @@
     else if (currentTab === 'research') syncModelTab();
     else if (currentTab === 'world') syncWorldTab();
     else if (currentTab === 'settings') syncSettingsState();
+    // cinematic guided onboarding coachmark — runs on every tab so it can point at
+    // the Hardware nav (wrong tab) or the laptop/server card / orb / upgrade (right tab)
+    try { syncFtueCoach(); } catch (e) {}
   }
 
   // ============================== PUBLIC ==============================
