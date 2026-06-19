@@ -313,10 +313,13 @@
 
   // ---------- demand / users / revenue (the heart) ----------
   function demand() {
-    // demand grows with progression
+    // demand = the model's MAX audience. Grows with progression (era), scaled to a real
+    // headcount (userScale), and gated by market REACH — public approval is the lever on
+    // how many people are willing to use your AI (reachMin..1.0).
     var base = (currentVersionDef() || C.VERSIONS[C.VERSIONS.length - 1]).demandBase;
     var ver = Math.max(1, state.version);
-    return base * Math.pow(C.ECON.demandGrowth, ver);
+    var reach = C.ECON.reachMin + (1 - C.ECON.reachMin) * approvalNorm();
+    return base * Math.pow(C.ECON.demandGrowth, ver) * C.ECON.userScale * reach;
   }
   function approvalNorm() { return Math.max(0, Math.min(1, state.approval / 100)); }
 
@@ -478,6 +481,13 @@
   }
   function cutWeeklyBill() {
     var carried = state.billDue;            // unpaid balance rolls forward
+    // Waive a trivially small electricity bill (e.g. only a laptop drawing pennies in the
+    // first week) instead of dunning the player with a $0 plate. Only when nothing is owed.
+    if (carried <= 0.01 && state.elecAccrued < C.BILLS.minBill) {
+      state.elecAccrued = 0;
+      state.lastBillCut = state.gameTime;
+      return;
+    }
     state.billDue = carried + state.elecAccrued;
     state.elecAccrued = 0;
     state.lastBillCut = state.gameTime;
@@ -687,11 +697,14 @@
     // accrue bills (these are deferred, not subtracted from cash here)
     state.elecAccrued += costPerSec() * dt;
 
-    // users move toward target with inertia (per-tick = per second basis; scale by dt)
+    // users move toward target with inertia (per-tick = per second basis; scale by dt).
+    // Users are whole people: snap to the target once within 1 (no endless fractional
+    // crawl) and keep the running count integer.
     if (state.version >= 1) {
-      var target = usersTarget();
-      state.users += (target - state.users) * C.ECON.usersInertia * (dt / 1.0);
-      if (state.users < 0) state.users = 0;
+      var target = Math.round(usersTarget());
+      state.users += (target - state.users) * C.ECON.usersInertia * dt;
+      if (Math.abs(target - state.users) < 1) state.users = target;
+      state.users = Math.max(0, Math.round(state.users));
     }
 
     // training auto-progress

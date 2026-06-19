@@ -29,6 +29,11 @@
   function ic(key) { return ICON[key] || ''; }
   function money(n) { return '$' + fmt(n); }
   function pct(x) { return Math.round(x * 100); }
+  // market share reads as a fractional percent (e.g. 0.7%, 23.4%) — small shares matter
+  // and shouldn't round up to a misleading whole number.
+  function pct1(x) { var v = x * 100; return (v < 10 ? v.toFixed(1) : Math.round(v).toString()); }
+  // a user count is always whole people
+  function uFmt(n) { return fmt(Math.round(n)); }
   function s() { return G.state; }
   var ruS = function () { return I.getLang() === 'ru' ? 'с' : 's'; };
 
@@ -426,12 +431,12 @@
 
     // --- model panel (reuse #modelPanel / #resRow / #trainBtn / #trainProg) ---
     var powEl = $('computeVal'), shEl = $('shareVal'), usEl = $('valVal');
-    setText(powEl, fmt(G.power()));
+    setText(powEl, fmt(G.availablePower()));
     setText($('computeRate'), '+' + fmt(G.rentPerSec()) + '/' + ruS());
-    setText(shEl, pct(G.playerShare()) + '%');
-    setText(usEl, fmt(st.users));
+    setText(shEl, pct1(G.playerShare()) + '%');
+    setText(usEl, uFmt(st.users));
     // pulse on a meaningful step (purchase / release / price change), not the drip
-    hudPulse(powEl, G.power(), 'hud-pulse-violet', 0.05, 600);
+    hudPulse(powEl, G.availablePower(), 'hud-pulse-violet', 0.05, 600);
     hudPulse(shEl, G.playerShare(), 'hud-pulse-cyan', 0.10, 700);
     hudPulse(usEl, st.users, 'hud-pulse-cyan', 0.06, 600);
     var def = G.currentVersionDef();
@@ -493,9 +498,9 @@
     setText($('rlSmPower'), t('power_label')); setText($('rlSmUsers'), t('users_label'));
     setText($('rlSmShare'), t('share_label')); setText($('rlSmNet'), t('res_power') === 'Power' ? 'Net/' + ruS() : 'Итог/' + ruS());
     setText($('rlSmRigs'), t('summary_rigs')); setText($('rlSmRank'), t('summary_rank'));
-    setText($('sm-power'), fmt(G.power()));
-    setText($('sm-users'), fmt(st.users));
-    setText($('sm-share'), pct(G.playerShare()) + '%');
+    setText($('sm-power'), fmt(G.availablePower()));
+    setText($('sm-users'), uFmt(st.users));
+    setText($('sm-share'), pct1(G.playerShare()) + '%');
     var net = G.netPerSec(), nEl = $('sm-net');
     if (nEl) { nEl.textContent = (net >= 0 ? '+$' : '−$') + fmt(Math.abs(net)); setStyleP(nEl, 'color', net >= 0 ? 'var(--green)' : 'var(--rose)'); }
     var rigs = 0; C.HARDWARE.forEach(function (h) { rigs += st.committed[h.id]; });
@@ -709,7 +714,7 @@
     var p = (previewPrice != null) ? previewPrice : st.price;
     setText($('priceVal'), '$' + p.toFixed(2));
     var net = G.revenuePreview(p) - G.costPerSec();
-    setText($('pv-share'), pct(G.share(p)) + '%');
+    setText($('pv-share'), pct1(G.share(p)) + '%');
     // Users tile is a PROJECTION at the selected price — distinct from the model card's
     // CURRENT users. Show the direction vs current so dragging the slider reads as
     // "this price grows / shrinks my audience" (the core pricing skill), not a second
@@ -717,9 +722,9 @@
     var uTgt = G.usersTarget(p), uCur = st.users, uEl = $('pv-users');
     if (uEl) {
       var uRel = uCur > 0 ? uTgt / uCur : 1;
-      if (uRel > 1.05) { uEl.textContent = '↑ ' + fmt(uTgt); uEl.style.color = 'var(--green)'; }
-      else if (uRel < 0.95) { uEl.textContent = '↓ ' + fmt(uTgt); uEl.style.color = 'var(--rose)'; }
-      else { uEl.textContent = fmt(uTgt); uEl.style.color = ''; }
+      if (uRel > 1.05) { uEl.textContent = '↑ ' + uFmt(uTgt); uEl.style.color = 'var(--green)'; }
+      else if (uRel < 0.95) { uEl.textContent = '↓ ' + uFmt(uTgt); uEl.style.color = 'var(--rose)'; }
+      else { uEl.textContent = uFmt(uTgt); uEl.style.color = ''; }
     }
     var pf = $('pv-profit');
     if (pf) { pf.textContent = (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)); pf.style.color = net >= 0 ? 'var(--green)' : 'var(--rose)'; }
@@ -744,7 +749,7 @@
     syncPricePreview();
     var def = C.VERSIONS[st.version - 1];
     setText($('modelVer'), t('model_live', { label: def ? def.label : ('v' + st.version) }));
-    setText($('modelStats'), t('power_label') + ' ' + fmt(G.power()) + ' · ' + t('users_label') + ' ' + fmt(st.users) + ' · ' + t('share_label') + ' ' + pct(G.playerShare()) + '%');
+    setText($('modelStats'), t('power_label') + ' ' + fmt(G.power()) + ' · ' + t('users_label') + ' ' + uFmt(st.users) + ' · ' + t('share_label') + ' ' + pct1(G.playerShare()) + '%');
   }
 
   // ---------------------------------------------------------- WORLD (rivals + meters + staff)
@@ -953,9 +958,9 @@
     setHTML($('goSummary'),
       '<div class="statItem"><span>' + t('go_stat_version') + '</span><span>' + ver + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_day') + '</span><span>' + G.dayNumber() + '</span></div>' +
-      '<div class="statItem"><span>' + t('go_stat_users') + '</span><span>' + fmt(st.users) + '</span></div>' +
-      '<div class="statItem"><span>' + t('go_stat_share') + '</span><span>' + pct(G.playerShare()) + '%</span></div>');
-    setText($('goPunch'), win ? t('go_punch_win', { day: G.dayNumber(), users: fmt(st.users), share: pct(G.playerShare()) }) : t('go_punch_lose', { day: G.dayNumber(), ver: ver, users: fmt(st.users), share: pct(G.playerShare()) }));
+      '<div class="statItem"><span>' + t('go_stat_users') + '</span><span>' + uFmt(st.users) + '</span></div>' +
+      '<div class="statItem"><span>' + t('go_stat_share') + '</span><span>' + pct1(G.playerShare()) + '%</span></div>');
+    setText($('goPunch'), win ? t('go_punch_win', { day: G.dayNumber(), users: uFmt(st.users), share: pct1(G.playerShare()) }) : t('go_punch_lose', { day: G.dayNumber(), ver: ver, users: uFmt(st.users), share: pct1(G.playerShare()) }));
     setText($('goBrag'), t('go_brag'));
     setText($('goNewGame'), t('go_new_game'));
     setClass($('goStats'), 'hidden', true);

@@ -81,8 +81,14 @@
   var ECON = {
     demandGrowth: 1.6,       // demand = demandBase × 1.6^version
     priceExp: 1.3,           // V = power / price^1.3 × (0.5 + 0.5*approval)
-    usersInertia: 0.06,      // users += (target - users) × 0.06 per tick(=1s)
-    usage: 1.0,              // tokens consumed per user
+    usersInertia: 0.18,      // users += (target - users) × this per tick(=1s). Snappier than the
+                             //   old 0.06 so the count doesn't crawl/linger when it should move.
+    usage: 0.001,            // revenue per user-token. Users are scaled ×userScale below, so this is
+                             //   divided by the same factor to keep total revenue (≈users×price×usage) stable.
+    userScale: 1000,         // users are reported as real headcounts: a model serves THOUSANDS, not 0.7.
+                             //   Keeps the displayed user count a meaningful whole number.
+    reachMin: 0.4,           // market REACH (max users) floor. Reach scales 0.4→1.0 with public approval,
+                             //   so approval is the lever on a model's maximum audience.
     priceMin: 0.5,
     priceMax: 40,
     priceDefault: 6
@@ -93,6 +99,7 @@
     elecRateKwh: 0.15,       // $/kWh
     // electricity per sec = ΣkW × 0.15 / 3600
     overduePenalty: 0.30,    // -30% output while a bill is overdue
+    minBill: 1.0,            // weekly electricity bills below this are waived (no $0 plate early on)
     payDeadlineDays: 1,      // 1 in-game day to pay the weekly bill
     bankruptGraceDays: 6,    // a bill overdue this many in-game days => board pulls the plug (bankrupt)
     taxRate: 0.18            // 18% of revenue earned in the month
