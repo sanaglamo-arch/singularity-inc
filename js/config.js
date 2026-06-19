@@ -30,16 +30,37 @@
 
   // ---- hardware tiers (buy with money). idle => rent/s; committed => power ----
   //  {cost, power, rent (/s), kw, m2}
+  //  A full ~26-tier real-world AI-compute ladder. The first two (laptop, miniserver) are
+  //  owner-tuned onboarding and FROZEN. From there it climbs ~×2 per tier (power & cost) all
+  //  the way to a hyperscale flagship — power-per-$ improves as you climb (older tiers obsolete),
+  //  rent stays ≈0.2% of cost/sec, and m² grows so the 5 premises stay meaningful caps per era.
   var HARDWARE = [
-    { id: 'laptop',     cost: 50,        power: 1,       rent: 0,      kw: 0.04,    m2: 0.05  },
-    { id: 'miniserver', cost: 40,        power: 3,       rent: 0.10,   kw: 0.04,    m2: 0.05  },
-    { id: 'workstation',cost: 300,       power: 12,      rent: 0.6,    kw: 0.2,     m2: 0.3   },
-    { id: 'gpuserver',  cost: 2000,      power: 70,      rent: 3.5,    kw: 1.0,     m2: 0.55  },
-    { id: 'rack1u',     cost: 9000,      power: 300,     rent: 14,     kw: 0.7,     m2: 0.6   },
-    { id: 'rack42u',    cost: 55000,     power: 2200,    rent: 90,     kw: 9,       m2: 2.2   },
-    { id: 'airack',     cost: 380000,    power: 18000,   rent: 600,    kw: 13,      m2: 2.7   },
-    { id: 'modulardc',  cost: 4.2e6,     power: 240000,  rent: 6500,   kw: 300,     m2: 25    },
-    { id: 'hyperscale', cost: 1.1e8,     power: 9e6,     rent: 140000, kw: 120000,  m2: 50000 }
+    { id: 'laptop',      cost: 50,        power: 1,        rent: 0,        kw: 0.04,    m2: 0.05  },
+    { id: 'miniserver',  cost: 40,        power: 3,        rent: 0.10,     kw: 0.04,    m2: 0.05  },
+    { id: 'nas',         cost: 120,       power: 6,        rent: 0.22,     kw: 0.06,    m2: 0.08  },
+    { id: 'desktop',     cost: 260,       power: 13,       rent: 0.5,      kw: 0.12,    m2: 0.15  },
+    { id: 'towerserver', cost: 550,       power: 28,       rent: 1.1,      kw: 0.25,    m2: 0.25  },
+    { id: 'gpurig',      cost: 1200,      power: 60,       rent: 2.4,      kw: 0.5,     m2: 0.4   },
+    { id: 'wallcab',     cost: 2600,      power: 130,      rent: 5,        kw: 1.0,     m2: 0.6   },
+    { id: 'wscluster',   cost: 5500,      power: 280,      rent: 11,       kw: 1.9,     m2: 0.9   },
+    { id: 'rack1u',      cost: 11000,     power: 560,      rent: 22,       kw: 3.2,     m2: 1.0   },
+    { id: 'rack2u',      cost: 22000,     power: 1150,     rent: 44,       kw: 5.5,     m2: 1.4   },
+    { id: 'blade',       cost: 45000,     power: 2400,     rent: 90,       kw: 9,       m2: 1.8   },
+    { id: 'rack24u',     cost: 90000,     power: 4900,     rent: 180,      kw: 15,      m2: 2.4   },
+    { id: 'rack42u',     cost: 180000,    power: 9800,     rent: 360,      kw: 26,      m2: 3.2   },
+    { id: 'bladechassis',cost: 360000,    power: 20000,    rent: 700,      kw: 42,      m2: 4.5   },
+    { id: 'gpurack',     cost: 720000,    power: 41000,    rent: 1400,     kw: 70,      m2: 6     },
+    { id: 'airack48',    cost: 1.4e6,     power: 84000,    rent: 2700,     kw: 115,     m2: 8     },
+    { id: 'dgxpod',      cost: 2.8e6,     power: 170000,   rent: 5400,     kw: 190,     m2: 12    },
+    { id: 'superpod',    cost: 5.6e6,     power: 350000,   rent: 10500,    kw: 320,     m2: 18    },
+    { id: 'container',   cost: 1.1e7,     power: 720000,   rent: 21000,    kw: 520,     m2: 30    },
+    { id: 'rackrow',     cost: 2.2e7,     power: 1.45e6,   rent: 42000,    kw: 850,     m2: 60    },
+    { id: 'serverhall',  cost: 4.4e7,     power: 2.9e6,    rent: 82000,    kw: 1400,    m2: 140   },
+    { id: 'smalldc',     cost: 8.6e7,     power: 5.9e6,    rent: 160000,   kw: 2300,    m2: 340   },
+    { id: 'modulardc',   cost: 1.7e8,     power: 1.2e7,    rent: 310000,   kw: 3800,    m2: 900   },
+    { id: 'regionaldc',  cost: 3.4e8,     power: 2.4e7,    rent: 600000,   kw: 6200,    m2: 2500  },
+    { id: 'hyperscale',  cost: 6.6e8,     power: 4.8e7,    rent: 1.15e6,   kw: 10000,   m2: 7000  },
+    { id: 'flagship',    cost: 1.3e9,     power: 9.6e7,    rent: 2.2e6,    kw: 16000,   m2: 20000 }
   ];
   var HWBYID = {};
   HARDWARE.forEach(function (h) { HWBYID[h.id] = h; });
@@ -58,16 +79,19 @@
 
   // ---- release / training ----
   //  power thresholds to RELEASE each version. v1 is the first; the final is AGI.
+  //  Re-paced for the long ~26-tier ladder: each mid/late version is a real climb of several
+  //  hardware tiers (a journey, not a sprint). v1 is still reachable in the first minutes of
+  //  onboarding; a competent player reaches Singularity in ~130–170 in-game days (sim-gated).
   var VERSIONS = [
     { v: 1,  powerReq: 6,        demandBase: 40,    label: 'v1' },
-    { v: 2,  powerReq: 40,       demandBase: 40,    label: 'v2' },
-    { v: 3,  powerReq: 220,      demandBase: 40,    label: 'v3' },
-    { v: 4,  powerReq: 1200,     demandBase: 40,    label: 'v4' },
-    { v: 5,  powerReq: 7000,     demandBase: 40,    label: 'v5' },
-    { v: 6,  powerReq: 45000,    demandBase: 40,    label: 'v6' },
-    { v: 7,  powerReq: 300000,   demandBase: 40,    label: 'v7' },
-    { v: 8,  powerReq: 2.2e6,    demandBase: 40,    label: 'v8' },
-    { v: 9,  powerReq: 1.5e7,    demandBase: 40,    label: 'Singularity' }   // final => WIN (displayed name; internal const stays AGI_VERSION)
+    { v: 2,  powerReq: 60,       demandBase: 40,    label: 'v2' },
+    { v: 3,  powerReq: 450,      demandBase: 40,    label: 'v3' },
+    { v: 4,  powerReq: 3200,     demandBase: 40,    label: 'v4' },
+    { v: 5,  powerReq: 24000,    demandBase: 40,    label: 'v5' },
+    { v: 6,  powerReq: 170000,   demandBase: 40,    label: 'v6' },
+    { v: 7,  powerReq: 1.1e6,    demandBase: 40,    label: 'v7' },
+    { v: 8,  powerReq: 6.5e6,    demandBase: 40,    label: 'v8' },
+    { v: 9,  powerReq: 3.4e7,    demandBase: 40,    label: 'Singularity' }   // final => WIN (displayed name; internal const stays AGI_VERSION)
   ];
   var AGI_VERSION = 9;
 
@@ -83,7 +107,7 @@
     priceExp: 1.3,           // V = power / price^1.3 × (0.5 + 0.5*approval)
     usersInertia: 0.18,      // users += (target - users) × this per tick(=1s). Snappier than the
                              //   old 0.06 so the count doesn't crawl/linger when it should move.
-    usage: 0.001,            // revenue per user-token. Users are scaled ×userScale below, so this is
+    usage: 0.00036,          // revenue per user-token. Users are scaled ×userScale below, so this is
                              //   divided by the same factor to keep total revenue (≈users×price×usage) stable.
     userScale: 1000,         // users are reported as real headcounts: a model serves THOUSANDS, not 0.7.
                              //   Keeps the displayed user count a meaningful whole number.
@@ -184,14 +208,22 @@
 
   // ---- rivals (scripted power/price curves vs real time) ----
   // each: power(t) and price are functions of elapsed game-days. V computed like player.
+  //  Re-paced for the long ~26-tier ladder. Two coupled changes vs the old short campaign:
+  //   • doublingDays 6 -> 8 — rivals still grow exponentially (a real race) but no longer
+  //     out-double the player so fast that the player's market share (hence revenue) collapses
+  //     to zero by mid-game; share now degrades GRACEFULLY (≈0.73 at day 150), so a competent
+  //     player stays solvent and can keep funding the climb to Singularity.
+  //   • agiAt 1.5e7 -> 5.0e7 — the fastest rival (openmind) now tops out this threshold around
+  //     day ~184 instead of ~128, opening a genuine 130–170-day window for the player to reach
+  //     Singularity (4e7 power) first. The race stays close: lose the tempo and a rival wins.
   var RIVALS = [
-    { id: 'openmind',  power0: 4,   growth: 1.9,  price: 5.5, approval: 0.8, agiAt: 1.5e7 },
-    { id: 'deepcore',  power0: 2,   growth: 2.1,  price: 7.0, approval: 0.7, agiAt: 1.5e7 },
-    { id: 'nebula',    power0: 1,   growth: 2.0,  price: 6.0, approval: 0.75, agiAt: 1.5e7 }
+    { id: 'openmind',  power0: 4,   growth: 1.9,  price: 5.5, approval: 0.8, agiAt: 5.0e7 },
+    { id: 'deepcore',  power0: 2,   growth: 2.1,  price: 7.0, approval: 0.7, agiAt: 5.0e7 },
+    { id: 'nebula',    power0: 1,   growth: 2.0,  price: 6.0, approval: 0.75, agiAt: 5.0e7 }
   ];
   var RIVAL_CFG = {
     // power(days) = power0 × growth^(days / doublingDays)
-    doublingDays: 6
+    doublingDays: 8
   };
 
   // ---- starting state ----

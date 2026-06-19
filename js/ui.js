@@ -580,7 +580,18 @@
   }
 
   // ---------------------------------------------------------- HARDWARE (upgrades tab)
-  var HW_ICONS = ['gen_laptop', 'gen_serverRack', 'gen_gpuRig', 'gen_gpuCluster', 'gen_dataCenter', 'gen_superComp', 'gen_neuroArray', 'gen_quantumNode', 'gen_orbital'];
+  // one icon per HARDWARE tier (26). The 12 generated glyphs are mapped across the ladder so the
+  // visual escalates laptop -> rig -> rack -> cluster -> datacenter -> hyperscale (extras reuse the
+  // nearest-scale glyph; out-of-range indices still fall back to gen_serverRack below).
+  var HW_ICONS = [
+    'gen_laptop', 'gen_serverRack',                                   // laptop, miniserver
+    'gen_serverRack', 'gen_laptop', 'gen_serverRack', 'gen_gpuRig',   // nas, desktop, towerserver, gpurig
+    'gen_serverRack', 'gen_gpuRig', 'gen_serverRack', 'gen_serverRack', // wallcab, wscluster, rack1u, rack2u
+    'gen_gpuCluster', 'gen_serverRack', 'gen_serverRack', 'gen_gpuCluster', // blade, rack24u, rack42u, bladechassis
+    'gen_gpuCluster', 'gen_gpuCluster', 'gen_superComp', 'gen_superComp',   // gpurack, airack48, dgxpod, superpod
+    'gen_dataCenter', 'gen_dataCenter', 'gen_dataCenter', 'gen_neuroArray', // container, rackrow, serverhall, smalldc
+    'gen_neuroArray', 'gen_quantumNode', 'gen_orbital', 'gen_orbital'       // modulardc, regionaldc, hyperscale, flagship
+  ];
   function buildHardware() {
     var pane = $('upgradeList'); if (!pane) return;
     setText($('upgradesTitle'), t('hw_title'));
