@@ -1126,7 +1126,7 @@
       if (clicks >= 2) {
         return { sel: '#tapBtn', dir: 'down', icon: 'ic_cash', light: true, hudGlow: true,
           title: 'ftue_click_goal_title', body: 'ftue_click_goal_body', hint: 'ftue_click_goal_hint',
-          vars: { goal: money(goal), cur: money(Math.min(cur, goal)) } };
+          vars: { goal: fmt(goal), cur: fmt(Math.min(cur, goal)) } };
       }
       return { sel: '#tapBtn', dir: 'down', title: 'ftue_click_title', body: 'ftue_click_body', hint: 'ftue_click_arrow', icon: 'ic_brain', light: true };
     }
