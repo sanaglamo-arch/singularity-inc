@@ -1408,124 +1408,219 @@ button:focus:not(:focus-visible) { outline: none; }
 #premCardHint { margin-top: 12px; line-height: 1.4; }
 #premBuyBtn { margin-top: 12px; }
 
-/* ================= STORY CUTSCENES (additive: new ids/classes only) =================
-   Full-screen, skippable narrative beats. Reuses the cinematic vocabulary of .ritual
-   (dark veil, glow, sweep) but is its own surface. Matches the dark premium aesthetic:
-   violet/cyan/gold, Orbitron/JetBrains Mono, glow. */
+/* ================= STORY CUTSCENES — MASTER-CRAFT cinematic surface =================
+   Full-bleed, skippable narrative beats. Layered SVG art (bg/mid/fg parallax) +
+   Ken-Burns move + drifting particles + per-scene color grade + film grain +
+   vignette + letterbox bars + rhythmic Orbitron/JetBrains typography. All
+   selectors below are cutscene-only (.cutscene / .cs-*) — additive, nothing
+   shared with the rest of the app. transform/opacity only for perf.
+   prefers-reduced-motion: heavy motion dropped, static stills + instant text. */
 .cutscene {
-  position: fixed; inset: 0; z-index: 90;
-  display: flex; align-items: center; justify-content: center;
+  position: fixed; inset: 0; z-index: 95;
   overflow: hidden; cursor: pointer;
-  animation: csIn 0.5s var(--ease);
+  background: #04040c;
+  animation: csIn 0.6s var(--ease);
+  /* lock font features for crisp cinematic type */
+  font-variant-ligatures: none;
 }
-.cutscene.out { animation: csOut 0.36s ease forwards; }
-.cs-veil {
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 50% 42%, rgba(20,16,52,0.62), rgba(3,3,10,0.95));
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+.cutscene.out { animation: csOut 0.42s ease forwards; }
+
+/* ---- the full-bleed stage that holds every art layer ---- */
+.cs-stage { position: absolute; inset: 0; }
+
+/* the Ken-Burns mover: scene layers live inside, it slowly scales/pans */
+.cs-scene { position: absolute; inset: -6%; will-change: transform, opacity; }
+.cs-scene.in { animation: csSceneIn 1.1s var(--ease) backwards; }
+
+/* each art layer fills the frame; slight parallax depth via scale */
+.cs-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cs-layer.cs-bg  { z-index: 1; }
+.cs-layer.cs-mid { z-index: 2; }
+.cs-layer.cs-fg  { z-index: 3; }
+/* staggered bloom of the three layers on beat entry */
+.cs-scene.in .cs-bg  { animation: csLayer 1.0s var(--ease) backwards; }
+.cs-scene.in .cs-mid { animation: csLayer 1.0s var(--ease) 0.12s backwards; }
+.cs-scene.in .cs-fg  { animation: csLayer 1.1s var(--ease-spring) 0.22s backwards; }
+
+/* ---- Ken-Burns variants (slow, ~9s, transform only) ---- */
+.kb-in   .cs-mid, .kb-in   .cs-fg { animation-name: kbIn; }
+.cs-scene.kb-in   { animation: kbIn 11s ease-in-out forwards; }
+.cs-scene.kb-zoom { animation: kbZoom 12s ease-in-out forwards; }
+.cs-scene.kb-pan  { animation: kbPan 12s ease-in-out forwards; }
+@keyframes kbIn   { from { transform: scale(1.12) translate(1.5%, 1%); } to { transform: scale(1.0) translate(0,0); } }
+@keyframes kbZoom { from { transform: scale(1.0); } to { transform: scale(1.16); } }
+@keyframes kbPan  { from { transform: scale(1.14) translate(-2.5%, 0.5%); } to { transform: scale(1.14) translate(2.5%, -0.5%); } }
+/* keep the layer-in animations from clobbering the KB on the scene wrapper:
+   the scene wrapper does KB, the .in adds a one-shot fade via opacity only */
+.cs-scene.in { opacity: 1; }
+
+/* parallax: nudge fg/mid opposite to give depth during KB (subtle) */
+.cs-scene.kb-zoom .cs-fg { animation: csFloatFg 12s ease-in-out forwards; }
+.cs-scene.kb-zoom .cs-bg { animation: csFloatBg 12s ease-in-out forwards; }
+@keyframes csFloatFg { from { transform: translateY(0); } to { transform: translateY(-1.2%); } }
+@keyframes csFloatBg { from { transform: translateY(0); } to { transform: translateY(0.8%); } }
+
+/* ---- drifting particle field (dust / motes / embers) ---- */
+.cs-particles { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.cs-pt {
+  position: absolute; border-radius: 50%;
+  opacity: 0; will-change: transform, opacity;
+  animation: csDrift var(--dur, 10s) linear infinite;
 }
-/* per-kind veil tint */
-.cs-victory .cs-veil { background: radial-gradient(circle at 50% 45%, rgba(10,28,40,0.7), rgba(2,2,8,0.96)); }
-.cs-stage {
-  position: relative; z-index: 2;
-  width: min(560px, 92vw);
-  max-height: 92vh;
-  display: flex; flex-direction: column; align-items: stretch;
+.pt-dust   { background: radial-gradient(circle, rgba(251,191,36,0.9), rgba(251,191,36,0)); box-shadow: 0 0 6px rgba(251,191,36,0.5); }
+.pt-motes  { background: radial-gradient(circle, rgba(167,139,250,0.95), rgba(167,139,250,0)); box-shadow: 0 0 7px rgba(139,92,246,0.55); }
+.pt-embers { background: radial-gradient(circle, rgba(103,232,249,0.95), rgba(34,211,238,0)); box-shadow: 0 0 8px rgba(34,211,238,0.6); }
+@keyframes csDrift {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.7); }
+  12%  { opacity: 0.9; }
+  85%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, -60px)) scale(1.1); }
 }
-.cs-art {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 52vh;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(167,139,250,0.22);
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 50px var(--glow-violet);
+
+/* ---- per-scene color grade (a tinted wash + soft bloom over the art) ---- */
+.cs-grade { position: absolute; inset: 0; z-index: 5; pointer-events: none; mix-blend-mode: screen; opacity: 0.9; }
+.grade-amber       { background: radial-gradient(60% 55% at 62% 60%, rgba(251,191,36,0.16), transparent 70%), radial-gradient(80% 80% at 40% 30%, rgba(139,92,246,0.06), transparent 75%); }
+.grade-cyan        { background: radial-gradient(60% 60% at 50% 48%, rgba(34,211,238,0.18), transparent 72%); }
+.grade-steel       { background: radial-gradient(80% 50% at 50% 92%, rgba(34,211,238,0.14), transparent 70%), radial-gradient(70% 60% at 50% 20%, rgba(139,92,246,0.05), transparent 75%); }
+.grade-violet      { background: radial-gradient(60% 60% at 50% 48%, rgba(139,92,246,0.16), transparent 72%); }
+.grade-title       { background: radial-gradient(55% 55% at 50% 48%, rgba(103,232,249,0.16), transparent 70%), radial-gradient(75% 75% at 50% 50%, rgba(139,92,246,0.10), transparent 76%); }
+.grade-singularity { background: radial-gradient(60% 60% at 50% 48%, rgba(103,232,249,0.20), transparent 70%), radial-gradient(80% 80% at 50% 50%, rgba(251,191,36,0.08), transparent 78%); }
+/* a slow bloom-pulse breathing over the whole grade */
+.cutscene:not(.cs-reduce) .cs-grade { animation: csGradePulse 6s ease-in-out infinite; }
+@keyframes csGradePulse { 0%,100% { opacity: 0.78; } 50% { opacity: 1; } }
+
+/* ---- very subtle film grain ---- */
+.cs-grain {
+  position: absolute; inset: 0; z-index: 6; pointer-events: none; opacity: 0.05;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.7) 0.5px, transparent 0.5px),
+    radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px);
+  background-size: 3px 3px, 4px 4px;
+  background-position: 0 0, 1px 2px;
+  mix-blend-mode: overlay;
 }
-.cs-victory .cs-art { border-color: rgba(34,211,238,0.3); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px var(--glow-cyan); }
-.cs-art .cs-svg { display: block; width: 100%; height: 100%; }
-/* cinematic sweep across the art (reuses the ritual sweep idea) */
-.cs-art::after {
-  content: ''; position: absolute; top: -40%; left: -60%;
-  width: 40%; height: 180%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
-  transform: rotate(16deg); pointer-events: none;
+.cutscene:not(.cs-reduce) .cs-grain { animation: csGrain 1.1s steps(3) infinite; }
+@keyframes csGrain { 0% { transform: translate(0,0); } 33% { transform: translate(-1px,1px); } 66% { transform: translate(1px,-1px); } 100% { transform: translate(0,0); } }
+
+/* ---- vignette: darkens the edges, focuses the eye ---- */
+.cs-vignette {
+  position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  background: radial-gradient(125% 95% at 50% 46%, transparent 48%, rgba(2,2,8,0.55) 82%, rgba(2,2,8,0.9) 100%);
 }
-.cs-art.in::after { animation: csSweep 1.3s var(--ease) 0.2s; }
-.cs-art.in .cs-svg { animation: csArtBloom 0.9s var(--ease-spring) backwards; }
-/* soft gradient bridge from art into the text block */
-.cs-grad { height: 0; }
-.cs-text {
-  text-align: center; padding: 18px 16px 4px;
+
+/* ---- letterbox bars top + bottom ---- */
+.cs-bars { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.cs-bar { position: absolute; left: 0; right: 0; height: clamp(28px, 7vh, 64px); background: #04040b; }
+.cs-bar-t { top: 0; box-shadow: 0 1px 0 rgba(167,139,250,0.12); }
+.cs-bar-b { bottom: 0; box-shadow: 0 -1px 0 rgba(167,139,250,0.12); }
+.cutscene:not(.cs-reduce) .cs-bar { animation: csBars 0.7s var(--ease) backwards; }
+.cutscene:not(.cs-reduce) .cs-bar-t { transform-origin: top; }
+.cutscene:not(.cs-reduce) .cs-bar-b { transform-origin: bottom; }
+@keyframes csBars { from { transform: scaleY(1.8); } to { transform: scaleY(1); } }
+
+/* ---- caption scrim: a soft bottom-up wash so type is always legible over art,
+   and the lower third reads as a deliberate cinematic title band ---- */
+.cs-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56%; z-index: 9;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(4,4,12,0.18) 38%, rgba(4,4,12,0.62) 72%, rgba(4,4,12,0.86) 100%);
+}
+/* ---- caption: rhythmic title + body, lower third ---- */
+.cs-caption {
+  position: absolute; left: 0; right: 0; z-index: 10;
+  bottom: clamp(96px, 16vh, 150px);
+  text-align: center; padding: 0 24px; pointer-events: none;
 }
 .cs-title {
   font-family: var(--font-display); font-weight: 900;
-  font-size: clamp(18px, 5.2vw, 26px); letter-spacing: 1.4px;
-  color: #fff; text-shadow: 0 0 30px var(--glow-violet);
-  line-height: 1.15;
+  font-size: clamp(22px, 6.4vw, 46px); letter-spacing: 1.6px;
+  line-height: 1.1; color: #fff;
+  text-shadow: 0 0 6px rgba(255,255,255,0.35), 0 0 30px var(--glow-violet), 0 2px 30px rgba(0,0,0,0.6);
 }
-.cs-victory .cs-title { color: var(--cyan); text-shadow: 0 0 34px var(--glow-cyan); letter-spacing: 3px; }
+.cs-victory .cs-title { color: var(--cyan); text-shadow: 0 0 8px rgba(255,255,255,0.4), 0 0 38px var(--glow-cyan), 0 0 70px rgba(34,211,238,0.4); letter-spacing: 4px; }
+.cs-intro .cs-title { background: linear-gradient(180deg, #ffffff 0%, #cdbcff 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .cs-body {
-  margin-top: 12px; color: var(--fg-dim);
-  font-size: clamp(13px, 3.6vw, 15px); line-height: 1.5;
-  max-width: 440px; margin-left: auto; margin-right: auto;
+  margin: 14px auto 0; max-width: 620px; color: var(--fg-dim);
+  font-family: var(--font-ui);
+  font-size: clamp(13px, 3.7vw, 18px); line-height: 1.55;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.7);
 }
-.cs-text.in .cs-title { animation: csTitle 0.6s var(--ease-spring) 0.1s backwards; }
-.cs-text.in .cs-body { animation: csTitle 0.6s var(--ease) 0.32s backwards; }
-.cs-dots {
-  display: flex; gap: 8px; justify-content: center;
-  margin-top: 18px;
-}
+.cs-caption.in .cs-title { animation: csTitleIn 0.8s var(--ease-spring) 0.25s backwards; }
+.cs-caption.in .cs-body  { animation: csBodyIn 0.8s var(--ease) 0.62s backwards; }
+
+/* beat indicator dots */
+.cs-dots { display: flex; gap: 9px; justify-content: center; margin-top: 22px; }
 .cs-dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: rgba(167,139,250,0.28);
-  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  background: rgba(167,139,250,0.25);
+  transition: background 0.35s, transform 0.35s, box-shadow 0.35s;
 }
-.cs-dot.on { background: var(--violet-2); transform: scale(1.3); box-shadow: 0 0 10px var(--glow-violet); }
-.cs-victory .cs-dot.on { background: var(--cyan); box-shadow: 0 0 10px var(--glow-cyan); }
-/* skip = quiet top-right; next = prominent primary bottom */
+.cs-dot.on { background: var(--violet-2); transform: scale(1.35); box-shadow: 0 0 12px var(--glow-violet); }
+.cs-victory .cs-dot.on { background: var(--cyan); box-shadow: 0 0 12px var(--glow-cyan); }
+
+/* skip = quiet top-right (doesn't fight the art) */
 .cs-skip {
-  position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 4;
-  font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 1px;
+  position: absolute; top: max(16px, calc(env(safe-area-inset-top) + 8px)); right: 16px; z-index: 12;
+  font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 1.4px;
   text-transform: uppercase; color: var(--fg-muted);
-  background: rgba(20,19,42,0.7); border: 1px solid rgba(167,139,250,0.2);
-  padding: 8px 14px; border-radius: 999px; cursor: pointer;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  transition: color 0.2s, border-color 0.2s;
+  background: rgba(12,11,28,0.5); border: 1px solid rgba(167,139,250,0.18);
+  padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
-.cs-skip:hover, .cs-skip:active { color: var(--fg); border-color: rgba(167,139,250,0.5); }
+.cs-skip:hover, .cs-skip:active { color: var(--fg); border-color: rgba(167,139,250,0.5); background: rgba(20,19,42,0.7); }
+
+/* next = prominent primary, bottom-center */
 .cs-next {
   position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: max(26px, calc(env(safe-area-inset-bottom) + 18px)); z-index: 4;
-  font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 1.4px;
+  bottom: max(34px, calc(env(safe-area-inset-bottom) + 24px)); z-index: 12;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 1.6px;
   text-transform: uppercase; color: #fff;
   background: linear-gradient(95deg, var(--violet), var(--cyan));
-  border: none; padding: 13px 34px; border-radius: 999px; cursor: pointer;
-  box-shadow: 0 10px 30px rgba(124,92,255,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset;
-  animation: csTitle 0.5s var(--ease) 0.5s backwards;
+  border: none; padding: 14px 38px; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 12px 34px rgba(124,92,255,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  animation: csBodyIn 0.6s var(--ease) 0.9s backwards;
 }
-.cs-victory .cs-next { background: linear-gradient(95deg, var(--cyan), var(--violet-2)); box-shadow: 0 10px 30px rgba(34,211,238,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset; }
-.cs-next:active { transform: translateX(-50%) scale(0.97); }
+.cs-victory .cs-next { background: linear-gradient(95deg, var(--cyan), var(--violet-2)); box-shadow: 0 12px 34px rgba(34,211,238,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset; }
+.cs-next:active { transform: translateX(-50%) scale(0.96); }
+.cutscene:not(.cs-reduce) .cs-next::after {
+  content: ''; position: absolute; inset: 0; border-radius: 999px;
+  box-shadow: 0 0 0 0 rgba(167,139,250,0.5);
+  animation: csNextPulse 2.6s ease-out infinite;
+}
+@keyframes csNextPulse { 0% { box-shadow: 0 0 0 0 rgba(167,139,250,0.45); } 70%,100% { box-shadow: 0 0 0 14px rgba(167,139,250,0); } }
 
+/* ---- in-SVG element animation classes (transform/opacity only) ---- */
+.cutscene:not(.cs-reduce) .cs-breathe { animation: csBreathe 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes csBreathe { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.08); opacity: 1; } }
+.cutscene:not(.cs-reduce) .cs-pulse { animation: csNodePulse 3.5s ease-in-out infinite; animation-delay: var(--pd, 0s); transform-box: fill-box; transform-origin: center; }
+@keyframes csNodePulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+.cutscene:not(.cs-reduce) .cs-spin-slow { animation: csSpin 90s linear infinite; }
+@keyframes csSpin { to { transform: rotate(360deg); } }
+.cutscene:not(.cs-reduce) .cs-ring1 { animation: csRingPulse 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.cutscene:not(.cs-reduce) .cs-ring2 { animation: csRingPulse 5s ease-in-out infinite 1.2s; transform-box: fill-box; transform-origin: center; }
+@keyframes csRingPulse { 0%,100% { opacity: 0.45; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.03); } }
+.cutscene:not(.cs-reduce) .cs-streaks line { animation: csStreak 3.2s ease-in-out infinite; }
+@keyframes csStreak { 0%,100% { opacity: 0.3; } 50% { opacity: 0.9; } }
+
+/* ---- keyframes (engine) ---- */
 @keyframes csIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes csOut { to { opacity: 0; } }
-@keyframes csSweep { from { left: -60%; } to { left: 130%; } }
-@keyframes csArtBloom { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
-@keyframes csTitle { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes csSceneIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes csLayer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes csTitleIn { from { opacity: 0; transform: translateY(18px); letter-spacing: 6px; filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes csBodyIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-/* reduced motion: kill heavy motion, keep it legible + skippable */
+/* ====== reduced motion: kill heavy motion, keep beautiful static stills ====== */
 @media (prefers-reduced-motion: reduce) {
   .cutscene, .cutscene.out { animation: none; }
-  .cs-art::after { display: none; }
-  .cs-art.in .cs-svg, .cs-text.in .cs-title, .cs-text.in .cs-body, .cs-next { animation: none; }
+  .cs-scene, .cs-scene.in, .cs-scene.in .cs-bg, .cs-scene.in .cs-mid, .cs-scene.in .cs-fg,
+  .cs-caption.in .cs-title, .cs-caption.in .cs-body, .cs-next, .cs-bar { animation: none !important; }
+  .cs-particles { display: none; }
+  .cs-grade, .cs-grain { animation: none !important; }
+  .cs-breathe, .cs-pulse, .cs-spin-slow, .cs-ring1, .cs-ring2 { animation: none !important; }
 }
-.cutscene.cs-reduce .cs-art::after { display: none; }
-
-/* desktop: a touch larger, art capped so text always shows */
-@media (min-width: 720px) {
-  .cs-stage { width: min(620px, 80vw); }
-  .cs-art { max-height: 46vh; }
-}
+.cutscene.cs-reduce .cs-particles { display: none; }
 
 /* ============================================================
    ADDITIVE POLISH (v2 juice pass) — new selectors only.
