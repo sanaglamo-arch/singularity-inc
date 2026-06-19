@@ -1073,7 +1073,13 @@
       buzz(6);
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
-    tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
+    tapBtn.addEventListener('click', function (e) {
+      // Keyboard-activation (Space/Enter on the focused orb) fires a synthetic click
+      // with detail===0 and clientX/Y===0. Pass null,null so doTap() falls back to the
+      // orb center — otherwise "+$X" would float from the screen corner (0,0).
+      if (e.detail === 0 || (e.clientX === 0 && e.clientY === 0)) { doTap(null, null); return; }
+      doTap(e.clientX, e.clientY);
+    });
 
     // ADDITIVE polish: idle breathing. After ~2s with no interaction the orb does a
     // very subtle breathing pulse (CSS) so it feels alive. It is removed the instant
