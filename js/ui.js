@@ -726,7 +726,13 @@
     setClass($('goStats'), 'hidden', true);
     $('goNewGame').onclick = function () { setClass(go, 'hidden', true); G.reset(); previewPrice = null; renderStatic(); switchTab('company'); };
     setClass(go, 'hidden', false);
-    if (win) { FX.ritual({ title: title, subtitle: flavor, kind: 'singularity' }); if (st.sound) A.singularity(); }
+    if (win) {
+      if (st.sound) A.singularity();
+      // STORY: climactic AGI cutscene with a closing narrative line that branches on how
+      // safely you got there. Falls back to the ritual flash if the cutscene is unavailable.
+      if (window.GAME_CUTSCENE) window.GAME_CUTSCENE.agiVictory({ safe: st.safety >= 60 });
+      else FX.ritual({ title: title, subtitle: flavor, kind: 'singularity' });
+    }
     else { FX.incident(); if (st.sound) A.incident(); }
   }
 
@@ -748,6 +754,12 @@
       if (s().sound) A.release ? A.release() : A.breakthrough();
       var def = C.VERSIONS[v - 1];
       FX.celebrate(window.innerWidth / 2, window.innerHeight / 2, def ? def.label : ('v' + v), v >= 3);
+      // STORY: a brief one-beat flourish the FIRST time a model ships — "the world noticed".
+      // Plays before the price-teach modal (which is queued, so it follows the cutscene).
+      if (!s().seenFirstModel && window.GAME_CUTSCENE) {
+        s().seenFirstModel = true; G.save();
+        window.GAME_CUTSCENE.firstModel();
+      }
       if (!s().ftue.release) { s().ftue.release = 1; teachModal({ icon: ic('ic_brain'), title: t('ftue_release_title'), body: t('ftue_release_body'), onOk: function () { switchTab('research'); } }); }
       renderStatic(); update();
     });
@@ -936,7 +948,15 @@
       '<div class="row"><button class="primary" id="labNameOk">' + t('name_lab_confirm') + '</button></div></div>'
     );
     var inp = $('labNameInput'); inp.value = s().companyName || 'Singularity Inc.';
-    function confirm() { var v = (inp.value || '').trim().slice(0, 24); s().companyName = v || 'Singularity Inc.'; G.save(); hideModal(); renderStatic(); update(); }
+    function confirm() {
+      var v = (inp.value || '').trim().slice(0, 24); s().companyName = v || 'Singularity Inc.'; G.save(); hideModal(); renderStatic(); update();
+      // STORY: play the INTRO cutscene once, right after naming and BEFORE the forced
+      // tutorial. seenIntro persists so it never replays (incl. reload mid-tutorial).
+      if (!s().seenIntro && window.GAME_CUTSCENE) {
+        s().seenIntro = true; G.save();
+        setTimeout(function () { window.GAME_CUTSCENE.intro(function () { s().seenIntro = true; G.save(); update(); }); }, 80);
+      }
+    }
     $('labNameOk').onclick = confirm;
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); confirm(); } });
     setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) {} }, 50);

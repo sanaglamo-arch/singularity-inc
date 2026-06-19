@@ -74,7 +74,10 @@
       // rivals snapshot (computed)
       lang: null,
       sound: true, music: true, sfxVol: 0.8, musicVol: 0.6, haptics: true,
-      companyName: null
+      companyName: null,
+      // story cutscenes (one-time gates)
+      seenIntro: false,             // INTRO cutscene shown (after naming, before tutorial)
+      seenFirstModel: false         // FIRST-MODEL story flourish shown (first v1 release)
     };
   }
 

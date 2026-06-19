@@ -253,6 +253,24 @@
     name_lab_body: 'What should the world call your company? You can change this later in Settings.',
     name_lab_confirm: 'Found the lab',
 
+    // ---- STORY CUTSCENES (full-screen, skippable) ----
+    cut_skip: 'Skip',
+    cut_skip_intro: 'Skip intro',
+    cut_next: 'Next',
+    cut_begin: 'Begin',
+    cut_continue: 'Continue',
+    cut_intro1_title: 'A garage. One old laptop.',
+    cut_intro1_body: 'In a cramped garage, with a single old laptop, you founded an AI lab.',
+    cut_intro2_title: 'The dream',
+    cut_intro2_body: 'Your goal — build AGI before your rivals do.',
+    cut_intro3_title: 'The stakes',
+    cut_intro3_body: 'Every decision — power, price, safety — brings the dream closer, or buries it. Let\'s go.',
+    cut_firstmodel_title: 'Your first model is live',
+    cut_firstmodel_body: 'Your first model went out into the world. The world noticed.',
+    cut_victory_title: 'SINGULARITY',
+    cut_victory_safe: 'Singularity reached. You changed history — and you kept it safe.',
+    cut_victory_reckless: 'Singularity reached. You changed history — or doomed it.',
+
     // ---- FTUE teach-on-first popups (one-time, dismissable) ----
     ftue_got_it: 'Got it',
     ftue_start_title: 'You start with a garage and an old laptop',
@@ -536,6 +554,24 @@
     name_lab_title: 'Назови свою ИИ-лабораторию',
     name_lab_body: 'Как мир будет называть твою компанию? Это можно изменить позже в настройках.',
     name_lab_confirm: 'Основать лабораторию',
+
+    // ---- СЮЖЕТНЫЕ КАТСЦЕНЫ (полноэкранные, пропускаемые) ----
+    cut_skip: 'Пропустить',
+    cut_skip_intro: 'Пропустить интро',
+    cut_next: 'Далее',
+    cut_begin: 'Начать',
+    cut_continue: 'Продолжить',
+    cut_intro1_title: 'Гараж. Один старый ноут.',
+    cut_intro1_body: 'В тесном гараже, с одним старым ноутом, ты основал ИИ-лабораторию.',
+    cut_intro2_title: 'Мечта',
+    cut_intro2_body: 'Твоя цель — построить AGI раньше, чем это сделают конкуренты.',
+    cut_intro3_title: 'Ставки',
+    cut_intro3_body: 'Каждое решение — мощность, цена, безопасность — приближает или хоронит мечту. Поехали.',
+    cut_firstmodel_title: 'Твоя первая модель в мире',
+    cut_firstmodel_body: 'Твоя первая модель вышла в мир. Мир заметил.',
+    cut_victory_title: 'СИНГУЛЯРНОСТЬ',
+    cut_victory_safe: 'Сингулярность достигнута. Ты изменил историю — и сохранил её безопасной.',
+    cut_victory_reckless: 'Сингулярность достигнута. Ты изменил историю — или обрёк её.',
 
     // ---- FTUE обучающие попапы (одноразовые) ----
     ftue_got_it: 'Понятно',

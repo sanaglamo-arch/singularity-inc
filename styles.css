@@ -1407,3 +1407,122 @@ button:focus:not(:focus-visible) { outline: none; }
 #premCardMeters { display: flex; flex-direction: column; gap: 10px; }
 #premCardHint { margin-top: 12px; line-height: 1.4; }
 #premBuyBtn { margin-top: 12px; }
+
+/* ================= STORY CUTSCENES (additive: new ids/classes only) =================
+   Full-screen, skippable narrative beats. Reuses the cinematic vocabulary of .ritual
+   (dark veil, glow, sweep) but is its own surface. Matches the dark premium aesthetic:
+   violet/cyan/gold, Orbitron/JetBrains Mono, glow. */
+.cutscene {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; cursor: pointer;
+  animation: csIn 0.5s var(--ease);
+}
+.cutscene.out { animation: csOut 0.36s ease forwards; }
+.cs-veil {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 42%, rgba(20,16,52,0.62), rgba(3,3,10,0.95));
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+/* per-kind veil tint */
+.cs-victory .cs-veil { background: radial-gradient(circle at 50% 45%, rgba(10,28,40,0.7), rgba(2,2,8,0.96)); }
+.cs-stage {
+  position: relative; z-index: 2;
+  width: min(560px, 92vw);
+  max-height: 92vh;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+.cs-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 52vh;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(167,139,250,0.22);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 50px var(--glow-violet);
+}
+.cs-victory .cs-art { border-color: rgba(34,211,238,0.3); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px var(--glow-cyan); }
+.cs-art .cs-svg { display: block; width: 100%; height: 100%; }
+/* cinematic sweep across the art (reuses the ritual sweep idea) */
+.cs-art::after {
+  content: ''; position: absolute; top: -40%; left: -60%;
+  width: 40%; height: 180%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+  transform: rotate(16deg); pointer-events: none;
+}
+.cs-art.in::after { animation: csSweep 1.3s var(--ease) 0.2s; }
+.cs-art.in .cs-svg { animation: csArtBloom 0.9s var(--ease-spring) backwards; }
+/* soft gradient bridge from art into the text block */
+.cs-grad { height: 0; }
+.cs-text {
+  text-align: center; padding: 18px 16px 4px;
+}
+.cs-title {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(18px, 5.2vw, 26px); letter-spacing: 1.4px;
+  color: #fff; text-shadow: 0 0 30px var(--glow-violet);
+  line-height: 1.15;
+}
+.cs-victory .cs-title { color: var(--cyan); text-shadow: 0 0 34px var(--glow-cyan); letter-spacing: 3px; }
+.cs-body {
+  margin-top: 12px; color: var(--fg-dim);
+  font-size: clamp(13px, 3.6vw, 15px); line-height: 1.5;
+  max-width: 440px; margin-left: auto; margin-right: auto;
+}
+.cs-text.in .cs-title { animation: csTitle 0.6s var(--ease-spring) 0.1s backwards; }
+.cs-text.in .cs-body { animation: csTitle 0.6s var(--ease) 0.32s backwards; }
+.cs-dots {
+  display: flex; gap: 8px; justify-content: center;
+  margin-top: 18px;
+}
+.cs-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(167,139,250,0.28);
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.cs-dot.on { background: var(--violet-2); transform: scale(1.3); box-shadow: 0 0 10px var(--glow-violet); }
+.cs-victory .cs-dot.on { background: var(--cyan); box-shadow: 0 0 10px var(--glow-cyan); }
+/* skip = quiet top-right; next = prominent primary bottom */
+.cs-skip {
+  position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 4;
+  font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--fg-muted);
+  background: rgba(20,19,42,0.7); border: 1px solid rgba(167,139,250,0.2);
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: color 0.2s, border-color 0.2s;
+}
+.cs-skip:hover, .cs-skip:active { color: var(--fg); border-color: rgba(167,139,250,0.5); }
+.cs-next {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: max(26px, calc(env(safe-area-inset-bottom) + 18px)); z-index: 4;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: #fff;
+  background: linear-gradient(95deg, var(--violet), var(--cyan));
+  border: none; padding: 13px 34px; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 10px 30px rgba(124,92,255,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  animation: csTitle 0.5s var(--ease) 0.5s backwards;
+}
+.cs-victory .cs-next { background: linear-gradient(95deg, var(--cyan), var(--violet-2)); box-shadow: 0 10px 30px rgba(34,211,238,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset; }
+.cs-next:active { transform: translateX(-50%) scale(0.97); }
+
+@keyframes csIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes csOut { to { opacity: 0; } }
+@keyframes csSweep { from { left: -60%; } to { left: 130%; } }
+@keyframes csArtBloom { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+@keyframes csTitle { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* reduced motion: kill heavy motion, keep it legible + skippable */
+@media (prefers-reduced-motion: reduce) {
+  .cutscene, .cutscene.out { animation: none; }
+  .cs-art::after { display: none; }
+  .cs-art.in .cs-svg, .cs-text.in .cs-title, .cs-text.in .cs-body, .cs-next { animation: none; }
+}
+.cutscene.cs-reduce .cs-art::after { display: none; }
+
+/* desktop: a touch larger, art capped so text always shows */
+@media (min-width: 720px) {
+  .cs-stage { width: min(620px, 80vw); }
+  .cs-art { max-height: 46vh; }
+}
