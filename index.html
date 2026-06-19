@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06060f">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=18">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="fonts.css?v=19">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
 <div id="app">
@@ -94,10 +94,6 @@
           <button id="fundingBtn" class="hidden"></button>
           <div id="fundNote" class="muted small hidden"></div>
           <button id="boostBtn" class="hidden"></button>
-          <div id="buildBox">
-            <button id="buildBtn"></button>
-            <div id="buildProg" class="hidden"><div class="bar"><div id="buildFill"></div></div><div id="buildTimer" class="muted small"></div></div>
-          </div>
         </div>
         <!-- v17 BILLS: accruing electricity + next tax + pay-now (online, no fee). Gen-gated. -->
         <div id="billsPanel" class="glass-panel hidden">
@@ -122,6 +118,15 @@
 
     <section class="tab" data-tab="upgrades">
       <div class="scroll" id="upgradesPane">
+        <!-- PRIMARY premises card: shown ABOVE the server list because servers consume m².
+             Player sees МЕСТО used/cap right where they buy hardware + the move-up button. -->
+        <div id="premCard" class="glass-panel">
+          <div id="premCardHead"><span id="premCardTitle"></span><span id="premCardName" class="muted small"></span></div>
+          <div id="premCardSpace"></div>
+          <div id="premCardMeters"></div>
+          <div id="premCardHint" class="muted small"></div>
+          <button id="premBuyBtn" class="btn-primary"></button>
+        </div>
         <h2 id="upgradesTitle"></h2>
         <div id="upgradeList"></div>
         <div id="upgradeEmpty" class="empty-state hidden"></div>
@@ -343,17 +348,17 @@
   <div class="splash-bar"><div></div></div>
 </div>
 
-<script src="js/config.js?v=18"></script>
-<script src="js/format.js?v=18"></script>
-<script src="js/i18n.js?v=18"></script>
-<script src="js/sdk.js?v=18"></script>
-<script src="js/ads.js?v=18"></script>
-<script src="js/game.js?v=18"></script>
-<script src="js/audio.js?v=18"></script>
-<script src="js/fx.js?v=18"></script>
-<script src="js/icons.js?v=18"></script>
-<script src="js/music.js?v=18"></script>
-<script src="js/ui.js?v=18"></script>
-<script src="js/main.js?v=18"></script>
+<script src="js/config.js?v=19"></script>
+<script src="js/format.js?v=19"></script>
+<script src="js/i18n.js?v=19"></script>
+<script src="js/sdk.js?v=19"></script>
+<script src="js/ads.js?v=19"></script>
+<script src="js/game.js?v=19"></script>
+<script src="js/audio.js?v=19"></script>
+<script src="js/fx.js?v=19"></script>
+<script src="js/icons.js?v=19"></script>
+<script src="js/music.js?v=19"></script>
+<script src="js/ui.js?v=19"></script>
+<script src="js/main.js?v=19"></script>
 </body>
 </html>

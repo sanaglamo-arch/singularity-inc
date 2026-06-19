@@ -1396,3 +1396,14 @@ button:focus:not(:focus-visible) { outline: none; }
   .tab[data-tab="company"] #genList { padding: 0 0 8px; }
   #labSummary { margin-top: 10px; }
 }
+
+/* ---------- premises card (primary, top of Hardware tab) — additive: new ids only ---------- */
+#premCard { margin-bottom: 14px; }
+#premCard.hidden { display: none; }
+#premCardHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+#premCardTitle { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.3px; }
+#premCardName { color: var(--violet-2); font-weight: 700; }
+#premCardSpace { margin-bottom: 10px; }
+#premCardMeters { display: flex; flex-direction: column; gap: 10px; }
+#premCardHint { margin-top: 12px; line-height: 1.4; }
+#premBuyBtn { margin-top: 12px; }

@@ -290,8 +290,6 @@
     }
     setClass($('fundingBtn'), 'hidden', true);
     setClass($('boostBtn'), 'hidden', true);
-    // repurpose the build box as the PREMISES upgrade control
-    syncPremiseBox();
     // bills panel
     syncBills();
     // desktop-only company snapshot that fills the wide right column
@@ -348,23 +346,41 @@
     return '<div class="res"><span class="rlabel" id="' + lblId + '"></span><span class="rval" id="' + valId + '"></span></div>';
   }
 
-  // Premises live in the #buildBox slot under the model panel (old build button styling).
-  function syncPremiseBox() {
-    var st = s(), prem = C.PREMBYID[st.premise];
-    var box = $('buildBox');
-    setClass($('buildProg'), 'hidden', true);
-    if (!box.__premInit) {
-      box.__premInit = 1;
-      box.insertAdjacentHTML('afterbegin',
-        '<div id="premLine" class="muted small" style="margin-bottom:7px;line-height:1.4"></div>');
+  // PRIMARY premises control — a prominent card at the TOP of the Hardware tab.
+  // Servers consume m², so the player sees МЕСТО used/cap right where they buy hardware,
+  // plus the move-up button. Reuses .glass-panel / rel-row meter strip / .btn-primary.
+  function syncPremiseCard() {
+    var card = $('premCard'); if (!card) return;
+    var st = s();
+    setText($('premCardTitle'), t('prem_card_title'));
+    setText($('premCardName'), t('prem_name_' + st.premise));
+    var used = G.ownedM2(), cap = G.capacityM2(), full = cap > 0 ? Math.min(100, used / cap * 100) : 0;
+    setHTML($('premCardSpace'),
+      '<div class="rel-row" style="cursor:default"><span class="rel-ic">▦</span>' +
+      '<span class="rel-name">' + esc(t('prem_space_label')) + '</span>' +
+      '<span class="rel-bar"><span class="rel-fill" style="width:' + full.toFixed(1) + '%;background:var(--cyan)"></span></span>' +
+      '<span class="rel-val" style="color:var(--cyan)">' + fmt(used) + '/' + fmt(cap) + '</span></div>');
+    // legality + safety meters
+    var meters = [[t('meter_legality'), st.legality, '▲'], [t('meter_safety'), st.safety, '◆']], mh = '';
+    meters.forEach(function (m) {
+      var v = Math.round(m[1]), col = meterColor(v);
+      mh += '<div class="rel-row" style="cursor:default"><span class="rel-ic">' + m[2] + '</span>' +
+        '<span class="rel-name">' + esc(m[0]) + '</span>' +
+        '<span class="rel-bar"><span class="rel-fill" style="width:' + v + '%;background:' + col + '"></span></span>' +
+        '<span class="rel-val" style="color:' + col + '">' + v + '%</span></div>';
+    });
+    setHTML($('premCardMeters'), mh);
+    var np = G.nextPremise(), btn = $('premBuyBtn'), hint = $('premCardHint');
+    if (np) {
+      var add = np.m2 - cap;
+      setText(hint, t('prem_card_hint', { add: fmt(add) }));
+      setText(btn, t('prem_upgrade', { name: t('prem_name_' + np.id), c: fmt(np.cost) }) + ' · +' + fmt(add) + t('hw_m2'));
+      btn.disabled = !G.canBuyPremise(np.id);
+    } else {
+      setText(hint, t('prem_card_hint_max'));
+      setText(btn, t('prem_max'));
+      btn.disabled = true;
     }
-    setHTML($('premLine'),
-      '<b style="color:var(--violet-2)">' + esc(t('prem_name_' + st.premise)) + '</b> · ' +
-      t('prem_capacity', { used: fmt(G.ownedM2()), cap: fmt(G.capacityM2()) }) +
-      ' · ' + t('prem_safety', { v: Math.round(st.safety) }) + ' · ' + t('prem_legality', { v: Math.round(st.legality) }));
-    var np = G.nextPremise(), bb = $('buildBtn');
-    if (np) { setText(bb, t('prem_upgrade', { name: t('prem_name_' + np.id), c: fmt(np.cost) })); bb.disabled = !G.canBuyPremise(np.id); }
-    else { setText(bb, t('prem_max')); bb.disabled = true; }
   }
 
   function syncBills() {
@@ -435,6 +451,10 @@
   }
   function syncHardware() {
     var st = s(), tut = G.tutorialStep();
+    // hide the premises card during the forced tutorial so it doesn't distract from
+    // the single onboarding action (buy laptop / buy mini-server) — it returns at free play.
+    setClass($('premCard'), 'hidden', G.tutorialActive());
+    if (!G.tutorialActive()) syncPremiseCard();
     setText($('upgradesTitle'), t('hw_title') + ' · ' + t('prem_capacity', { used: fmt(G.ownedM2()), cap: fmt(G.capacityM2()) }));
     C.HARDWARE.forEach(function (h) {
       var r = hwRefs[h.id]; if (!r) return;
@@ -745,6 +765,11 @@
     G.on('tutorial', function (step) {
       // sound cue when a tutorial step is completed (entering a new step or finishing)
       if (s().sound) { try { A.buy(); } catch (e) {} }
+      // right after buying the laptop: one-time teach about the start (garage + laptop + premises)
+      if (step === 'click' && !s().ftue.start) {
+        s().ftue.start = 1;
+        teachModal({ icon: ic('ic_insight'), title: t('ftue_start_title'), body: t('ftue_start_body') });
+      }
       if (!step) {                       // onboarding complete -> unlock everything
         clearTutorialChrome();
         renderStatic();
@@ -883,8 +908,8 @@
     bindTap();
     // train button
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialActive()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
-    // premises (build box)
-    $('buildBtn').onclick = function () { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); update(); } else if (s().sound) A.error(); };
+    // premises (primary card on the Hardware tab)
+    $('premBuyBtn').onclick = function () { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); update(); } else if (s().sound) A.error(); };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;
