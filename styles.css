@@ -1526,3 +1526,33 @@ button:focus:not(:focus-visible) { outline: none; }
   .cs-stage { width: min(620px, 80vw); }
   .cs-art { max-height: 46vh; }
 }
+
+/* ============================================================
+   ADDITIVE POLISH (v2 juice pass) — new selectors only.
+   Item 1: sweet-spot price feedback. Rewards nailing the core
+   pricing decision: a soft GREEN glow stacks on the gold value
+   (via filter, so the inline gold text-shadow is untouched) and
+   a "★ Sweet spot" badge fades in. No layout shift — the badge
+   lives in a permanently-reserved line. Respects reduced-motion.
+   ============================================================ */
+#priceVal { transition: filter 260ms var(--ease); }
+#priceVal.sweet {
+  filter: drop-shadow(0 0 10px rgba(52,211,153,0.55)) drop-shadow(0 0 22px rgba(52,211,153,0.32));
+}
+#sweetBadgeWrap {
+  height: 22px; margin-top: 6px; display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.sweet-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+  color: #062b1e; padding: 3px 10px; border-radius: 999px;
+  background: linear-gradient(100deg, var(--green), #6ee7b7);
+  box-shadow: 0 4px 14px -4px rgba(52,211,153,0.55), 0 0 0 1px rgba(255,255,255,0.18) inset;
+  opacity: 0; transform: translateY(3px) scale(0.96);
+  transition: opacity 220ms var(--ease), transform 220ms var(--ease-spring);
+}
+.sweet-badge.on { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  #priceVal, .sweet-badge { transition: none; }
+}

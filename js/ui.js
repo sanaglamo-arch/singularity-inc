@@ -509,7 +509,8 @@
         pvTile(t('share_label'), 'pv-share') + pvTile(t('users_label'), 'pv-users') +
         pvTile(I.getLang() === 'ru' ? 'Прибыль/' + ruS() : 'Profit/s', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
       '</div>' +
-      '<div id="sweetLine" class="muted small" style="margin-top:12px;text-align:center"></div>';
+      '<div id="sweetLine" class="muted small" style="margin-top:12px;text-align:center"></div>' +
+      '<div id="sweetBadgeWrap"><span id="sweetBadge" class="sweet-badge"></span></div>';
     pane.appendChild(pb);
     var sweetBtn = el('button', 'wide', t('price_set_default'));
     sweetBtn.style.marginTop = '10px';
@@ -548,6 +549,12 @@
     else { arrow = t('approval_flat'); col = 'var(--cyan)'; }
     var pa = $('pv-appr'); if (pa) { pa.textContent = arrow; pa.style.color = col; }
     setText($('sweetLine'), t('price_sweet', { v: sweet.toFixed(2) }));
+    // ADDITIVE polish: reward nailing the price — soft green glow on the value +
+    // a "★ Sweet spot" badge when within ~10% of the sweet spot. Purely cosmetic.
+    var inSweet = sweet > 0 && ratio >= 0.9 && ratio <= 1.1;
+    var pvEl = $('priceVal'); if (pvEl) setClass(pvEl, 'sweet', inSweet);
+    var badge = $('sweetBadge');
+    if (badge) { setText(badge, t('price_sweet_badge')); setClass(badge, 'on', inSweet); }
   }
   function syncModelTab() {
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;
