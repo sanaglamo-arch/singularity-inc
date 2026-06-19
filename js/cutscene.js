@@ -1197,12 +1197,24 @@
 
   function agiVictory(opts) {
     opts = opts || {};
+    // STORY: the closing narrative line branches on the ending VARIANT chosen by
+    // the accumulated story flags (cut_victory_<variant>); falls back to the
+    // safe/reckless line by safety when no story variant is present.
+    var closing = opts.safe ? 'cut_victory_safe' : 'cut_victory_reckless';
+    var VARIANT_LINE = {
+      aligned:   'cut_victory_aligned',
+      rogue:     'cut_victory_rogue',
+      symbiosis: 'cut_victory_symbiosis',
+      moloch:    'cut_victory_moloch',
+      caged:     'cut_victory_caged'
+    };
+    if (opts.variant && VARIANT_LINE[opts.variant]) closing = VARIANT_LINE[opts.variant];
     play({
       kind: 'victory',
       lastLabel: 'cut_continue',
       beats: [
         { scene: 'singularity', title: 'cut_victory_title', body: 'cut_victory_lead' },
-        { scene: 'singularity', title: 'cut_victory_title', body: opts.safe ? 'cut_victory_safe' : 'cut_victory_reckless' }
+        { scene: 'singularity', title: 'cut_victory_title', body: closing }
       ],
       onDone: opts.onDone
     });

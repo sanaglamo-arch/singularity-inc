@@ -86,7 +86,16 @@
       seenServersCut: false,        // SERVERS cutscene shown (first time cash reaches mini-server cost)
       seenPremiseMove: {},          // PREMISE-MOVE chapters shown: map premiseId -> 1 (once per tier)
       // milestone celebrations: map of crossed threshold keys -> 1 (fire once per run)
-      milestones: {}
+      milestones: {},
+      // ---- STORY / DECISION system (window.GAME_STORY drives these) ----
+      // accumulating named tallies set by branching choices (e.g. ruthless/careful/
+      // responsible/hype/principled/open/closed/liberator/controller/symbiont). Counts/bools.
+      storyFlags: {},
+      // fire-once map of DECISION ids that have already been presented (id -> 1)
+      seenDecisions: {},
+      // the decision currently awaiting a choice (id) or null. While set, the trigger
+      // engine holds off and the modal owns the screen (game already pauses under modals).
+      pendingDecision: null
     };
   }
 

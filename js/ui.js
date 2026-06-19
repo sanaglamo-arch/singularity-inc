@@ -972,7 +972,17 @@
   function showEnding(outcome) {
     var st = s(), win = outcome === 'agi';
     var go = $('gameOverScreen'); if (!go) return;
-    var title = t('go_' + (win ? 'win' : outcome) + '_title'), flavor = t('go_' + (win ? 'win' : outcome) + '_flavor');
+    // STORY: on the AGI win, branch the ending by the accumulated story flags +
+    // the pivotal autonomy choice. Each variant has its own title/flavor/punch
+    // (go_win_<variant>_*). Falls back to the generic win copy when no variant.
+    var variant = null;
+    if (win && window.GAME_STORY) {
+      try { variant = window.GAME_STORY.endingVariant(st.storyFlags || {}, st); } catch (e) { variant = null; }
+      if (variant === 'default') variant = null;
+    }
+    var winBase = variant ? ('go_win_' + variant) : 'go_win';
+    var title = t(win ? (winBase + '_title') : ('go_' + outcome + '_title'));
+    var flavor = t(win ? (winBase + '_flavor') : ('go_' + outcome + '_flavor'));
     var ver = win ? t('term_singularity') : ('v' + st.version);
     setText($('goTitle'), title);
     $('goTitle').style.color = win ? 'var(--gold)' : 'var(--rose)';
@@ -983,7 +993,8 @@
       '<div class="statItem"><span>' + t('go_stat_day') + '</span><span>' + G.dayNumber() + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_users') + '</span><span>' + uFmt(st.users) + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_share') + '</span><span>' + pct1(G.playerShare()) + '%</span></div>');
-    setText($('goPunch'), win ? t('go_punch_win', { day: G.dayNumber(), users: uFmt(st.users), share: pct1(G.playerShare()) }) : t('go_punch_lose', { day: G.dayNumber(), ver: ver, users: uFmt(st.users), share: pct1(G.playerShare()) }));
+    var punchKey = win ? (variant ? ('go_win_' + variant + '_punch') : 'go_punch_win') : 'go_punch_lose';
+    setText($('goPunch'), t(punchKey, { day: G.dayNumber(), ver: ver, users: uFmt(st.users), share: pct1(G.playerShare()) }));
     setText($('goBrag'), t('go_brag'));
     setText($('goNewGame'), t('go_new_game'));
     setClass($('goStats'), 'hidden', true);
@@ -993,7 +1004,7 @@
       if (st.sound) A.singularity();
       // STORY: climactic AGI cutscene with a closing narrative line that branches on how
       // safely you got there. Falls back to the ritual flash if the cutscene is unavailable.
-      if (window.GAME_CUTSCENE) window.GAME_CUTSCENE.agiVictory({ safe: st.safety >= 60 });
+      if (window.GAME_CUTSCENE) window.GAME_CUTSCENE.agiVictory({ safe: st.safety >= 60, variant: variant });
       else FX.ritual({ title: title, subtitle: flavor, kind: 'singularity' });
     }
     else { FX.incident(); if (st.sound) A.incident(); }
@@ -1422,6 +1433,8 @@
     // STORY: the $40 servers cutscene — fires once when cash first reaches the
     // mini-server cost during the 'server' step (garage backstory + rentable gear).
     try { maybeServersCut(); } catch (e) {}
+    // STORY: branching cinematic dilemmas — one at a time, when the screen is free.
+    try { checkStoryDecisions(); } catch (e) {}
     // cinematic guided onboarding coachmark — runs on every tab so it can point at
     // the Hardware nav (wrong tab) or the laptop/server card / orb / upgrade (right tab)
     try { syncFtueCoach(); } catch (e) {}
@@ -1460,6 +1473,84 @@
       st.seenPremiseMove[id] = 1; G.save();
       window.GAME_CUTSCENE.premiseMove(id, function () { try { update(); } catch (e) {} });
     } catch (e) {}
+  }
+
+  // ============================== STORY DECISIONS ==============================
+  // Trigger engine: when the screen is FREE (no pending decision, no cutscene, no
+  // open modal, not the forced tutorial hard-lock, not game-over), find the first
+  // unseen DECISION whose when() is true, mark it seen and present it. One at a
+  // time; if busy this tick, it just tries again next tick.
+  function storyBusy() {
+    var st = s();
+    if (st.over) return true;
+    if (st.pendingDecision) return true;
+    if (window.GAME_CUTSCENE && window.GAME_CUTSCENE.isActive()) return true;
+    if (modalOpen) return true;
+    if (!$('modalRoot').classList.contains('hidden')) return true;
+    if (G.tutorialHardLock && G.tutorialHardLock()) return true;
+    return false;
+  }
+  function checkStoryDecisions() {
+    if (!window.GAME_STORY) return;
+    if (storyBusy()) return;
+    var st = s();
+    var d = window.GAME_STORY.findPending(st);
+    if (!d) return;
+    window.GAME_STORY.markSeen(st, d.id);   // fire-once + sets pendingDecision lock
+    G.save();
+    showDecisionModal(d);
+  }
+
+  // The premium decision card: icon + title + situation body + 2–3 choice buttons,
+  // each showing its label and a one-line consequence hint. Choosing applies the
+  // effects, closes, fires a confirmation toast and (optionally) a single
+  // consequence cutscene beat.
+  function showDecisionModal(d) {
+    queueModal(function () {
+      var btns = '';
+      for (var i = 0; i < d.choices.length; i++) {
+        var c = d.choices[i];
+        btns +=
+          '<button class="decision-opt" data-choice="' + esc(c.id) + '">' +
+          '<span class="decision-opt-label">' + esc(t(c.label)) + '</span>' +
+          '<span class="decision-opt-hint">' + esc(t(c.hint)) + '</span>' +
+          '</button>';
+      }
+      showModal(
+        '<div class="decision">' +
+        '<div class="decision-tag">' + esc(t('decision_eyebrow')) + '</div>' +
+        '<div class="decision-icon">' + ic(d.icon) + '</div>' +
+        '<h3>' + esc(t(d.title)) + '</h3>' +
+        '<p class="decision-body">' + esc(t(d.body)) + '</p>' +
+        '<div class="decision-opts">' + btns + '</div>' +
+        '</div>'
+      );
+      var nodes = document.querySelectorAll('#modalRoot .decision-opt');
+      for (var j = 0; j < nodes.length; j++) {
+        (function (node) {
+          node.onclick = function () {
+            var st = s();
+            if (st.sound) A.buy();
+            var choice = window.GAME_STORY.applyChoice(st, d.id, node.getAttribute('data-choice'));
+            hideModal();
+            G.save();
+            renderStatic();
+            update();
+            if (choice) {
+              toast(t('decision_made'), 'good');
+              if (choice.beat && window.GAME_CUTSCENE && window.GAME_CUTSCENE.play && !window.GAME_CUTSCENE.isActive()) {
+                window.GAME_CUTSCENE.play({
+                  kind: 'decision',
+                  lastLabel: 'cut_continue',
+                  beats: [{ scene: choice.beat.scene, title: choice.beat.title, body: choice.beat.body }],
+                  onDone: function () { try { update(); } catch (e) {} }
+                });
+              }
+            }
+          };
+        })(nodes[j]);
+      }
+    });
   }
 
   // ============================== PUBLIC ==============================

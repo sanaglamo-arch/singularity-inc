@@ -1,0 +1,247 @@
+// =====================================================================
+//  story.js  —  window.GAME_STORY
+//  Branching STORY-DECISION system for "Singularity Inc." v2.
+//
+//  Cinematic dilemmas (2–3 choices) that change resources/meters AND set
+//  story flags that branch the plot and the ending. Fully self-contained and
+//  decoupled: it READS window.GAME.state and APPLIES effects through small,
+//  clamped helpers — it never reaches into game internals. The UI drives it via
+//  GAME_STORY.findPending(state) (in the update loop) and GAME_STORY.applyChoice().
+//  The win screen branches via GAME_STORY.endingVariant(flags).
+//
+//  State it owns (added to game.js freshState, persisted by the save merge):
+//    state.storyFlags      — accumulating named tallies (counts/bools)
+//    state.seenDecisions   — fire-once map  { decisionId -> 1 }
+//    state.pendingDecision — id of the decision awaiting a choice, or null
+// =====================================================================
+(function () {
+  'use strict';
+
+  // ---- meter helpers (clamped 0..100 — never hard-break the game) ----
+  function clamp100(v) { return v < 0 ? 0 : (v > 100 ? 100 : v); }
+
+  // Apply one effect bag to a state. Recognised keys:
+  //   cash (delta, can be negative — clamped at 0)
+  //   safety / approval / legality  (delta, clamped 0..100)
+  //   flag: 'name' or ['a','b']  (increment the named tally/tallies)
+  // Returns the same effect bag (for chaining / logging).
+  function applyEffects(state, eff) {
+    if (!eff) return eff;
+    if (typeof eff.cash === 'number') state.cash = Math.max(0, state.cash + eff.cash);
+    if (typeof eff.safety === 'number') state.safety = clamp100(state.safety + eff.safety);
+    if (typeof eff.approval === 'number') state.approval = clamp100(state.approval + eff.approval);
+    if (typeof eff.legality === 'number') state.legality = clamp100(state.legality + eff.legality);
+    if (eff.flag) {
+      state.storyFlags = state.storyFlags || {};
+      var flags = (typeof eff.flag === 'string') ? [eff.flag] : eff.flag;
+      for (var i = 0; i < flags.length; i++) {
+        var f = flags[i];
+        state.storyFlags[f] = (state.storyFlags[f] || 0) + 1;
+      }
+    }
+    return eff;
+  }
+
+  function flag(flags, name) { return (flags && flags[name]) || 0; }
+
+  // =====================================================================
+  //  THE DECISIONS
+  //  Each: id, icon (icons.js key), title/body i18n keys, and 2–3 choices.
+  //  `when(state)` is the trigger predicate (fire-once, evaluated in update()).
+  //  Choices: { id, label, hint, effects, beat? }  — `beat` is an optional
+  //  single consequence cutscene beat { scene, title, body } reusing GAME_CUTSCENE.
+  //
+  //  Magnitudes are tuned to MATTER but never hard-break winnability (sim-gated).
+  //  Cash deltas scale with progress where it matters; meter deltas are bounded.
+  // =====================================================================
+  var DECISIONS = [
+    // 1) DATA FOR THE NEXT MODEL  (~v2)
+    {
+      id: 'data',
+      icon: 'ic_brain',
+      title: 'dec_data_title', body: 'dec_data_body',
+      when: function (s) { return s.version >= 2; },
+      choices: [
+        { id: 'license',  label: 'dec_data_a_label',  hint: 'dec_data_a_hint',
+          effects: { cash: -2500, legality: +10, flag: 'principled' } },
+        { id: 'scrape',   label: 'dec_data_b_label',  hint: 'dec_data_b_hint',
+          effects: { legality: -14, approval: -4, flag: 'ruthless' },
+          beat: { scene: 'garage', title: 'dec_data_b_beat_title', body: 'dec_data_b_beat_body' } },
+        { id: 'synthetic',label: 'dec_data_c_label',  hint: 'dec_data_c_hint',
+          effects: { cash: -800, safety: +8, flag: 'careful' } }
+      ]
+    },
+
+    // 2) THE WHISTLEBLOWER  (~v3)
+    {
+      id: 'whistleblower',
+      icon: 'ic_risk',
+      title: 'dec_whistle_title', body: 'dec_whistle_body',
+      when: function (s) { return s.version >= 3; },
+      choices: [
+        { id: 'pay',    label: 'dec_whistle_a_label', hint: 'dec_whistle_a_hint',
+          effects: { cash: -6000, legality: -4, flag: 'coverup' } },
+        { id: 'fire',   label: 'dec_whistle_b_label', hint: 'dec_whistle_b_hint',
+          effects: { approval: -16, flag: 'ruthless' } },
+        { id: 'listen', label: 'dec_whistle_c_label', hint: 'dec_whistle_c_hint',
+          effects: { safety: +12, approval: +6, cash: -1500, flag: 'responsible' },
+          beat: { scene: 'office', title: 'dec_whistle_c_beat_title', body: 'dec_whistle_c_beat_body' } }
+      ]
+    },
+
+    // 3) INVESTOR PRESSURE  (after the board convenes OR a cash threshold)
+    {
+      id: 'investor',
+      icon: 'ic_cash',
+      title: 'dec_invest_title', body: 'dec_invest_body',
+      when: function (s) { return s.boardActive || s.cash >= 50000; },
+      choices: [
+        { id: 'ship',     label: 'dec_invest_a_label', hint: 'dec_invest_a_hint',
+          effects: { cash: +18000, safety: -16, flag: 'hype' } },
+        { id: 'refuse',   label: 'dec_invest_b_label', hint: 'dec_invest_b_hint',
+          effects: { cash: -4000, approval: +6, flag: 'principled' } },
+        { id: 'negotiate',label: 'dec_invest_c_label', hint: 'dec_invest_c_hint',
+          effects: { cash: +4000, safety: -4 } }
+      ]
+    },
+
+    // 4) OPEN OR CLOSED  (~v4)
+    {
+      id: 'openclosed',
+      icon: 'ic_insight',
+      title: 'dec_open_title', body: 'dec_open_body',
+      when: function (s) { return s.version >= 4; },
+      choices: [
+        { id: 'open',   label: 'dec_open_a_label', hint: 'dec_open_a_hint',
+          effects: { approval: +18, cash: -5000, flag: 'open' },
+          beat: { scene: 'office', title: 'dec_open_a_beat_title', body: 'dec_open_a_beat_body' } },
+        { id: 'closed', label: 'dec_open_b_label', hint: 'dec_open_b_hint',
+          effects: { cash: +9000, approval: -8, flag: 'closed' } }
+      ]
+    },
+
+    // 5) GOVERNMENT DEAL  (~v6)  — the 6th idea, slotted before the pivot
+    {
+      id: 'govdeal',
+      icon: 'ic_risk',
+      title: 'dec_gov_title', body: 'dec_gov_body',
+      when: function (s) { return s.version >= 6; },
+      choices: [
+        { id: 'accept', label: 'dec_gov_a_label', hint: 'dec_gov_a_hint',
+          effects: { cash: +30000, legality: +12, approval: -10, flag: 'closed' } },
+        { id: 'public', label: 'dec_gov_b_label', hint: 'dec_gov_b_hint',
+          effects: { approval: +14, legality: -8, flag: 'principled' } },
+        { id: 'decline',label: 'dec_gov_c_label', hint: 'dec_gov_c_hint',
+          effects: { safety: +6, flag: 'careful' } }
+      ]
+    },
+
+    // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
+    //    The primary driver of the ending variant.
+    {
+      id: 'autonomy',
+      icon: 'ic_brain',
+      title: 'dec_auto_title', body: 'dec_auto_body',
+      when: function (s) { return s.version >= 8; },
+      choices: [
+        { id: 'free',    label: 'dec_auto_a_label', hint: 'dec_auto_a_hint',
+          effects: { approval: +10, safety: -10, flag: 'liberator' },
+          beat: { scene: 'singularity', title: 'dec_auto_a_beat_title', body: 'dec_auto_a_beat_body' } },
+        { id: 'contain', label: 'dec_auto_b_label', hint: 'dec_auto_b_hint',
+          effects: { safety: +12, approval: -8, flag: 'controller' },
+          beat: { scene: 'singularity', title: 'dec_auto_b_beat_title', body: 'dec_auto_b_beat_body' } },
+        { id: 'merge',   label: 'dec_auto_c_label', hint: 'dec_auto_c_hint',
+          effects: { safety: +4, approval: +4, flag: 'symbiont' },
+          beat: { scene: 'singularity', title: 'dec_auto_c_beat_title', body: 'dec_auto_c_beat_body' } }
+      ]
+    }
+  ];
+
+  var DECISION_BY_ID = {};
+  DECISIONS.forEach(function (d) { DECISION_BY_ID[d.id] = d; });
+
+  // ---- find the first UNSEEN decision whose trigger is satisfied ----
+  // Returns the decision def or null. The caller decides whether it's busy.
+  function findPending(state) {
+    if (!state) return null;
+    state.seenDecisions = state.seenDecisions || {};
+    for (var i = 0; i < DECISIONS.length; i++) {
+      var d = DECISIONS[i];
+      if (state.seenDecisions[d.id]) continue;
+      var ok = false;
+      try { ok = !!d.when(state); } catch (e) { ok = false; }
+      if (ok) return d;
+    }
+    return null;
+  }
+
+  // Mark a decision as seen + pending (called right before the modal opens).
+  function markSeen(state, id) {
+    state.seenDecisions = state.seenDecisions || {};
+    state.seenDecisions[id] = 1;
+    state.pendingDecision = id;
+  }
+
+  // Apply the chosen option's effects, clear the pending lock. Returns the
+  // chosen choice def (so the UI can fire a consequence beat / confirmation).
+  function applyChoice(state, decisionId, choiceId) {
+    var d = DECISION_BY_ID[decisionId];
+    if (!d) { state.pendingDecision = null; return null; }
+    var choice = null;
+    for (var i = 0; i < d.choices.length; i++) if (d.choices[i].id === choiceId) { choice = d.choices[i]; break; }
+    if (!choice) { state.pendingDecision = null; return null; }
+    applyEffects(state, choice.effects);
+    state.pendingDecision = null;
+    return choice;
+  }
+
+  // =====================================================================
+  //  ENDING VARIANT SELECTOR
+  //  The autonomy choice (#6) is PRIMARY; accumulated path flags modulate.
+  //  Returns one of:
+  //    'symbiosis' | 'aligned' | 'rogue' | 'moloch' | 'caged' | 'default'
+  //  Each maps to go_win_<variant>_{title,flavor,punch} i18n keys.
+  // =====================================================================
+  function endingVariant(flags, state) {
+    flags = flags || {};
+    var ethical = flag(flags, 'careful') + flag(flags, 'responsible') + flag(flags, 'principled');
+    var dark    = flag(flags, 'ruthless') + flag(flags, 'coverup') + flag(flags, 'hype');
+    var approval = state ? state.approval : 50;
+
+    // PRIMARY: the autonomy pivot.
+    if (flag(flags, 'symbiont')) return 'symbiosis';
+
+    if (flag(flags, 'liberator')) {
+      // freedom granted: rogue if the path was dark, else still benevolent-aligned
+      return (dark > ethical) ? 'rogue' : 'aligned';
+    }
+
+    if (flag(flags, 'controller')) {
+      // contained: a caged-but-resentful god if the public hated you / dark path,
+      // a corporate moloch if you optimised for profit-over-safety + closed,
+      // otherwise an aligned, safely-contained dream.
+      if (approval < 35 || dark > ethical) {
+        if (flag(flags, 'closed') || flag(flags, 'hype')) return 'moloch';
+        return 'caged';
+      }
+      return 'aligned';
+    }
+
+    // No autonomy pivot recorded (e.g. raced to AGI before v8 dilemma):
+    // fall back to the broad moral tilt.
+    if (dark > ethical && (flag(flags, 'closed') || flag(flags, 'hype'))) return 'moloch';
+    if (ethical > dark) return 'aligned';
+    return 'default';
+  }
+
+  // Expose the public, decoupled API.
+  window.GAME_STORY = {
+    DECISIONS: DECISIONS,
+    findPending: findPending,
+    markSeen: markSeen,
+    applyChoice: applyChoice,
+    applyEffects: applyEffects,
+    endingVariant: endingVariant,
+    decisionById: function (id) { return DECISION_BY_ID[id] || null; }
+  };
+})();
