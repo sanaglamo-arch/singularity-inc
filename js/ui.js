@@ -289,7 +289,10 @@
   // offline jump we backfill silently (mark already-passed thresholds crossed
   // without celebrating) so a reload never dumps a burst of toasts.
   var MS_CASH = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10];
-  var MS_USERS = [1e3, 1e4, 1e5, 1e6, 1e7, 5e7, 1e8];
+  // user counts are scaled to real headcounts (×1000): a model serves ~10k at v1 up to
+  // a few million near the top, so milestones celebrate those magnitudes (not the old 1e3
+  // which now fires instantly on first release).
+  var MS_USERS = [1e4, 5e4, 2.5e5, 1e6, 3e6];
   var MS_SHARE = [0.5, 0.75];
   // "big" cash/users thresholds get the richer achievement sound + sparkle
   var MS_BIG_CASH = 1e6, MS_BIG_USERS = 1e6;
