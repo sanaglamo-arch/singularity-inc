@@ -26,7 +26,10 @@
       heat: 0,                      // 0..1 click "heat"; rapid clicks build it, idle decays it
       lastClickAt: -999,            // gameTime of the previous click (for the combo window)
       boughtLaptop: false,          // forced first action
-      // forced hands-on tutorial step: 'laptop'->'click'->'upgrade'->'server'->null(done)
+      // forced hands-on tutorial step:
+      //   'laptop'->'click'->'upgrade'->'server'->'release'->'price'->null(done)
+      // laptop..server are HARD-LOCK steps (only the one action allowed);
+      // release+price are SOFT (free play, the coach just keeps pointing — never traps).
       tutorial: 'laptop',
       hw: hw,
       committed: committed,
@@ -116,9 +119,16 @@
   }
 
   // ---------- forced hands-on tutorial ----------
-  // step order: 'laptop' -> 'click' -> 'upgrade' -> 'server' -> null (free play)
+  // step order: 'laptop' -> 'click' -> 'upgrade' -> 'server' -> 'release' -> 'price' -> null
+  // The first four are HARD-LOCK (gate everything but the one action). 'release' and
+  // 'price' are SOFT guidance: the player plays freely (buy hardware, click, train, set
+  // price) and the coach just keeps pointing — so it can never trap/soft-lock.
   function tutorialStep() { return state ? state.tutorial : null; }
   function tutorialActive() { return !!(state && state.tutorial); }
+  // HARD-LOCK steps gate input + hide non-onboarding chrome; SOFT steps (release/price)
+  // are free play with guidance only. UI uses this to decide what to lock/show.
+  var TUT_HARD = { laptop: 1, click: 1, upgrade: 1, server: 1 };
+  function tutorialHardLock() { return !!(state && state.tutorial && TUT_HARD[state.tutorial]); }
   function setTutorial(step) {
     if (!state || state.tutorial === step) return;
     state.tutorial = step;
@@ -134,8 +144,12 @@
     } else if (step === 'click') {
       // ready to upgrade once they can afford the first click upgrade (~$10)
       if (state.cash >= tapUpgradeCost()) setTutorial('upgrade');
+    } else if (step === 'release') {
+      // SOFT step: shipping v1 advances it (also handled in finishTraining for immediacy)
+      if (state.version >= 1) setTutorial('price');
     }
-    // 'upgrade' -> 'server' is driven by upgradeTap(); 'server' -> done by buyHw('miniserver')
+    // 'upgrade' -> 'server' is driven by upgradeTap(); 'server' -> 'release' by
+    // buyHw('miniserver'); 'release' -> 'price' by finishTraining(); 'price' -> null by setPrice().
   }
 
   // ---------- click / tap ----------
@@ -206,7 +220,7 @@
     if (id === 'laptop' && !state.boughtLaptop) state.boughtLaptop = true;
     // forced tutorial advances
     if (state.tutorial === 'laptop' && id === 'laptop') setTutorial('click');
-    else if (state.tutorial === 'server' && id === 'miniserver') setTutorial(null); // onboarding complete
+    else if (state.tutorial === 'server' && id === 'miniserver') setTutorial('release'); // -> guide to first model
     emit('change');
     return true;
   }
@@ -289,6 +303,8 @@
     state.trainElapsed = 0;
     // set a sensible default price near the sweet spot on first release
     if (state.version === 1) state.price = sweetSpotPrice();
+    // SOFT tutorial: once the first model ships, guide the player to the price slider
+    if (state.tutorial === 'release' && state.version >= 1) setTutorial('price');
     emit('release', state.version);
     emit('change');
     if (state.version >= C.AGI_VERSION) endGame('agi');
@@ -353,7 +369,12 @@
   }
   function setPrice(p) {
     p = Math.max(C.ECON.priceMin, Math.min(C.ECON.priceMax, Number(p)));
-    if (!isNaN(p)) { state.price = p; emit('change'); }
+    if (!isNaN(p)) {
+      state.price = p;
+      // SOFT tutorial finale: setting a token price completes onboarding (free play)
+      if (state.tutorial === 'price') setTutorial(null);
+      emit('change');
+    }
   }
 
   // ---------- costs ----------
@@ -793,7 +814,7 @@
     tapValue: tapValue, baseTapValue: baseTapValue, click: click, comboMult: comboMult,
     tapUpgradeCost: tapUpgradeCost, canUpgradeTap: canUpgradeTap, upgradeTap: upgradeTap,
     // forced tutorial
-    tutorialStep: tutorialStep, tutorialActive: tutorialActive, advanceTutorial: advanceTutorial,
+    tutorialStep: tutorialStep, tutorialActive: tutorialActive, tutorialHardLock: tutorialHardLock, advanceTutorial: advanceTutorial,
     // hardware
     hwCost: hwCost, canBuyHw: canBuyHw, buyHw: buyHw,
     ownedM2: ownedM2, capacityM2: capacityM2, freeM2: freeM2,

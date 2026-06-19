@@ -418,9 +418,10 @@
     // click-upgrade button + forced-tutorial coachmark
     syncTapUpgrade();
     syncTutorial();
-    // during the forced tutorial keep the focus tight: the model/premise panel + bills
-    // are not part of onboarding, so hide them until free play begins.
-    var tutOn = G.tutorialActive();
+    // during the HARD-LOCK tutorial steps keep the focus tight: the model panel + bills
+    // are not part of those steps, so hide them. On the SOFT 'release'/'price' steps the
+    // model panel (train CTA + "Need X Power" readout) IS the target — keep it visible.
+    var tutOn = G.tutorialHardLock();
     setClass($('modelPanel'), 'hidden', tutOn);
 
     // --- model panel (reuse #modelPanel / #resRow / #trainBtn / #trainProg) ---
@@ -1020,6 +1021,9 @@
   function tutTabAllowed(step, tab) {
     if (tab === 'company') return true;                 // home is always reachable
     if ((step === 'laptop' || step === 'server') && tab === 'upgrades') return true;
+    // SOFT steps are free play — don't fence the player in. 'release' needs Hardware
+    // (buy gear to accumulate Power) and Lab (train); 'price' needs the Model screen.
+    if (step === 'release' || step === 'price') return true;
     return false;
   }
   // what each step lets you do (anything not listed is blocked)
@@ -1138,6 +1142,18 @@
     if (step === 'server') {
       if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_server_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_serverRack' };
       return { node: (hwRefs.miniserver && hwRefs.miniserver.el), dir: 'down', title: 'ftue_server_title', body: 'ftue_server_body', hint: 'ftue_server_arrow', icon: 'gen_serverRack' };
+    }
+    // SOFT step: ship the first model. LIGHT coach (no heavy dim) — point at the Lab's
+    // train CTA + the "Need X Power" readout. The player freely buys hardware/clicks to
+    // accumulate Power; nothing is locked, so this can never trap.
+    if (step === 'release') {
+      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_goto_lab_arrow', icon: 'ic_brain', light: true };
+      return { sel: '#trainBtn', dir: 'down', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_release_step_arrow', icon: 'ic_brain', light: true };
+    }
+    // SOFT step: teach the HEART — the token-price slider. LIGHT coach on the slider.
+    if (step === 'price') {
+      if (currentTab !== 'research') return { sel: '#navResearchBtn', dir: 'up', title: 'ftue_price_step_title', body: 'ftue_price_step_body', hint: 'ftue_goto_model_arrow', icon: 'ic_cash', light: true };
+      return { sel: '#priceSlider', dir: 'down', title: 'ftue_price_step_title', body: 'ftue_price_step_body', hint: 'ftue_price_step_arrow', icon: 'ic_cash', light: true };
     }
     return null;
   }
@@ -1333,9 +1349,9 @@
     wireGameEvents();
     bindTap();
     // train button
-    $('trainBtn').onclick = function () { var st = s(); if (G.tutorialActive()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
+    $('trainBtn').onclick = function () { var st = s(); if (G.tutorialHardLock()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
-    $('premBuyBtn').onclick = function (e) { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); } else if (s().sound) A.error(); };
+    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); } else if (s().sound) A.error(); };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;

@@ -73,6 +73,15 @@
     ftue_server_body: 'Open Hardware and buy a mini-server — it rents out for passive income, even idle.',
     ftue_server_arrow: 'Buy the server',
     ftue_goto_hw_server_body: 'Open Hardware to buy a mini-server for passive income.',
+    // SOFT guided steps — ship the first model, then teach the price (the core loop)
+    ftue_goto_lab_arrow: 'Open the Lab',
+    ftue_goto_model_arrow: 'Open the Model',
+    ftue_release_step_title: 'Ship your first model',
+    ftue_release_step_body: 'Stack up Power — buy hardware. When you have enough, ship your first model.',
+    ftue_release_step_arrow: 'Train v1 when ready',
+    ftue_price_step_title: 'Token price — the heart of the game',
+    ftue_price_step_body: 'Token price is the heart of the game. Lower price → more users and share, but thinner margin. Too high → users leave and the public gets angry. Aim for the sweet spot.',
+    ftue_price_step_arrow: 'Drag to set the price',
 
     // hardware
     hw_title: 'Hardware',
@@ -424,6 +433,15 @@
     ftue_server_body: 'Открой «Железо» и купи мини-сервер — он сдаётся в аренду и даёт пассивный доход даже без кликов.',
     ftue_server_arrow: 'Купи сервер',
     ftue_goto_hw_server_body: 'Открой «Железо», чтобы купить мини-сервер для пассивного дохода.',
+    // SOFT guided steps — выпусти первую модель, затем научи цене (ядро игры)
+    ftue_goto_lab_arrow: 'Открой «Лабораторию»',
+    ftue_goto_model_arrow: 'Открой «Модель»',
+    ftue_release_step_title: 'Выпусти первую модель',
+    ftue_release_step_body: 'Копи Мощность — покупай железо. Когда хватит, выпусти первую модель.',
+    ftue_release_step_arrow: 'Тренируй v1, когда хватит',
+    ftue_price_step_title: 'Цена токенов — сердце игры',
+    ftue_price_step_body: 'Цена токенов — сердце игры. Ниже цена → больше юзеров и доли, но тоньше маржа. Дорого → юзеры уходят, общество злится. Целься в сладкую точку.',
+    ftue_price_step_arrow: 'Тяни, чтобы задать цену',
 
     hw_title: 'Железо',
     hw_intro: 'Простаивающее железо приносит аренду. На релизе модели оно переходит в продакшен и даёт Мощность.',
