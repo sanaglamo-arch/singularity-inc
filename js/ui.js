@@ -402,8 +402,9 @@
   // ---------------------------------------------------------- LAB (company)
   function syncLab() {
     var st = s();
-    // orb value + hint
-    setText($('tapValue'), '+$' + fmt(G.tapValue()));
+    // orb value + hint — use the BASE value (no разгон heat) so the displayed
+    // "+$X" stays stable; the actual click GAIN still uses heat (разгон rewards more).
+    setText($('tapValue'), '+$' + fmt(G.baseTapValue()));
     var hint = $('tapHint');
     if (!st.boughtLaptop) setText(hint, t('tap_hint_buy_laptop'));
     else if (st.training) setText(hint, t('train_click_faster'));
@@ -1126,10 +1127,11 @@
     if (!show) return;
     var maxed = st.tapLevel >= C.TAP.upgrade.maxLevel;
     if (maxed) {
-      setHTML(btn, esc(t('tap_up_max', { cur: fmt(G.tapValue()) })));
+      // BASE value (no разгон heat) so the button digits never fluctuate as the combo heats
+      setHTML(btn, esc(t('tap_up_max', { cur: fmt(G.baseTapValue()) })));
       btn.disabled = true;
     } else {
-      var cur = G.tapValue(), next = cur * C.TAP.upgrade.gain, cost = G.tapUpgradeCost();
+      var cur = G.baseTapValue(), next = cur * C.TAP.upgrade.gain, cost = G.tapUpgradeCost();
       setHTML(btn,
         esc(t('tap_up_btn', { cur: fmt(cur), next: fmt(next) })) +
         '<span class="tu-sub">' + esc(t('tap_up_cost', { c: fmt(cost) })) + '</span>');

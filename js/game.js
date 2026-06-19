@@ -145,8 +145,13 @@
     if (h < 0) h = 0; else if (h > 1) h = 1;
     return 1 + h * C.TAP.comboBonus;
   }
+  // base click value WITHOUT the разгон heat multiplier — used for the STATIC
+  // displayed numbers (orb "+$X" + click-upgrade button) so the digits stay still.
+  function baseTapValue() {
+    return C.TAP.base * Math.pow(C.TAP.upgrade.gain, state.tapLevel);
+  }
   function tapValue() {
-    return C.TAP.base * Math.pow(C.TAP.upgrade.gain, state.tapLevel) * comboMult();
+    return baseTapValue() * comboMult();
   }
   function tapUpgradeCost() {
     if (state.tapLevel >= C.TAP.upgrade.maxLevel) return Infinity;
@@ -785,7 +790,7 @@
     init: init, save: save, load: load, reset: reset,
     tick: tick, computeOffline: computeOffline, applyOffline: applyOffline,
     // clicking
-    tapValue: tapValue, click: click, comboMult: comboMult,
+    tapValue: tapValue, baseTapValue: baseTapValue, click: click, comboMult: comboMult,
     tapUpgradeCost: tapUpgradeCost, canUpgradeTap: canUpgradeTap, upgradeTap: upgradeTap,
     // forced tutorial
     tutorialStep: tutorialStep, tutorialActive: tutorialActive, advanceTutorial: advanceTutorial,
