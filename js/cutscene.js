@@ -358,7 +358,7 @@
           '</g>';
       }
       // orb centers
-      var PX = 470, PY = 442, CX = 600, CY = 222, SX = 730, SY = 442;
+      var PX = 466, PY = 398, CX = 600, CY = 190, SX = 734, SY = 398;
       var mid =
         '<defs>' + glowFilter('gP', 12) + glowFilter('gC', 12) + glowFilter('gS', 12) + '</defs>' +
         // connecting triangle beams (the three are linked decisions)
@@ -367,9 +367,9 @@
           line(CX, CY, SX, SY, rgba(WHITE, 0.12), 2) +
           line(PX, PY, SX, SY, rgba(WHITE, 0.10), 2) +
         '</g>' +
-        orb(CX, CY, 72, GOLD, 0.55, 'gC') +
-        orb(PX, PY, 58, VIOLET, 0.7, 'gP') +
-        orb(SX, SY, 58, CYAN, 0.82, 'gS');
+        orb(CX, CY, 66, GOLD, 0.55, 'gC') +
+        orb(PX, PY, 54, VIOLET, 0.7, 'gP') +
+        orb(SX, SY, 54, CYAN, 0.82, 'gS');
 
       var fg =
         // glyphs inside each orb (coin / bolt / shield)
@@ -384,9 +384,9 @@
         '</g>' +
         // tiny labels under each orb (decorative, themed — text comes from caption)
         '<g fill="' + rgba(VIOLET2, 0.55) + '" font-family="Orbitron, monospace" font-weight="700" font-size="17" text-anchor="middle" letter-spacing="1">' +
-          '<text x="' + CX + '" y="' + (CY + 100) + '" fill="' + rgba(GOLD, 0.7) + '">' + lblCoin() + '</text>' +
-          '<text x="' + PX + '" y="' + (PY + 86) + '" fill="' + rgba(VIOLET2, 0.7) + '">' + lblBolt() + '</text>' +
-          '<text x="' + SX + '" y="' + (SY + 86) + '" fill="' + rgba(CYAN2, 0.7) + '">' + lblShield() + '</text>' +
+          '<text x="' + CX + '" y="' + (CY + 92) + '" fill="' + rgba(GOLD, 0.75) + '">' + lblCoin() + '</text>' +
+          '<text x="' + PX + '" y="' + (PY + 80) + '" fill="' + rgba(VIOLET2, 0.75) + '">' + lblBolt() + '</text>' +
+          '<text x="' + SX + '" y="' + (SY + 80) + '" fill="' + rgba(CYAN2, 0.75) + '">' + lblShield() + '</text>' +
         '</g>';
 
       return {
