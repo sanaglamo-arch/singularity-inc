@@ -23,6 +23,8 @@
       cash: C.START.cash,
       tapLevel: 0,
       boughtLaptop: false,          // forced first action
+      // forced hands-on tutorial step: 'laptop'->'click'->'upgrade'->'server'->null(done)
+      tutorial: 'laptop',
       hw: hw,
       committed: committed,
       premise: C.START.premise,
@@ -105,6 +107,29 @@
     return k;
   }
 
+  // ---------- forced hands-on tutorial ----------
+  // step order: 'laptop' -> 'click' -> 'upgrade' -> 'server' -> null (free play)
+  function tutorialStep() { return state ? state.tutorial : null; }
+  function tutorialActive() { return !!(state && state.tutorial); }
+  function setTutorial(step) {
+    if (!state || state.tutorial === step) return;
+    state.tutorial = step;
+    emit('tutorial', step);
+    emit('change');
+  }
+  // re-evaluate auto-advance conditions (called after actions + each tick)
+  function advanceTutorial() {
+    if (!state || !state.tutorial) return;
+    var step = state.tutorial;
+    if (step === 'laptop') {
+      if (state.boughtLaptop) setTutorial('click');
+    } else if (step === 'click') {
+      // ready to upgrade once they can afford the first click upgrade (~$10)
+      if (state.cash >= tapUpgradeCost()) setTutorial('upgrade');
+    }
+    // 'upgrade' -> 'server' is driven by upgradeTap(); 'server' -> done by buyHw('miniserver')
+  }
+
   // ---------- click / tap ----------
   function tapValue() {
     return C.TAP.base * Math.pow(C.TAP.upgrade.gain, state.tapLevel);
@@ -120,6 +145,7 @@
     if (!canUpgradeTap()) return false;
     state.cash -= tapUpgradeCost();
     state.tapLevel++;
+    if (state.tutorial === 'upgrade') setTutorial('server');
     emit('change');
     return true;
   }
@@ -134,6 +160,8 @@
     }
     var v = tapValue();
     state.cash += v;
+    // advance the forced tutorial when the player can afford the first click upgrade
+    if (state.tutorial === 'click' && state.cash >= tapUpgradeCost()) setTutorial('upgrade');
     return v;
   }
 
@@ -151,6 +179,9 @@
     state.cash -= h.cost;
     state.hw[id]++;
     if (id === 'laptop' && !state.boughtLaptop) state.boughtLaptop = true;
+    // forced tutorial advances
+    if (state.tutorial === 'laptop' && id === 'laptop') setTutorial('click');
+    else if (state.tutorial === 'server' && id === 'miniserver') setTutorial(null); // onboarding complete
     emit('change');
     return true;
   }
@@ -588,6 +619,7 @@
   function tick(dt) {
     if (!state || state.over) return;
     state.gameTime += dt;
+    if (state.tutorial) advanceTutorial();
 
     // continuous income/costs
     var rev = revenuePerSec() * outputMult() * dt;
@@ -679,9 +711,13 @@
       var s = JSON.parse(raw);
       if (!s || typeof s !== 'object') return false;
       if (s.v !== C.SETTINGS.SAVE_VERSION) return false;   // no migration in phase 1
+      // pre-existing saves (made before the tutorial shipped) skip onboarding:
+      // if they already own a laptop, they're past the forced start.
+      var hadTutorial = (s.tutorial !== undefined);
       // merge onto fresh to fill any missing fields
       var f = freshState();
       for (var k in f) if (s[k] === undefined) s[k] = f[k];
+      if (!hadTutorial && s.boughtLaptop) s.tutorial = null;
       // ensure hw/committed/staff have all ids
       C.HARDWARE.forEach(function (h) { if (s.hw[h.id] == null) s.hw[h.id] = 0; if (s.committed[h.id] == null) s.committed[h.id] = 0; });
       C.STAFF.forEach(function (st) { if (s.staff[st.id] == null) s.staff[st.id] = 0; });
@@ -726,6 +762,8 @@
     // clicking
     tapValue: tapValue, click: click,
     tapUpgradeCost: tapUpgradeCost, canUpgradeTap: canUpgradeTap, upgradeTap: upgradeTap,
+    // forced tutorial
+    tutorialStep: tutorialStep, tutorialActive: tutorialActive, advanceTutorial: advanceTutorial,
     // hardware
     hwCost: hwCost, canBuyHw: canBuyHw, buyHw: buyHw,
     ownedM2: ownedM2, capacityM2: capacityM2, freeM2: freeM2,

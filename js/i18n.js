@@ -37,6 +37,20 @@
     click_upgrade: 'Upgrade click → ${v} (cost ${c})',
     click_upgrade_max: 'Click maxed (${v})',
     onboard_laptop: 'Buy your first laptop to start. No rent — but it lets you click for money.',
+    tap_up_btn: 'Upgrade click · +${cur} → click ${next}',
+    tap_up_cost: 'Cost ${c}',
+    tap_up_max: 'Click maxed · ${cur}',
+
+    // forced tutorial ("hands-on onboarding")
+    tut_buy_laptop: 'Open Hardware and buy the old laptop — it turns on clicking.',
+    tut_click: 'Click the orb to earn money.',
+    tut_upgrade: 'Now upgrade your click (button below the orb) to earn faster.',
+    tut_miniserver: 'Open Hardware and buy a mini-server — it rents out for passive income.',
+    tut_locked_step: 'First: {step}',
+    tut_step_laptop: 'buy the old laptop',
+    tut_step_click: 'click to earn',
+    tut_step_upgrade: 'upgrade your click',
+    tut_step_server: 'buy a mini-server',
 
     // hardware
     hw_title: 'Hardware',
@@ -309,6 +323,20 @@
     click_upgrade: 'Апгрейд клика → ${v} (цена ${c})',
     click_upgrade_max: 'Клик прокачан (${v})',
     onboard_laptop: 'Купи первый ноут, чтобы начать. Аренды нет — но он даёт клик за деньги.',
+    tap_up_btn: 'Улучшить клик · +${cur} → клик ${next}',
+    tap_up_cost: 'Цена ${c}',
+    tap_up_max: 'Клик прокачан · ${cur}',
+
+    // потное обучение (forced tutorial)
+    tut_buy_laptop: 'Открой «Железо» и купи старый ноут — он включит клик.',
+    tut_click: 'Кликай по сфере, чтобы зарабатывать.',
+    tut_upgrade: 'Теперь улучши клик (кнопка под сферой) — заработок быстрее.',
+    tut_miniserver: 'Открой «Железо» и купи мини-сервер — он сдаётся в аренду (пассивный доход).',
+    tut_locked_step: 'Сначала: {step}',
+    tut_step_laptop: 'купи старый ноут',
+    tut_step_click: 'кликай, чтобы зарабатывать',
+    tut_step_upgrade: 'улучши клик',
+    tut_step_server: 'купи мини-сервер',
 
     hw_title: 'Железо',
     hw_intro: 'Простаивающее железо приносит аренду. На релизе модели оно переходит в продакшен и даёт Мощность.',
