@@ -1827,3 +1827,37 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #tabbar .ti { transition: none; }
 }
+
+/* ============================================================
+   Item 3 — tap-zone order + no-jump reserved combo height (ADDITIVE).
+   New HTML order is hint → orb → #comboWrap → #tapUpgradeBtn. The combo bar
+   used to grow height 0→30 on heat (#comboWrap / #comboWrap.on), which shoved
+   the upgrade button down/up as разгон toggled. The `.combo-reserved` class
+   makes the wrap ALWAYS occupy a fixed slot; only its content fades in/out by
+   heat (.on), so nothing below it ever shifts. Existing #comboWrap selectors
+   are left intact — these compound (#id.class) rules are more specific and win.
+   ============================================================ */
+#comboWrap.combo-reserved {
+  height: 30px;            /* always reserved — no layout shift when разгон toggles */
+  overflow: visible;
+  transition: none;        /* height never animates now; content fades instead */
+  margin-top: 14px;
+}
+#comboWrap.combo-reserved > * {
+  opacity: 0;
+  transition: opacity 0.22s var(--ease);
+}
+#comboWrap.combo-reserved.on > * { opacity: 1; }
+
+/* hint now sits ABOVE the orb (top of the zone): drop its old below-orb top
+   margin so it hugs the zone's top padding cleanly, and give the orb a little
+   breathing room under the hint. */
+#tapZone > #tapHint { margin-top: 0; margin-bottom: 10px; }
+#tapZone > #tapBtn { margin-top: 2px; }
+/* with the combo slot reserved above it, the upgrade button no longer needs its
+   own top margin to clear the orb — keep a tight, stable gap. */
+#tapZone > #tapUpgradeBtn.tap-upgrade { margin-top: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #comboWrap.combo-reserved > * { transition: none; }
+}
