@@ -1861,3 +1861,27 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #comboWrap.combo-reserved > * { transition: none; }
 }
+
+/* ============================================================
+   Item 5 — cutscene text-overlap hardening (ADDITIVE, cutscene-only).
+   Two fixes, neither touches the existing .cs-* selectors:
+   1) On SHORT / landscape frames the lower-third caption (title→body→dots) could
+      crowd the bottom-center NEXT button. Lift the caption higher and tighten the
+      dots gap when the frame is short, so the dot row never kisses the button.
+   2) Belt-and-braces: keep the caption clear of the button via a min bottom offset
+      tied to the button height + safe-area on very short frames.
+   ============================================================ */
+@media (max-height: 620px) {
+  .cutscene .cs-caption { bottom: clamp(104px, 16vh, 130px); }
+  .cutscene .cs-dots { margin-top: 12px; }
+  .cutscene .cs-title { font-size: clamp(20px, 5vw, 34px); }
+  .cutscene .cs-body { margin-top: 9px; font-size: clamp(12px, 2.6vw, 15px); line-height: 1.4; }
+}
+/* landscape phones: the frame is wide but very short — pull the caption up further
+   and shrink the type a touch so title + body + dots stack cleanly above NEXT. */
+@media (max-height: 470px) and (min-aspect-ratio: 1/1) {
+  .cutscene .cs-caption { bottom: 102px; padding: 0 16px; }
+  .cutscene .cs-dots { margin-top: 8px; }
+  .cutscene .cs-title { font-size: clamp(18px, 3.4vw, 26px); letter-spacing: 1px; line-height: 1.05; }
+  .cutscene .cs-body { margin-top: 6px; max-width: 620px; font-size: clamp(11px, 2.2vw, 14px); line-height: 1.35; }
+}

@@ -398,12 +398,11 @@
           // shield (safety) lower-right
           '<path d="M' + SX + ' ' + (SY - 26) + ' l22 8 0 20 q0 17 -22 26 q-22 -9 -22 -26 l0 -20 z"/>' +
         '</g>' +
-        // tiny labels under each orb (decorative, themed — text comes from caption)
-        '<g fill="' + rgba(VIOLET2, 0.55) + '" font-family="Orbitron, monospace" font-weight="700" font-size="17" text-anchor="middle" letter-spacing="1">' +
-          '<text x="' + CX + '" y="' + (CY + 92) + '" fill="' + rgba(GOLD, 0.75) + '">' + lblCoin() + '</text>' +
-          '<text x="' + PX + '" y="' + (PY + 80) + '" fill="' + rgba(VIOLET2, 0.75) + '">' + lblBolt() + '</text>' +
-          '<text x="' + SX + '" y="' + (SY + 80) + '" fill="' + rgba(CYAN2, 0.75) + '">' + lblShield() + '</text>' +
-        '</g>' +
+        // Decorative orb labels REMOVED: the long localized strings (МОЩНОСТЬ /
+        // БЕЗОПАСНОСТЬ) collided with the lower-third caption (title/body) at desktop
+        // sizes and clipped off-screen in portrait. The caption body already names
+        // Power · Price · Safety, so the labels were redundant — dropping them
+        // eliminates the text overlap at every size while keeping the orb glyphs.
         '</g>';
 
       return {
