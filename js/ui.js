@@ -612,10 +612,14 @@
   }
   function syncHardware() {
     var st = s(), tut = G.tutorialStep();
-    // hide the premises card during the forced tutorial so it doesn't distract from
-    // the single onboarding action (buy laptop / buy mini-server) — it returns at free play.
-    setClass($('premCard'), 'hidden', G.tutorialActive());
-    if (!G.tutorialActive()) syncPremiseCard();
+    // Hide the premises card only during the HARD-LOCK onboarding steps (laptop/click/
+    // upgrade/server), where a single action owns the screen. From the soft steps
+    // (release/price) onward it's visible — that's exactly when the player is told to
+    // "buy hardware to accumulate Power", so they see their garage (5 m²) + the
+    // move-up-premises path right where they shop. Returns fully at free play.
+    var premHidden = G.tutorialHardLock();
+    setClass($('premCard'), 'hidden', premHidden);
+    if (!premHidden) syncPremiseCard();
     setText($('upgradesTitle'), t('hw_title') + ' · ' + t('prem_capacity', { used: fmt(G.ownedM2()), cap: fmt(G.capacityM2()) }));
     C.HARDWARE.forEach(function (h) {
       var r = hwRefs[h.id]; if (!r) return;
