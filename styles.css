@@ -1795,3 +1795,25 @@ button:focus:not(:focus-visible) { outline: none; }
   .card .ownedBadge.count-pop { animation: none; }
   #premCard.flash { animation: none; }
 }
+
+/* Item 4 — price-slider thumb sweet-spot polish. While the price sits in the sweet
+   spot (JS adds .sweet to #priceSlider), the thumb gains a soft green glow with a
+   gentle pulse so nailing the price feels satisfying. The pulse only runs while the
+   player holds the sweet spot (a transient state, not an idle loop). Reduced-motion
+   keeps the steady glow but drops the pulse. Additive: new selectors only. */
+#priceSlider.sweet::-webkit-slider-thumb {
+  border-color: var(--green);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(52,211,153,0.18), 0 0 14px 2px rgba(52,211,153,0.6);
+  animation: thumbSweet 1.8s var(--ease) infinite;
+}
+#priceSlider.sweet::-moz-range-thumb {
+  border-color: var(--green);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(52,211,153,0.18), 0 0 14px 2px rgba(52,211,153,0.6);
+}
+@keyframes thumbSweet {
+  0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 3px rgba(52,211,153,0.14), 0 0 10px 1px rgba(52,211,153,0.45); }
+  50%      { box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 5px rgba(52,211,153,0.22), 0 0 18px 3px rgba(52,211,153,0.72); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #priceSlider.sweet::-webkit-slider-thumb { animation: none; }
+}

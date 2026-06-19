@@ -712,6 +712,7 @@
     // a "★ Sweet spot" badge when within ~10% of the sweet spot. Purely cosmetic.
     var inSweet = sweet > 0 && ratio >= 0.9 && ratio <= 1.1;
     var pvEl = $('priceVal'); if (pvEl) setClass(pvEl, 'sweet', inSweet);
+    var slEl = $('priceSlider'); if (slEl) setClass(slEl, 'sweet', inSweet);  // item 4: thumb glow
     var badge = $('sweetBadge');
     if (badge) { setText(badge, t('price_sweet_badge')); setClass(badge, 'on', inSweet); }
   }
