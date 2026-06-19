@@ -163,6 +163,12 @@
     rival_name_openmind: 'OpenMind',
     rival_name_deepcore: 'DeepCore',
     rival_name_nebula: 'Nebula',
+    // market-share RACE feedback (rank-change toasts + rival ticker moves)
+    rank_up: '🏆 You overtook {rival} — now #{rank}!',
+    rank_down: '⚠ {rival} overtook you — you are #{rank}.',
+    rival_move_openmind: '⚡ OpenMind shipped a stronger model — its share is climbing.',
+    rival_move_deepcore: '⚡ DeepCore scaled its datacenter — power surging past rivals.',
+    rival_move_nebula: '⚡ Nebula closed a round to outrun everyone — watch your share.',
 
     // game over
     go_win_title: 'AGI ACHIEVED',
@@ -468,6 +474,12 @@
     rival_name_openmind: 'OpenMind',
     rival_name_deepcore: 'DeepCore',
     rival_name_nebula: 'Nebula',
+    // market-share RACE feedback (rank-change toasts + rival ticker moves)
+    rank_up: '🏆 Ты обогнал {rival} — теперь #{rank} на рынке!',
+    rank_down: '⚠ {rival} обошла тебя — ты #{rank}.',
+    rival_move_openmind: '⚡ OpenMind выпустила модель мощнее — её доля растёт.',
+    rival_move_deepcore: '⚡ DeepCore нарастила дата-центр — мощность рвётся вперёд.',
+    rival_move_nebula: '⚡ Nebula привлекла раунд, чтобы обогнать всех — следи за долей.',
 
     go_win_title: 'AGI ДОСТИГНУТ',
     go_win_flavor: 'Ты выпустил финальную модель первым. Сингулярность достигнута.',

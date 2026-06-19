@@ -190,15 +190,74 @@
     } else setClass(debt, 'hidden', true);
   }
 
+  // ---------------- market-share RACE feedback (item 1+2+3) ----------------
+  // The race is the owner's central mechanic but used to be SILENT. We surface it three ways:
+  //   1) rank-change toasts (overtake = good, overtaken = amber/bad), throttled to real changes;
+  //   2) rival-move announcements interleaved into the satire ticker when a rival crosses a
+  //      power "generation" threshold (scripted growth over game-days);
+  //   3) a one-shot pulse on the player's standings row when the rank flips (reduced-motion safe).
+  var _lastRank = null;             // player's last observed market rank (1-based); null = unseen
+  var _pulseRank = false;           // request a standings-row pulse on next World render
+  var _rivalGen = {};               // rival id -> last announced "generation" (power threshold tier)
+  var _rivalGenInit = false;        // first pass just records the baseline (no spurious announces)
+  var _tickerQ = [];                // pending rival-move ticker lines (interleaved with satire)
+
+  // power -> coarse "generation" tier; a rival crossing into a new tier = a notable jump worth news
+  function genOf(power) { return Math.floor(Math.log2(Math.max(1, power))); }
+
+  function checkRace() {
+    var st = s();
+    // the race only matters once a model has shipped (version >= 1)
+    if (st.version < 1) { _lastRank = null; return; }
+    var rows = G.standings();
+    var rank = 0, idx = 0;
+    for (var i = 0; i < rows.length; i++) if (rows[i].isPlayer) { rank = i + 1; idx = i; break; }
+    if (!rank) return;
+
+    // ----- rival generation jumps -> ticker announcement (item 2) -----
+    for (var j = 0; j < rows.length; j++) {
+      var r = rows[j]; if (r.isPlayer) continue;
+      var g = genOf(r.power);
+      if (_rivalGen[r.id] === undefined) { _rivalGen[r.id] = g; continue; }
+      if (g > _rivalGen[r.id]) {
+        _rivalGen[r.id] = g;
+        if (_rivalGenInit) {           // skip the very first tick (baseline only)
+          var key = 'rival_move_' + r.id;
+          if (_tickerQ.indexOf(key) < 0 && _tickerQ.length < 3) _tickerQ.push(key);
+        }
+      } else if (g < _rivalGen[r.id]) { _rivalGen[r.id] = g; }   // never announce regressions
+    }
+    _rivalGenInit = true;
+
+    // ----- player rank change -> toast (item 1) + row pulse (item 3) -----
+    if (_lastRank === null) { _lastRank = rank; return; }   // baseline, no toast on first sight
+    if (rank < _lastRank) {
+      // moved UP: the rival now directly BELOW the player is the one just overtaken
+      var below = rows[idx + 1];
+      var upName = below && !below.isPlayer ? t('rival_name_' + below.id) : '';
+      toast(t('rank_up', { rival: upName, rank: rank }), 'good');
+      _pulseRank = true;
+    } else if (rank > _lastRank) {
+      // dropped: the rival now directly ABOVE the player is the one who overtook
+      var above = rows[idx - 1];
+      var dnName = above && !above.isPlayer ? t('rival_name_' + above.id) : '';
+      toast(t('rank_down', { rival: dnName, rank: rank }), 'bad');
+      _pulseRank = true;
+    }
+    _lastRank = rank;
+  }
+
   function syncTicker(dt) {
     tickerTimer += dt || 0;
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
     if (!list.length) return;
     var tx = $('tickerText');
     if (tickerTimer > 6 || (tx && tx.textContent === '')) {
-      tickerTimer = 0; tickerIdx = (tickerIdx + 1) % list.length;
+      tickerTimer = 0;
       var ico = $('ticker').querySelector('.tk-ico'); if (ico && !ico.__set) { ico.__set = 1; }
-      setText(tx, list[tickerIdx]);
+      // interleave a pending rival-move line if one is queued, else advance the satire reel
+      if (_tickerQ.length) { setText(tx, t(_tickerQ.shift())); }
+      else { tickerIdx = (tickerIdx + 1) % list.length; setText(tx, list[tickerIdx]); }
     }
   }
 
@@ -607,13 +666,16 @@
       if (r.isPlayer) youRank = i;
       var name = r.isPlayer ? t('standings_you') : t('rival_name_' + r.id);
       var w = Math.max(3, Math.min(100, (r.power / top) * 100));
-      html += '<div class="standrow' + (r.isPlayer ? ' you' : '') + (i === 0 ? ' lead' : '') + '">' +
+      // one-shot pulse on the player's row when their rank just changed (item 3)
+      var pulse = (r.isPlayer && _pulseRank) ? ' rank-flip' : '';
+      html += '<div class="standrow' + (r.isPlayer ? ' you' : '') + (i === 0 ? ' lead' : '') + pulse + '">' +
         '<span class="srank">' + (i + 1) + '</span>' +
         '<span class="sname">' + esc(name) + '</span>' +
         '<span class="sbarwrap"><span class="sbar" style="width:' + w.toFixed(0) + '%"></span></span>' +
         '<span class="sshare">' + fmt(r.power) + '</span></div>';
     });
     setHTML($('standingsRows'), html);
+    _pulseRank = false;   // pulse is one-shot — consumed by this render
     // race status
     var leaderDays = G.agiLeaderDays(), msg, scol;
     if (youRank === 0) { msg = t('race_ahead'); scol = 'var(--green)'; }
@@ -991,6 +1053,7 @@
   var lastFrame = 0;
   function frameUpdate() {
     var now = performance.now(), dt = lastFrame ? (now - lastFrame) / 1000 : 0; lastFrame = now;
+    checkRace();
     update();
     syncTicker(dt);
   }

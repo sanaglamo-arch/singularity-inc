@@ -1577,3 +1577,19 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #tapBtn.idle-breathe { animation: none; }
 }
+
+/* Market-share RACE — one-shot pulse on the player's standings row when their rank
+   flips (item 3). Additive: new selector only, the base .standrow.you is untouched.
+   Reuses the cyan "you" identity. Reduced-motion → no pulse (instant, no flash). */
+.standrow.rank-flip {
+  animation: rankFlip 0.9s var(--ease) 1;
+  border-radius: 8px;
+}
+@keyframes rankFlip {
+  0%   { background: rgba(34,211,238,0.0); box-shadow: none; }
+  25%  { background: rgba(34,211,238,0.18); box-shadow: 0 0 18px -4px var(--glow-cyan); }
+  100% { background: rgba(34,211,238,0.0); box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .standrow.rank-flip { animation: none; }
+}
