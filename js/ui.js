@@ -705,7 +705,17 @@
     setText($('priceVal'), '$' + p.toFixed(2));
     var net = G.revenuePreview(p) - G.costPerSec();
     setText($('pv-share'), pct(G.share(p)) + '%');
-    setText($('pv-users'), fmt(G.usersTarget(p)));
+    // Users tile is a PROJECTION at the selected price — distinct from the model card's
+    // CURRENT users. Show the direction vs current so dragging the slider reads as
+    // "this price grows / shrinks my audience" (the core pricing skill), not a second
+    // confusing headcount. At equilibrium (target ≈ current) it just shows the number.
+    var uTgt = G.usersTarget(p), uCur = st.users, uEl = $('pv-users');
+    if (uEl) {
+      var uRel = uCur > 0 ? uTgt / uCur : 1;
+      if (uRel > 1.05) { uEl.textContent = '↑ ' + fmt(uTgt); uEl.style.color = 'var(--green)'; }
+      else if (uRel < 0.95) { uEl.textContent = '↓ ' + fmt(uTgt); uEl.style.color = 'var(--rose)'; }
+      else { uEl.textContent = fmt(uTgt); uEl.style.color = ''; }
+    }
     var pf = $('pv-profit');
     if (pf) { pf.textContent = (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)); pf.style.color = net >= 0 ? 'var(--green)' : 'var(--rose)'; }
     var sweet = G.sweetSpotPrice(), ratio = sweet > 0 ? p / sweet : 1, arrow, col;
