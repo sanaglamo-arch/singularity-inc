@@ -247,6 +247,81 @@
     _lastRank = rank;
   }
 
+  // ---------------- milestone celebrations ----------------
+  // Frequent, satisfying positive feedback as the player grows. Fires ONCE per
+  // threshold per run (persisted in state.milestones). On a loaded save / huge
+  // offline jump we backfill silently (mark already-passed thresholds crossed
+  // without celebrating) so a reload never dumps a burst of toasts.
+  var MS_CASH = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10];
+  var MS_USERS = [1e3, 1e4, 1e5, 1e6, 1e7, 5e7, 1e8];
+  var MS_SHARE = [0.5, 0.75];
+  // "big" cash/users thresholds get the richer achievement sound + sparkle
+  var MS_BIG_CASH = 1e6, MS_BIG_USERS = 1e6;
+  var _msInit = false;            // first pass after load = silent backfill only
+  var _msQ = [];                  // pending celebrations { msg, big }
+  var _msNextAt = 0;              // performance.now() gate: at most one per ~1.5s
+
+  // reset the in-session milestone tracker (called on new game / reset, since
+  // reset() rebuilds state in-place without a page reload — a fresh run must
+  // celebrate its early milestones rather than backfill them away).
+  function resetMilestones() { _msInit = false; _msQ.length = 0; _msNextAt = 0; }
+
+  function _msKey(kind, v) { return kind + '_' + v; }
+  // record a threshold as crossed (idempotent, persisted)
+  function _msMark(key) { var m = s().milestones || (s().milestones = {}); m[key] = 1; }
+  function _msHas(key) { var m = s().milestones; return !!(m && m[key]); }
+
+  function pumpMilestones() {
+    if (!_msQ.length) return;
+    var now = performance.now();
+    if (now < _msNextAt) return;          // throttle: one celebration per ~1.5s
+    var c = _msQ.shift();
+    toast(c.msg, 'good');
+    var st = s();
+    if (st.sound) { if (c.big) { if (A.achievement) A.achievement(); } else if (A.milestone) A.milestone(); }
+    // tiny sparkle near the top-center stat row (won't clutter the orb/controls)
+    try { if (FX && FX.milestoneBurst) FX.milestoneBurst(window.innerWidth / 2, Math.min(120, window.innerHeight * 0.18)); } catch (e) {}
+    _msNextAt = now + 1500;
+  }
+
+  function checkMilestones() {
+    var st = s();
+    if (!st.milestones) st.milestones = {};
+    // collect every threshold currently satisfied (key -> {msg,big})
+    var crossed = [];
+    var i, v, key;
+    for (i = 0; i < MS_CASH.length; i++) {
+      v = MS_CASH[i]; if (st.cash >= v) { key = _msKey('cash', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_cash', { v: money(v) }), big: v >= MS_BIG_CASH }); }
+    }
+    for (i = 0; i < MS_USERS.length; i++) {
+      v = MS_USERS[i]; if (st.users >= v) { key = _msKey('users', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_users', { v: fmt(v) }), big: v >= MS_BIG_USERS }); }
+    }
+    // market share only meaningful once a model has shipped
+    if (st.version >= 1) {
+      var sh = G.playerShare();
+      for (i = 0; i < MS_SHARE.length; i++) {
+        v = MS_SHARE[i]; if (sh >= v) { key = _msKey('share', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_share', { v: Math.round(v * 100) }), big: true }); }
+      }
+    }
+
+    // FIRST pass after load: silently backfill so a loaded save / offline jump
+    // never replays a burst of toasts. Mark everything crossed, celebrate nothing.
+    if (!_msInit) { _msInit = true; for (i = 0; i < crossed.length; i++) _msMark(crossed[i].key); if (crossed.length) G.save(); return; }
+
+    // don't intrude during the forced tutorial or while a cutscene is playing
+    var busy = G.tutorialActive() || st.over || (window.GAME_CUTSCENE && window.GAME_CUTSCENE.isActive());
+
+    if (crossed.length) {
+      // crossed is already in natural ascending order (arrays ascending; cash→users→share)
+      for (i = 0; i < crossed.length; i++) {
+        _msMark(crossed[i].key);          // mark immediately so it never re-queues
+        if (!busy) _msQ.push({ msg: crossed[i].msg, big: crossed[i].big });
+      }
+      G.save();
+    }
+    if (!busy) pumpMilestones();
+  }
+
   function syncTicker(dt) {
     tickerTimer += dt || 0;
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
@@ -768,7 +843,7 @@
     var mv = $('musicVol'); if (mv) mv.oninput = function () { s().musicVol = mv.value / 100; if (M && M.setVolume) M.setVolume(s().musicVol); syncSettingsState(); G.save(); };
     var save = $('companyNameSave'); if (save) save.onclick = function () { var v = ($('companyNameInput').value || '').trim().slice(0, 24); if (v) s().companyName = v; renderStatic(); if (s().sound) A.buy(); G.save(); };
     var sb = $('saveBtn'); if (sb) sb.onclick = function () { G.save(); toast(t('save_now'), 'good', { routine: true }); };
-    var rb = $('resetBtn'); if (rb) rb.onclick = function () { teachModal({ title: t('reset_progress'), body: t('reset_confirm'), ok: t('confirm_reset'), cancel: t('cancel_x'), onOk: function () { G.reset(); previewPrice = null; renderStatic(); switchTab('company'); } }); };
+    var rb = $('resetBtn'); if (rb) rb.onclick = function () { teachModal({ title: t('reset_progress'), body: t('reset_confirm'), ok: t('confirm_reset'), cancel: t('cancel_x'), onOk: function () { G.reset(); previewPrice = null; resetMilestones(); renderStatic(); switchTab('company'); } }); };
     // mute ad buttons (no SDK on web)
     var ab = $('adBoostBtn'); if (ab) ab.onclick = function () { toast(t('ad_boost'), '', { routine: true }); };
     var ac = $('adCashBtn'); if (ac) ac.onclick = function () { toast(t('ad_cash'), '', { routine: true }); };
@@ -793,7 +868,7 @@
     setText($('goBrag'), t('go_brag'));
     setText($('goNewGame'), t('go_new_game'));
     setClass($('goStats'), 'hidden', true);
-    $('goNewGame').onclick = function () { setClass(go, 'hidden', true); G.reset(); previewPrice = null; renderStatic(); switchTab('company'); };
+    $('goNewGame').onclick = function () { setClass(go, 'hidden', true); G.reset(); previewPrice = null; resetMilestones(); renderStatic(); switchTab('company'); };
     setClass(go, 'hidden', false);
     if (win) {
       if (st.sound) A.singularity();
@@ -1054,6 +1129,7 @@
   function frameUpdate() {
     var now = performance.now(), dt = lastFrame ? (now - lastFrame) / 1000 : 0; lastFrame = now;
     checkRace();
+    checkMilestones();
     update();
     syncTicker(dt);
   }
