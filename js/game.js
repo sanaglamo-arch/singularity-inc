@@ -81,6 +81,7 @@
       // story cutscenes (one-time gates)
       seenIntro: false,             // INTRO cutscene shown (after naming, before tutorial)
       seenFirstModel: false,        // FIRST-MODEL story flourish shown (first v1 release)
+      seenPremiseMove: {},          // PREMISE-MOVE chapters shown: map premiseId -> 1 (once per tier)
       // milestone celebrations: map of crossed threshold keys -> 1 (fire once per run)
       milestones: {}
     };

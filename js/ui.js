@@ -1345,6 +1345,26 @@
     try { syncFtueCoach(); } catch (e) {}
   }
 
+  // STORY: play the premise-move chapter ONCE per destination tier, right after a
+  // successful purchase. Guarded by state.seenPremiseMove (persisted map) so a
+  // returning save never replays — and never double-fires. Never fires during the
+  // forced tutorial hard-lock (premises can't be bought there), game-over, or while
+  // another cutscene is active. update() already ran before this, so the purchase
+  // stands regardless of whether the cutscene plays.
+  function maybePremiseMove(id) {
+    try {
+      var st = s();
+      if (!window.GAME_CUTSCENE) return;
+      if (st.over) return;
+      if (G.tutorialHardLock && G.tutorialHardLock()) return;
+      if (window.GAME_CUTSCENE.isActive()) return;
+      st.seenPremiseMove = st.seenPremiseMove || {};
+      if (st.seenPremiseMove[id]) return;
+      st.seenPremiseMove[id] = 1; G.save();
+      window.GAME_CUTSCENE.premiseMove(id, function () { try { update(); } catch (e) {} });
+    } catch (e) {}
+  }
+
   // ============================== PUBLIC ==============================
   function init(offline) {
     document.documentElement.lang = I.getLang();
@@ -1355,7 +1375,7 @@
     // train button
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialHardLock()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
-    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); } else if (s().sound) A.error(); };
+    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else if (s().sound) A.error(); };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;

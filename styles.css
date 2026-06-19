@@ -1669,6 +1669,34 @@ button:focus:not(:focus-visible) { outline: none; }
   transform: scale(0.74);
 }
 
+/* PREMISE-MOVE chapters — the focal subject (racks / desks / data hall /
+   campus) is built around x=600 but spans wider than the narrow portrait band
+   (~viewBox x430..770). Scale the whole focal group toward center so the
+   flanking elements stay on-screen and the composition reads as well as on
+   desktop. view-box origin keeps "600px Npx" meaning viewBox coords. The
+   secondary atmospheric groups (basement window, office windows, bizpark
+   ceiling) are pushed off to the sides in landscape; nudge them inward too. */
+.cutscene.cs-portrait .cs-g-prem,
+.cutscene.cs-portrait .cs-g-bsmwin,
+.cutscene.cs-portrait .cs-g-offwin,
+.cutscene.cs-portrait .cs-g-bizceil { transform-box: view-box; }
+.cutscene.cs-portrait .cs-g-prem {
+  transform-origin: 600px 430px;
+  transform: scale(0.66);
+}
+.cutscene.cs-portrait .cs-g-bsmwin {
+  transform-origin: center;
+  transform: translate(360px, 26px) scale(0.92);
+}
+.cutscene.cs-portrait .cs-g-offwin {
+  transform-origin: 600px 285px;
+  transform: scale(0.72);
+}
+.cutscene.cs-portrait .cs-g-bizceil {
+  transform-origin: 600px 250px;
+  transform: scale(0.66);
+}
+
 /* ============================================================
    ADDITIVE POLISH (v2 juice pass) — new selectors only.
    Item 1: sweet-spot price feedback. Rewards nailing the core
