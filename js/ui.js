@@ -1026,6 +1026,11 @@
           s().ftue.start = 1;
           teachModal({ icon: ic('ic_insight'), title: t('ftue_start_title'), body: t('ftue_start_body') });
         }
+        // one-time: explain WHAT a click represents (you, by hand, earning the first $)
+        if (!s().ftue.clickwhy) {
+          s().ftue.clickwhy = 1;
+          teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
+        }
       }
       if (!step) {                       // onboarding complete -> unlock everything
         clearTutorialChrome();
