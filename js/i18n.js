@@ -146,6 +146,12 @@
     prem_name_bizpark: 'Business Park',
     prem_name_megacampus: 'Mega Campus',
 
+    // facility diorama (visual premises view)
+    facility_used_cap: '{used}/{cap} m² used',
+    facility_committed: 'powering your model',
+    facility_idle: 'for rent',
+    facility_more: '+{n} more',
+
     // model / training / release
     model_title: 'Model',
     model_dev: 'In development → {label}',
@@ -543,6 +549,12 @@
     prem_name_office: 'Малый офис',
     prem_name_bizpark: 'Бизнес-парк',
     prem_name_megacampus: 'Мега-кампус',
+
+    // facility diorama (visual premises view)
+    facility_used_cap: 'занято {used}/{cap} м²',
+    facility_committed: 'питает модель',
+    facility_idle: 'в аренде',
+    facility_more: 'ещё +{n}',
 
     model_title: 'Модель',
     model_dev: 'В разработке → {label}',

@@ -1400,8 +1400,20 @@
 
   // ============================== REFRESH ==============================
   function rebuildActive() { if (currentTab === 'research') buildModelTab(); else if (currentTab === 'world') buildWorldTab(); else if (currentTab === 'upgrades') { buildHardware(); syncHardware(); } }
+  // VISUAL FACILITY VIEW — render the premises diorama at the top of the Company
+  // screen. The module caches a signature and only rebuilds when the relevant
+  // counts / premise / version / language change, so calling it each frame is cheap.
+  function syncFacility() {
+    try {
+      if (currentTab !== 'company') return;
+      if (!window.GAME_FACILITY) return;
+      var host = $('facilityHero');
+      if (host) window.GAME_FACILITY.render(host);
+    } catch (e) {}
+  }
   function update() {
     syncHud();
+    syncFacility();
     if (currentTab === 'company') syncLab();
     else if (currentTab === 'upgrades') syncHardware();
     else if (currentTab === 'research') syncModelTab();

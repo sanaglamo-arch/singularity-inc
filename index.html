@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06060f">
 <title>Singularity Inc.</title>
-<link rel="stylesheet" href="fonts.css?v=46">
-<link rel="stylesheet" href="styles.css?v=46">
+<link rel="stylesheet" href="fonts.css?v=47">
+<link rel="stylesheet" href="styles.css?v=47">
 </head>
 <body>
 <div id="app">
@@ -56,6 +56,11 @@
   <!-- Content tabs -->
   <main id="content">
     <section class="tab active" data-tab="company">
+      <!-- VISUAL FACILITY VIEW: a living diorama of the player's premises with
+           their hardware rendered inside as glowing/idle racks. Mounted as a
+           premium hero at the TOP of the Company screen. Art is pointer-events:none
+           so it never steals input from the orb/controls. -->
+      <div id="facilityHero" class="facility-hero" aria-hidden="true"></div>
       <div id="tapZone">
         <div id="tapHint"></div>
         <button id="tapBtn" aria-label="train">
@@ -348,18 +353,19 @@
   <div class="splash-bar"><div></div></div>
 </div>
 
-<script src="js/config.js?v=46"></script>
-<script src="js/format.js?v=46"></script>
-<script src="js/i18n.js?v=46"></script>
-<script src="js/sdk.js?v=46"></script>
-<script src="js/ads.js?v=46"></script>
-<script src="js/game.js?v=46"></script>
-<script src="js/audio.js?v=46"></script>
-<script src="js/fx.js?v=46"></script>
-<script src="js/cutscene.js?v=46"></script>
-<script src="js/icons.js?v=46"></script>
-<script src="js/music.js?v=46"></script>
-<script src="js/ui.js?v=46"></script>
-<script src="js/main.js?v=46"></script>
+<script src="js/config.js?v=47"></script>
+<script src="js/format.js?v=47"></script>
+<script src="js/i18n.js?v=47"></script>
+<script src="js/sdk.js?v=47"></script>
+<script src="js/ads.js?v=47"></script>
+<script src="js/game.js?v=47"></script>
+<script src="js/audio.js?v=47"></script>
+<script src="js/fx.js?v=47"></script>
+<script src="js/cutscene.js?v=47"></script>
+<script src="js/icons.js?v=47"></script>
+<script src="js/music.js?v=47"></script>
+<script src="js/facility.js?v=47"></script>
+<script src="js/ui.js?v=47"></script>
+<script src="js/main.js?v=47"></script>
 </body>
 </html>
