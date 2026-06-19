@@ -465,16 +465,11 @@
     var rows = G.standings(), rank = 0; for (var i = 0; i < rows.length; i++) if (rows[i].isPlayer) { rank = i + 1; break; }
     setText($('sm-rank'), '#' + rank + ' / ' + rows.length);
     // three risk meters (reuse rel-row strip styling)
-    var meters = [[t('meter_safety'), st.safety, '◆'], [t('meter_approval'), st.approval, '●'], [t('meter_legality'), st.legality, '▲']];
-    var mh = '';
-    meters.forEach(function (m) {
-      var v = Math.round(m[1]), col = meterColor(v);
-      mh += '<div class="rel-row" style="cursor:default"><span class="rel-ic">' + m[2] + '</span>' +
-        '<span class="rel-name">' + esc(m[0]) + '</span>' +
-        '<span class="rel-bar"><span class="rel-fill" style="width:' + v + '%;background:' + col + '"></span></span>' +
-        '<span class="rel-val" style="color:' + col + '">' + v + '%</span></div>';
-    });
-    setHTML($('labSummaryMeters'), mh);
+    syncMeterStrip('labSummaryMeters', [
+      ['◆', t('meter_safety'), Math.round(st.safety) + '%', Math.round(st.safety), meterColor(Math.round(st.safety))],
+      ['●', t('meter_approval'), Math.round(st.approval) + '%', Math.round(st.approval), meterColor(Math.round(st.approval))],
+      ['▲', t('meter_legality'), Math.round(st.legality) + '%', Math.round(st.legality), meterColor(Math.round(st.legality))]
+    ]);
   }
   function sumTile(valId, lblId) {
     return '<div class="res"><span class="rlabel" id="' + lblId + '"></span><span class="rval" id="' + valId + '"></span></div>';
@@ -489,21 +484,14 @@
     setText($('premCardTitle'), t('prem_card_title'));
     setText($('premCardName'), t('prem_name_' + st.premise));
     var used = G.ownedM2(), cap = G.capacityM2(), full = cap > 0 ? Math.min(100, used / cap * 100) : 0;
-    setHTML($('premCardSpace'),
-      '<div class="rel-row" style="cursor:default"><span class="rel-ic">▦</span>' +
-      '<span class="rel-name">' + esc(t('prem_space_label')) + '</span>' +
-      '<span class="rel-bar"><span class="rel-fill" style="width:' + full.toFixed(1) + '%;background:var(--cyan)"></span></span>' +
-      '<span class="rel-val" style="color:var(--cyan)">' + fmt(used) + '/' + fmt(cap) + '</span></div>');
+    syncMeterStrip('premCardSpace', [
+      ['▦', t('prem_space_label'), fmt(used) + '/' + fmt(cap), +full.toFixed(1), 'var(--cyan)']
+    ]);
     // legality + safety meters
-    var meters = [[t('meter_legality'), st.legality, '▲'], [t('meter_safety'), st.safety, '◆']], mh = '';
-    meters.forEach(function (m) {
-      var v = Math.round(m[1]), col = meterColor(v);
-      mh += '<div class="rel-row" style="cursor:default"><span class="rel-ic">' + m[2] + '</span>' +
-        '<span class="rel-name">' + esc(m[0]) + '</span>' +
-        '<span class="rel-bar"><span class="rel-fill" style="width:' + v + '%;background:' + col + '"></span></span>' +
-        '<span class="rel-val" style="color:' + col + '">' + v + '%</span></div>';
-    });
-    setHTML($('premCardMeters'), mh);
+    syncMeterStrip('premCardMeters', [
+      ['▲', t('meter_legality'), Math.round(st.legality) + '%', Math.round(st.legality), meterColor(Math.round(st.legality))],
+      ['◆', t('meter_safety'), Math.round(st.safety) + '%', Math.round(st.safety), meterColor(Math.round(st.safety))]
+    ]);
     var np = G.nextPremise(), btn = $('premBuyBtn'), hint = $('premCardHint');
     if (np) {
       var add = np.m2 - cap;
@@ -733,23 +721,73 @@
     syncWorldTab();
   }
   function meterColor(v) { return v < 30 ? 'var(--rose)' : (v < 60 ? 'var(--gold)' : 'var(--green)'); }
+
+  // Persistent rel-row meter strip. Builds the rows ONCE per container (keyed on the
+  // row signature), then only updates fill width / value text / color on the existing
+  // nodes — so the CSS `.rel-fill { transition: width }` actually EASES between values
+  // instead of being thrown away and re-created at the target width on every change.
+  // meters: array of [icon, name, valueText, fillPct(0..100), color]
+  function syncMeterStrip(id, meters) {
+    var box = $(id); if (!box) return;
+    var sig = id + '|' + meters.map(function (m) { return m[0] + m[1]; }).join('~');
+    if (box.__msig !== sig) {
+      box.__msig = sig;
+      var html = '';
+      for (var i = 0; i < meters.length; i++) {
+        html += '<div class="rel-row" style="cursor:default"><span class="rel-ic">' + meters[i][0] + '</span>' +
+          '<span class="rel-name">' + esc(meters[i][1]) + '</span>' +
+          '<span class="rel-bar"><span class="rel-fill"></span></span>' +
+          '<span class="rel-val"></span></div>';
+      }
+      box.innerHTML = html;
+      box.__rows = box.querySelectorAll('.rel-row');
+    }
+    var rows = box.__rows;
+    for (var j = 0; j < meters.length && j < rows.length; j++) {
+      var m = meters[j], f = rows[j].querySelector('.rel-fill'), v = rows[j].querySelector('.rel-val');
+      setStyleP(f, 'width', m[3] + '%');
+      setStyleP(f, 'background', m[4]);
+      setText(v, m[2]);
+      setStyleP(v, 'color', m[4]);
+    }
+  }
   function syncWorldTab() {
     var st = s();
-    // standings rows (.standrow)
-    var rows = G.standings(), top = Math.max(1e-9, rows[0].power), html = '', youRank = 0;
+    // standings rows (.standrow). Persistent rows keyed by rival id, positioned by
+    // CSS `order` = current rank, so the .sbar width EASES (transition: width) between
+    // frames instead of being thrown away and re-created at the target width.
+    var rows = G.standings(), top = Math.max(1e-9, rows[0].power), youRank = 0;
+    var box = $('standingsRows');
+    if (box && !box.__rowmap) {
+      box.__rowmap = {};
+      var sig = rows.map(function (r) { return r.id; }).sort().join(',');
+      var html = '';
+      for (var k = 0; k < rows.length; k++) {
+        html += '<div class="standrow" data-rid="' + rows[k].id + '">' +
+          '<span class="srank"></span><span class="sname"></span>' +
+          '<span class="sbarwrap"><span class="sbar"></span></span>' +
+          '<span class="sshare"></span></div>';
+      }
+      box.innerHTML = html;
+      var nodes = box.querySelectorAll('.standrow');
+      for (var n = 0; n < nodes.length; n++) box.__rowmap[nodes[n].getAttribute('data-rid')] = nodes[n];
+    }
     rows.forEach(function (r, i) {
       if (r.isPlayer) youRank = i;
       var name = r.isPlayer ? t('standings_you') : t('rival_name_' + r.id);
       var w = Math.max(3, Math.min(100, (r.power / top) * 100));
+      var row = box && box.__rowmap ? box.__rowmap[r.id] : null;
+      if (!row) return;
+      setStyleP(row, 'order', i);
+      setClass(row, 'you', r.isPlayer);
+      setClass(row, 'lead', i === 0);
+      setText(row.querySelector('.srank'), '' + (i + 1));
+      setText(row.querySelector('.sname'), name);
+      setStyleP(row.querySelector('.sbar'), 'width', w.toFixed(0) + '%');
+      setText(row.querySelector('.sshare'), fmt(r.power));
       // one-shot pulse on the player's row when their rank just changed (item 3)
-      var pulse = (r.isPlayer && _pulseRank) ? ' rank-flip' : '';
-      html += '<div class="standrow' + (r.isPlayer ? ' you' : '') + (i === 0 ? ' lead' : '') + pulse + '">' +
-        '<span class="srank">' + (i + 1) + '</span>' +
-        '<span class="sname">' + esc(name) + '</span>' +
-        '<span class="sbarwrap"><span class="sbar" style="width:' + w.toFixed(0) + '%"></span></span>' +
-        '<span class="sshare">' + fmt(r.power) + '</span></div>';
+      if (r.isPlayer && _pulseRank) { row.classList.remove('rank-flip'); void row.offsetWidth; row.classList.add('rank-flip'); }
     });
-    setHTML($('standingsRows'), html);
     _pulseRank = false;   // pulse is one-shot — consumed by this render
     // race status
     var leaderDays = G.agiLeaderDays(), msg, scol;
@@ -760,17 +798,11 @@
       (isFinite(leaderDays) ? ' <span class="muted small">· AGI ≈ ' + FMT.fmtTime(leaderDays * C.DAY_SEC) + '</span>' : ''));
     setText($('standingsStatus'), youRank === 0 ? t('standings_status_lead') : (youRank === rows.length - 1 ? t('standings_status_behind') : t('standings_status_close')));
     // 3 risk meters (rel-row strip)
-    var meters = [['safety', t('meter_safety'), st.safety, '◆'], ['approval', t('meter_approval'), st.approval, '●'], ['legality', t('meter_legality'), st.legality, '▲']];
-    var mh = '';
-    meters.forEach(function (m) {
-      var v = Math.round(m[2]);
-      mh += '<div class="rel-row" style="cursor:default">' +
-        '<span class="rel-ic">' + m[3] + '</span>' +
-        '<span class="rel-name">' + esc(m[1]) + '</span>' +
-        '<span class="rel-bar"><span class="rel-fill" style="width:' + v + '%;background:' + meterColor(v) + '"></span></span>' +
-        '<span class="rel-val" style="color:' + meterColor(v) + '">' + v + '%</span></div>';
-    });
-    setHTML($('relMeters'), mh);
+    syncMeterStrip('relMeters', [
+      ['◆', t('meter_safety'), Math.round(st.safety) + '%', Math.round(st.safety), meterColor(Math.round(st.safety))],
+      ['●', t('meter_approval'), Math.round(st.approval) + '%', Math.round(st.approval), meterColor(Math.round(st.approval))],
+      ['▲', t('meter_legality'), Math.round(st.legality) + '%', Math.round(st.legality), meterColor(Math.round(st.legality))]
+    ]);
     // staff rows
     C.STAFF.forEach(function (st2) {
       var d = document.getElementById('staffdesc-' + st2.id); if (!d) return;

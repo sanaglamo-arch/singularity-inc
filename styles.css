@@ -1735,3 +1735,17 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .standrow.rank-flip { animation: none; }
 }
+
+/* ============================================================
+   v2 TASTEFUL MOTION — additive only. New selectors / keyframes; existing
+   rules untouched. Each block respects prefers-reduced-motion.
+   ============================================================ */
+
+/* Item 1 — smooth-fill bars. The rel-fill / standings .sbar transitions already
+   existed but never fired because the rows were re-created via innerHTML on every
+   change (a fresh node renders at its target width with nothing to ease from). The
+   JS now updates persistent nodes, so those `transition: width` rules finally ease.
+   Under reduced-motion we snap instead. */
+@media (prefers-reduced-motion: reduce) {
+  .rel-fill, .standrow .sbar { transition: none !important; }
+}
