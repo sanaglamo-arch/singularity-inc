@@ -47,7 +47,7 @@
   // ---- premises: give m² capacity (cap on hardware), upkeep, legality/safety ----
   //  {cost, m2, upkeep (/s), legality 0..1, safety 0..1}
   var PREMISES = [
-    { id: 'garage',    cost: 0,        m2: 4,       upkeep: 0,     legality: 0.85, safety: 0.80 },
+    { id: 'garage',    cost: 0,        m2: 5,       upkeep: 0,     legality: 0.85, safety: 0.80 },
     { id: 'basement',  cost: 1200,     m2: 30,      upkeep: 0.05,  legality: 0.60, safety: 0.55 },
     { id: 'office',    cost: 18000,    m2: 200,     upkeep: 0.8,   legality: 0.85, safety: 0.82 },
     { id: 'bizpark',   cost: 250000,   m2: 1800,    upkeep: 9,     legality: 0.98, safety: 0.95 },
