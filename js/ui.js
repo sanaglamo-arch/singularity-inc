@@ -600,6 +600,9 @@
           '<div class="name">' + esc(t('hw_name_' + h.id)) + '</div>' +
           '<div class="desc"></div>' +
           '<div class="each"></div>' +
+          // committed-to-model pill: makes "this gear is still here, now running
+          // your AI" unmistakable (additive — does not replace the .each line)
+          '<div class="hwCommit hidden"><span class="hwCommit-dot"></span><span class="hwCommit-txt"></span></div>' +
         '</div>' +
         '<div class="right">' +
           '<div class="cost">0</div>' +
@@ -617,7 +620,7 @@
         } else if (s().sound) A.error();
       });
       pane.appendChild(card);
-      hwRefs[h.id] = { el: card, cost: card.querySelector('.cost'), desc: card.querySelector('.desc'), each: card.querySelector('.each'), buylabel: card.querySelector('.buylabel'), badge: card.querySelector('.ownedBadge') };
+      hwRefs[h.id] = { el: card, cost: card.querySelector('.cost'), desc: card.querySelector('.desc'), each: card.querySelector('.each'), buylabel: card.querySelector('.buylabel'), badge: card.querySelector('.ownedBadge'), commit: card.querySelector('.hwCommit'), commitTxt: card.querySelector('.hwCommit-txt') };
     });
   }
   function syncHardware() {
@@ -643,6 +646,12 @@
       if (idle > 0) ownTxt.push(t('hw_owned', { n: idle }));
       if (comm > 0) ownTxt.push(t('hw_committed', { n: comm }));
       setText(r.each, ownTxt.join(' · '));
+      // committed pill: unmistakable "still here, now powering your model ×N"
+      if (r.commit) {
+        setClass(r.commit, 'hidden', comm <= 0);
+        setClass(r.el, 'committed', comm > 0);
+        if (comm > 0 && r.commitTxt) setText(r.commitTxt, t('hw_powering', { n: comm }));
+      }
       setText(r.cost, !space ? t('hw_no_space') : ('$' + fmt(h.cost)));
       setClass(r.cost, 'cant', !can);
       setText(r.buylabel, t('hw_buy'));

@@ -2040,3 +2040,47 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #cashBox.ftue-goal-glow #cashVal { animation: none; filter: drop-shadow(0 0 8px rgba(251,191,36,0.7)); }
 }
+
+/* ============================================================
+   ADDITIVE: committed-hardware "powering your model" state.
+   The card never vanishes after the training cutscene — on
+   release, idle gear commits to the model. This makes that
+   unmistakable: a glowing green pill ("⚡ powering your model
+   ×N") with a live pulsing dot, plus a green edge accent and a
+   soft glow on the whole card so it reads as "still here, now
+   running your AI". New selectors only — nothing above is touched.
+   ============================================================ */
+.card .hwCommit {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 3px 10px 3px 8px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(52,211,153,0.20), rgba(52,211,153,0.10));
+  border: 1px solid rgba(52,211,153,0.55);
+  color: var(--green);
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.2px; line-height: 1.1;
+  box-shadow: 0 0 0 1px rgba(52,211,153,0.12), 0 4px 14px -6px rgba(52,211,153,0.55);
+  max-width: 100%;
+}
+.card .hwCommit.hidden { display: none; }
+.card .hwCommit { white-space: normal; }
+.card .hwCommit-txt { overflow-wrap: anywhere; }
+.card .hwCommit-dot {
+  flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 7px 1px rgba(52,211,153,0.9);
+}
+.card .hwCommit-dot { animation: hwCommitPulse 1.8s ease-in-out infinite; }
+/* committed card gets a green edge + halo so it stands out from idle gear */
+.card.committed {
+  border-color: rgba(52,211,153,0.5);
+  box-shadow: var(--shadow-1), var(--inset-hi), 0 0 0 1px rgba(52,211,153,0.22), 0 8px 30px -12px rgba(52,211,153,0.5);
+}
+.card.committed[data-cls="low"],
+.card.committed[data-cls="mid"],
+.card.committed[data-cls="high"] { border-left-color: var(--green); }
+@keyframes hwCommitPulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card .hwCommit-dot { animation: none; opacity: 1; }
+}
