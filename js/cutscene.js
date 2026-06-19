@@ -36,6 +36,17 @@
 
   var active = null;   // the live cutscene controller (so we never stack two)
 
+  // Portrait detection: the art viewBox is landscape (1200x750) sliced to cover,
+  // so on a tall portrait frame only a narrow central band (~x430..770) is
+  // visible. We tag the overlay so per-scene CSS can lift focal content (window,
+  // founder, orb labels) back into that safe band. Recomputed on resize/rotate.
+  function isPortrait() {
+    try {
+      if (window.matchMedia) return window.matchMedia('(max-aspect-ratio: 5/6)').matches;
+    } catch (e) {}
+    return (window.innerHeight || 0) > (window.innerWidth || 0) * 1.2;
+  }
+
   // ============================ SVG PRIMITIVES ============================
   function svg(layer, inner) {
     // a full-bleed layer svg; slice so it always covers the frame
@@ -99,8 +110,10 @@
           '<stop offset="0" stop-color="' + rgba(GOLD, 0.18) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
         '</defs>' +
         '<rect width="1200" height="750" fill="url(#gWall)"/>' +
-        // back-wall window, upper-left (far depth) — moon, stars, distant skyline
-        '<g opacity="0.95">' +
+        // back-wall window (far depth) — moon, stars, distant skyline. In portrait
+        // the whole window group is shifted toward center via CSS (cs-g-window) so
+        // the moon + skyline stay inside the narrow visible band.
+        '<g class="cs-g-window" opacity="0.95">' +
           '<rect x="150" y="86" width="330" height="250" rx="6" fill="url(#gWin)"/>' +
           cityline(150, 336, 330, rng(7), rgba(CYAN2, 0.4)) +
           starfield(31, 34, 158, 96, 314, 130, rgba(WHITE, 1)) +
@@ -126,7 +139,7 @@
         // hanging cable + dim bulb upper area
         line(720, 30, 720, 110, rgba(VIOLET2, 0.22), 2) +
         '<circle cx="720" cy="118" r="6" fill="#1c1932"/>' +
-        '<g transform="translate(0,40)">' +
+        '<g transform="translate(0,40)"><g class="cs-g-deskfocal">' +
         // the workbench: a long desk across the lower third
         '<g>' +
           '<rect x="250" y="556" width="700" height="20" rx="4" fill="#1b1633"/>' +
@@ -146,7 +159,7 @@
           '<path d="M398 420 l40 8 -16 34 z" fill="#241934"/>' +
           '<circle cx="418" cy="448" r="6" fill="' + rgba(GOLD, 0.95) + '" filter="url(#gLamp)"/>' +
         '</g>' +
-        '</g>';
+        '</g></g>';
 
       var fg =
         '<defs>' + glowFilter('gScr', 9) +
@@ -155,7 +168,7 @@
           '<radialGradient id="gScrGlow" cx="0.5" cy="0.5" r="0.5">' +
             '<stop offset="0" stop-color="' + rgba(CYAN, 0.6) + '"/><stop offset="1" stop-color="' + rgba(CYAN, 0) + '"/></radialGradient>' +
         '</defs>' +
-        '<g transform="translate(0,40)">' +
+        '<g transform="translate(0,40)"><g class="cs-g-founder">' +
         // glow pool from the screen, washing the desk + the founder
         '<ellipse cx="640" cy="556" rx="270" ry="88" fill="url(#gScrGlow)"/>' +
         // the open laptop (slightly right of the founder, on the desk)
@@ -192,7 +205,7 @@
           '<path d="M572 432 q14 8 14 24" stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="3"/>' +
           '<path d="M600 540 q22 8 38 22" stroke="' + rgba(CYAN2, 0.45) + '" stroke-width="3"/>' +
         '</g>' +
-        '</g>';
+        '</g></g>';
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -361,6 +374,7 @@
       var PX = 466, PY = 398, CX = 600, CY = 190, SX = 734, SY = 398;
       var mid =
         '<defs>' + glowFilter('gP', 12) + glowFilter('gC', 12) + glowFilter('gS', 12) + '</defs>' +
+        '<g class="cs-g-stk">' +
         // connecting triangle beams (the three are linked decisions)
         '<g stroke-linecap="round">' +
           line(CX, CY, PX, PY, rgba(WHITE, 0.12), 2) +
@@ -369,9 +383,11 @@
         '</g>' +
         orb(CX, CY, 66, GOLD, 0.55, 'gC') +
         orb(PX, PY, 54, VIOLET, 0.7, 'gP') +
-        orb(SX, SY, 54, CYAN, 0.82, 'gS');
+        orb(SX, SY, 54, CYAN, 0.82, 'gS') +
+        '</g>';
 
       var fg =
+        '<g class="cs-g-stk">' +
         // glyphs inside each orb (coin / bolt / shield)
         '<g fill="none" stroke="' + rgba(INK, 0.62) + '" stroke-width="4" stroke-linecap="round">' +
           // coin (price) at top
@@ -387,6 +403,7 @@
           '<text x="' + CX + '" y="' + (CY + 92) + '" fill="' + rgba(GOLD, 0.75) + '">' + lblCoin() + '</text>' +
           '<text x="' + PX + '" y="' + (PY + 80) + '" fill="' + rgba(VIOLET2, 0.75) + '">' + lblBolt() + '</text>' +
           '<text x="' + SX + '" y="' + (SY + 80) + '" fill="' + rgba(CYAN2, 0.75) + '">' + lblShield() + '</text>' +
+        '</g>' +
         '</g>';
 
       return {
@@ -562,7 +579,7 @@
     var CEILING_MS = (BEAT_MS * beats.length) + 6000;
 
     var ov = document.createElement('div');
-    ov.className = 'cutscene cs-' + kind + (reduce ? ' cs-reduce' : '');
+    ov.className = 'cutscene cs-' + kind + (reduce ? ' cs-reduce' : '') + (isPortrait() ? ' cs-portrait' : '');
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
     ov.innerHTML =
@@ -646,6 +663,7 @@
     function arm() { if (timer) clearTimeout(timer); timer = setTimeout(advance, BEAT_MS); }
     function end(silent) {
       if (ended) return; ended = true;
+      try { window.removeEventListener('resize', onResize); } catch (e) {}
       if (timer) clearTimeout(timer);
       if (ceiling) clearTimeout(ceiling);
       ov.classList.add('out');
@@ -656,6 +674,10 @@
         if (!silent && opts.onDone) { try { opts.onDone(); } catch (e) {} }
       }, 420);
     }
+
+    // keep the portrait tag current across rotation / resize
+    function onResize() { if (ov && ov.classList) ov.classList.toggle('cs-portrait', isPortrait()); }
+    window.addEventListener('resize', onResize);
 
     nextBtn.addEventListener('click', function (e) { e.stopPropagation(); advance(); });
     skipBtn.addEventListener('click', function (e) { e.stopPropagation(); end(false); });

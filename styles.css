@@ -1625,6 +1625,51 @@ button:focus:not(:focus-visible) { outline: none; }
 .cutscene.cs-reduce .cs-particles { display: none; }
 
 /* ============================================================
+   PORTRAIT RECOMPOSITION (additive — cutscene-only).
+   The scene art viewBox is landscape (1200x750) sliced to COVER the frame,
+   so on a tall portrait phone only a narrow central band (~viewBox x430..770)
+   is visible and the sides are cropped away. Landscape-tuned focal elements
+   (garage window/moon, the seated founder, the stakes orb labels) fall outside
+   that band and read as "dark emptiness" / clipped text.
+
+   The engine tags the overlay `.cs-portrait` when the frame is portrait. Below
+   we lift each scene's focal group back into the visible band and enlarge it so
+   the beat reads as well as it does on desktop. SVG groups are tagged with
+   cs-g-* classes in cutscene.js; transforms use fill-box so the origin is the
+   group's own bbox. Transform/opacity only. Nothing here affects desktop.
+   ============================================================ */
+/* Use the SVG user (view-box) coordinate system for these transforms so a
+   transform-origin like "600px 300px" means viewBox (600,300) consistently
+   across layers — NOT each group's own bbox. (view-box is the SVG default.) */
+.cutscene.cs-portrait .cs-g-window,
+.cutscene.cs-portrait .cs-g-deskfocal,
+.cutscene.cs-portrait .cs-g-founder,
+.cutscene.cs-portrait .cs-g-stk { transform-box: view-box; }
+
+/* GARAGE — pull the window+moon in from the upper-left into the safe band and
+   nudge it down a touch; lift + enlarge the founder/desk so the lit laptop and
+   the seated figure dominate the frame instead of hiding behind the caption. */
+.cutscene.cs-portrait .cs-g-window {
+  transform-origin: center;
+  transform: translate(150px, 40px) scale(1.04);
+}
+.cutscene.cs-portrait .cs-g-deskfocal {
+  transform-origin: 600px 560px;
+  transform: translate(26px, -96px) scale(1.08);
+}
+.cutscene.cs-portrait .cs-g-founder {
+  transform-origin: 600px 560px;
+  transform: translate(26px, -96px) scale(1.08);
+}
+
+/* STAKES — pull the three orb clusters + labels inward so the side orbs and
+   their long labels (МОЩНОСТЬ / БЕЗОПАСНОСТЬ) sit fully inside the band. */
+.cutscene.cs-portrait .cs-g-stk {
+  transform-origin: 600px 300px;
+  transform: scale(0.74);
+}
+
+/* ============================================================
    ADDITIVE POLISH (v2 juice pass) — new selectors only.
    Item 1: sweet-spot price feedback. Rewards nailing the core
    pricing decision: a soft GREEN glow stacks on the gold value
