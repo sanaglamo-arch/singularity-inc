@@ -44,7 +44,7 @@
     tap_up_max: 'Click maxed · ${cur}',
 
     // forced tutorial ("hands-on onboarding")
-    tut_buy_laptop: 'Open Hardware and buy the old laptop — it turns on clicking.',
+    tut_buy_laptop: 'You start in an old garage (~5 m²). Open Hardware and buy the old laptop — it turns on clicking.',
     tut_click: 'Click the orb to earn money.',
     tut_upgrade: 'Now upgrade your click (button below the orb) to earn faster.',
     tut_miniserver: 'Open Hardware and buy a mini-server — it rents out for passive income.',
@@ -80,6 +80,10 @@
     // premises
     prem_title: 'Premises',
     prem_intro: 'Premises give m² — the cap on how much hardware fits.',
+    prem_card_title: 'Premises · your space',
+    prem_space_label: 'Space (m²)',
+    prem_card_hint: 'More m² → more servers fit. Next premises adds +{add} m².',
+    prem_card_hint_max: 'Top-tier premises — maximum space.',
     prem_current: 'Current: {name}',
     prem_capacity: 'Space: {used} / {cap} m²',
     prem_upkeep: 'Upkeep ${v}/s',
@@ -251,6 +255,8 @@
 
     // ---- FTUE teach-on-first popups (one-time, dismissable) ----
     ftue_got_it: 'Got it',
+    ftue_start_title: 'You start with a garage and an old laptop',
+    ftue_start_body: 'You got an old garage (~5 m²) and an old laptop. Space is tight! Later, buy bigger premises — more m² means more hardware (servers) fit. The Premises card sits at the top of the Hardware tab.',
     ftue_rent_title: 'Passive income unlocked',
     ftue_rent_body: 'Idle hardware rents out to other companies — that\'s passive income, ticking in even while you\'re away. When you release a model, this hardware switches from renting to powering your model instead.',
     ftue_release_title: 'First model released — set your price',
@@ -332,7 +338,7 @@
     tap_up_max: 'Клик прокачан · ${cur}',
 
     // потное обучение (forced tutorial)
-    tut_buy_laptop: 'Открой «Железо» и купи старый ноут — он включит клик.',
+    tut_buy_laptop: 'Ты начинаешь в старом гараже (~5 м²). Открой «Железо» и купи старый ноут — он включит клик.',
     tut_click: 'Кликай по сфере, чтобы зарабатывать.',
     tut_upgrade: 'Теперь улучши клик (кнопка под сферой) — заработок быстрее.',
     tut_miniserver: 'Открой «Железо» и купи мини-сервер — он сдаётся в аренду (пассивный доход).',
@@ -366,6 +372,10 @@
 
     prem_title: 'Помещения',
     prem_intro: 'Помещения дают м² — потолок того, сколько железа влезет.',
+    prem_card_title: 'Помещение · твоё место',
+    prem_space_label: 'Место (м²)',
+    prem_card_hint: 'Больше м² → больше серверов влезает. Следующее помещение даёт +{add} м².',
+    prem_card_hint_max: 'Топовое помещение — места максимум.',
     prem_current: 'Сейчас: {name}',
     prem_capacity: 'Место: {used} / {cap} м²',
     prem_upkeep: 'Обслуживание ${v}/с',
@@ -529,6 +539,8 @@
 
     // ---- FTUE обучающие попапы (одноразовые) ----
     ftue_got_it: 'Понятно',
+    ftue_start_title: 'Ты начинаешь со старого гаража и старого ноута',
+    ftue_start_body: 'Тебе достались старый гараж (~5 м²) и старый ноутбук. Места мало! Дальше покупай помещения побольше — больше м² значит больше железа (серверов) влезает. Карточка помещения — вверху вкладки «Железо».',
     ftue_rent_title: 'Пассивный доход открыт',
     ftue_rent_body: 'Простаивающее железо сдаётся в аренду другим компаниям — это твой пассивный доход, капает даже пока тебя нет. Когда выпустишь модель, это железо перейдёт из аренды в продакшен и будет давать Мощность.',
     ftue_release_title: 'Первая модель выпущена — поставь цену',
