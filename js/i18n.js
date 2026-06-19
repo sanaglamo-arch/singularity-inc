@@ -169,6 +169,10 @@
     rival_move_openmind: '⚡ OpenMind shipped a stronger model — its share is climbing.',
     rival_move_deepcore: '⚡ DeepCore scaled its datacenter — power surging past rivals.',
     rival_move_nebula: '⚡ Nebula closed a round to outrun everyone — watch your share.',
+    // milestone celebrations (cash / users / market-share thresholds)
+    ms_cash: '💰 {v} in the bank!',
+    ms_users: '🌍 {v} users!',
+    ms_share: '📈 {v}% market share — you dominate!',
 
     // game over
     go_win_title: 'AGI ACHIEVED',
@@ -488,6 +492,10 @@
     rival_move_openmind: '⚡ OpenMind выпустила модель мощнее — её доля растёт.',
     rival_move_deepcore: '⚡ DeepCore нарастила дата-центр — мощность рвётся вперёд.',
     rival_move_nebula: '⚡ Nebula привлекла раунд, чтобы обогнать всех — следи за долей.',
+    // milestone celebrations (cash / users / market-share thresholds)
+    ms_cash: '💰 {v} в банке!',
+    ms_users: '🌍 {v} пользователей!',
+    ms_share: '📈 {v}% рынка — ты доминируешь!',
 
     go_win_title: 'AGI ДОСТИГНУТ',
     go_win_flavor: 'Ты выпустил финальную модель первым. Сингулярность достигнута.',

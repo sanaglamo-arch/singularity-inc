@@ -77,7 +77,9 @@
       companyName: null,
       // story cutscenes (one-time gates)
       seenIntro: false,             // INTRO cutscene shown (after naming, before tutorial)
-      seenFirstModel: false         // FIRST-MODEL story flourish shown (first v1 release)
+      seenFirstModel: false,        // FIRST-MODEL story flourish shown (first v1 release)
+      // milestone celebrations: map of crossed threshold keys -> 1 (fire once per run)
+      milestones: {}
     };
   }
 
