@@ -220,6 +220,20 @@
     update();
   }
 
+  // overclock / разгон combo: reveal #comboWrap while heat>0, label "Разгон ×1.7",
+  // fill #comboFill by heat. Reuses the existing combo CSS (#comboWrap.on toggles height).
+  function syncCombo(st) {
+    var wrap = $('comboWrap'); if (!wrap) return;
+    var heat = st && st.heat > 0 ? (st.heat > 1 ? 1 : st.heat) : 0;
+    var on = heat > 0.001;
+    setClass(wrap, 'on', on);
+    if (!on) { setStyleP($('comboFill'), 'width', '0%'); return; }
+    var mult = G.comboMult();   // 1 .. 1.7
+    setText($('comboName'), t('combo_name'));
+    setText($('comboMult'), t('combo_mult', { m: mult.toFixed(1) }));
+    setStyleP($('comboFill'), 'width', (heat * 100).toFixed(0) + '%');
+  }
+
   // ---------------------------------------------------------- LAB (company)
   function syncLab() {
     var st = s();
@@ -230,7 +244,7 @@
     else if (st.training) setText(hint, t('train_click_faster'));
     else setText(hint, t('tap_hint_click'));
     setClass($('riskMini'), 'hidden', true);
-    setClass($('comboWrap'), 'hidden', true);
+    syncCombo(st);
     setClass($('breakthroughBtn'), 'hidden', true);
     setClass($('labOrbRow'), 'hidden', true);
     setClass($('prestigeCta'), 'hidden', true);
@@ -804,7 +818,7 @@
       if (st.sound) A.tap(st.training ? 0.4 : 0);
       if (x == null) { var r = tapBtn.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
       floatText(x, y, '+' + money(v), st.training ? 'big' : 'crit');
-      FX.tapBurst(x, y, 0); FX.ripple(x, y, 130);
+      FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
       buzz(6);
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
