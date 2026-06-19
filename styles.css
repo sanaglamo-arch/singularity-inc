@@ -727,6 +727,20 @@ h2:first-child { margin-top: 4px; }
 #breakthroughBtn { max-width: 320px; margin: 12px auto 0; display: block; }
 #breakthroughBtn.bt-active { background: linear-gradient(100deg, var(--gold), var(--rose)); color: #2a0710; box-shadow: 0 0 26px -6px var(--glow-gold); }
 
+/* click-upgrade button — lives under the orb in #tapZone (reuses .btn-primary look) */
+#tapUpgradeBtn.tap-upgrade { max-width: 320px; margin: 12px auto 0; display: block; min-height: 48px; line-height: 1.25; }
+#tapUpgradeBtn.tap-upgrade.hidden { display: none; }
+#tapUpgradeBtn.tap-upgrade:disabled { background: var(--surface-2); color: var(--fg-muted); cursor: default; box-shadow: none; }
+#tapUpgradeBtn.tap-upgrade .tu-sub { display: block; font-size: 11px; font-weight: 600; opacity: 0.85; margin-top: 2px; letter-spacing: 0.2px; }
+/* gentle pulse when the tutorial is pointing at it */
+#tapUpgradeBtn.tap-upgrade.tut-glow:not(:disabled) { animation: tutGlow 1.5s ease-in-out infinite; }
+@keyframes tutGlow { 0%,100% { box-shadow: 0 10px 30px -10px var(--glow-violet), var(--inset-hi); } 50% { box-shadow: 0 0 24px -2px var(--glow-cyan), 0 10px 30px -10px var(--glow-violet); } }
+
+/* ---------- forced tutorial gating (additive, reuses existing surfaces) ---------- */
+.tut-blocked { opacity: 0.4; pointer-events: none; filter: grayscale(0.3); }
+#tabbar button.tut-blocked { opacity: 0.4; }
+.card.tut-hi { border-color: var(--gold) !important; box-shadow: var(--shadow-1), var(--inset-hi), 0 0 0 1px rgba(251,191,36,0.4), 0 0 22px -4px var(--glow-gold) !important; animation: tutGlow 1.5s ease-in-out infinite; }
+
 /* combo / overclock meter under the button */
 #comboWrap { width: 100%; max-width: 320px; margin: 10px auto 0; height: 0; overflow: hidden; transition: height 0.25s var(--ease); }
 #comboWrap.on { height: 30px; }

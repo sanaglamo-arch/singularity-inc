@@ -205,6 +205,10 @@
   // ============================== TABS ==============================
   function switchTab(tab) {
     if (TABS.indexOf(tab) < 0) tab = 'company';
+    // forced tutorial: only the tabs the current step needs are reachable.
+    // buy-steps (laptop/server) also unlock the Hardware tab; click/upgrade stay on Company.
+    var step = G.tutorialStep();
+    if (step && !tutTabAllowed(step, tab)) { tutDeny(); return; }
     currentTab = tab;
     var secs = document.querySelectorAll('#content .tab');
     for (var i = 0; i < secs.length; i++) setClass(secs[i], 'active', secs[i].dataset.tab === tab);
@@ -231,7 +235,13 @@
     setClass($('labOrbRow'), 'hidden', true);
     setClass($('prestigeCta'), 'hidden', true);
     setClass($('buyModeBar'), 'hidden', true);
-    setClass($('nudge'), 'hidden', true);
+    // click-upgrade button + forced-tutorial coachmark
+    syncTapUpgrade();
+    syncTutorial();
+    // during the forced tutorial keep the focus tight: the model/premise panel + bills
+    // are not part of onboarding, so hide them until free play begins.
+    var tutOn = G.tutorialActive();
+    setClass($('modelPanel'), 'hidden', tutOn);
 
     // --- model panel (reuse #modelPanel / #resRow / #trainBtn / #trainProg) ---
     setText($('computeVal'), fmt(G.power()));
@@ -279,6 +289,9 @@
   // below 720px, so mobile is untouched. Reuses .glass-panel / .res / rel-row styling.
   function syncLabSummary() {
     var st = s(), list = $('genList'); if (!list) return;
+    // keep the forced tutorial focused: hide the advanced snapshot until free play
+    setClass(list, 'hidden', G.tutorialActive());
+    if (G.tutorialActive()) return;
     if (!list.__sumInit) {
       list.__sumInit = 1;
       list.innerHTML =
@@ -393,6 +406,7 @@
           '<div class="buylabel"></div>' +
         '</div>';
       card.addEventListener('click', function (e) {
+        if (!tutAllows('buyHw:' + h.id)) { tutDeny(); return; }
         if (G.buyHw(h.id)) {
           if (s().sound) A.buy(); buzz(12);
           FX.cardFlash(card);
@@ -406,12 +420,15 @@
     });
   }
   function syncHardware() {
-    var st = s();
+    var st = s(), tut = G.tutorialStep();
     setText($('upgradesTitle'), t('hw_title') + ' · ' + t('prem_capacity', { used: fmt(G.ownedM2()), cap: fmt(G.capacityM2()) }));
     C.HARDWARE.forEach(function (h) {
       var r = hwRefs[h.id]; if (!r) return;
       var idle = st.hw[h.id], comm = st.committed[h.id], own = idle + comm;
       var afford = st.cash >= h.cost, space = G.freeM2() >= h.m2, can = G.canBuyHw(h.id);
+      // forced tutorial: only the current step's item is permitted; dim everything else
+      var allowed = tutAllows('buyHw:' + h.id);
+      var isTarget = !!tut && allowed;   // the single item the tutorial points at
       setText(r.desc, t('hw_power') + ' +' + fmt(h.power) + ' · ' + (h.rent > 0 ? t('hw_rent') + ' $' + fmt(h.rent) + '/' + ruS() : t('common_free')) + ' · ' + fmt(h.m2) + t('hw_m2'));
       var ownTxt = [];
       if (idle > 0) ownTxt.push(t('hw_owned', { n: idle }));
@@ -422,8 +439,11 @@
       setText(r.buylabel, t('hw_buy'));
       setClass(r.badge, 'hidden', own <= 0);
       if (own > 0) setText(r.badge, own);
-      setClass(r.el, 'affordable', can);
-      setClass(r.el, 'locked', !can && own === 0);
+      setClass(r.el, 'affordable', can && allowed);
+      setClass(r.el, 'locked', !allowed || (!can && own === 0));
+      // tutorial: block + dim non-target rows, glow the target
+      setClass(r.el, 'tut-blocked', !!tut && !allowed);
+      setClass(r.el, 'tut-hi', isTarget);
     });
   }
 
@@ -708,6 +728,67 @@
       else if (e.type === 'boardConvene') teachModal({ icon: ic('ic_insight'), title: t('ev_board_convene_title'), body: t('ev_board_convene_body') });
     });
     G.on('gameover', function (outcome) { showEnding(outcome); });
+    G.on('tutorial', function (step) {
+      // sound cue when a tutorial step is completed (entering a new step or finishing)
+      if (s().sound) { try { A.buy(); } catch (e) {} }
+      if (!step) {                       // onboarding complete -> unlock everything
+        clearTutorialChrome();
+        renderStatic();
+      }
+      G.save();
+      update();
+    });
+  }
+
+  // ============================== FORCED TUTORIAL ("потное обучение") ==============================
+  // Step-gated onboarding. During a step ONLY the current action is permitted; everything
+  // else is dimmed/blocked. Reuses #nudge as a premium coachmark + toasts for gentle denials.
+  var TUT_PROMPT = { laptop: 'tut_buy_laptop', click: 'tut_click', upgrade: 'tut_upgrade', server: 'tut_miniserver' };
+  var TUT_STEPKEY = { laptop: 'tut_step_laptop', click: 'tut_step_click', upgrade: 'tut_step_upgrade', server: 'tut_step_server' };
+  // which tabs each step may visit (buy-steps need the Hardware list)
+  function tutTabAllowed(step, tab) {
+    if (tab === 'company') return true;                 // home is always reachable
+    if ((step === 'laptop' || step === 'server') && tab === 'upgrades') return true;
+    return false;
+  }
+  // what each step lets you do (anything not listed is blocked)
+  function tutAllows(action) {
+    var step = G.tutorialStep();
+    if (!step) return true;                 // tutorial done -> free play
+    switch (step) {
+      case 'laptop':  return action === 'buyHw:laptop';
+      case 'click':   return action === 'click';
+      case 'upgrade': return action === 'click' || action === 'upgradeTap';
+      case 'server':  return action === 'click' || action === 'upgradeTap' || action === 'buyHw:miniserver';
+    }
+    return true;
+  }
+  function tutDeny() {
+    var step = G.tutorialStep(); if (!step) return;
+    var k = TUT_STEPKEY[step];
+    if (s().sound) A.error(); buzz(10);
+    toast(t('tut_locked_step', { step: k ? t(k) : '' }), '', { routine: true });
+  }
+  function tutOnUpgraded() { /* engine advances 'upgrade'->'server'; render picks it up */ }
+  // render the coachmark (reuse #nudge) pointing at the current step
+  function syncTutorial() {
+    var step = G.tutorialStep(), nudge = $('nudge');
+    if (!nudge) return;
+    if (!step) { setClass(nudge, 'hidden', true); setClass(nudge, 'go', false); clearTutorialChrome(); return; }
+    setClass(nudge, 'hidden', false);
+    setClass(nudge, 'go', true);
+    var ni = nudge.querySelector('.nicon'); if (ni && !ni.__set) { ni.__set = 1; ni.innerHTML = ic('ic_insight'); }
+    setText($('nudgeText'), t(TUT_PROMPT[step] || 'tut_buy_laptop'));
+    // block bottom-nav tabs the current step can't visit (Hardware stays live on buy-steps)
+    var nav = $('tabbar').children;
+    for (var i = 0; i < nav.length; i++) {
+      var b = nav[i], tabId = b.dataset.more ? 'settings' : b.dataset.tab;
+      setClass(b, 'tut-blocked', !tutTabAllowed(step, tabId));
+    }
+  }
+  function clearTutorialChrome() {
+    var nav = $('tabbar').children;
+    for (var i = 0; i < nav.length; i++) setClass(nav[i], 'tut-blocked', false);
   }
 
   // ============================== TAP ==============================
@@ -716,6 +797,7 @@
     function doTap(x, y) {
       var st = s();
       if (st.over) return;
+      if (!tutAllows('click')) { tutDeny(); return; }
       if (!st.boughtLaptop) { if (st.sound) A.error(); toast(t('tap_hint_buy_laptop'), '', { routine: true }); return; }
       var v = G.click();
       if (v <= 0) return;
@@ -727,6 +809,44 @@
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
     tapBtn.addEventListener('click', function (e) { doTap(e.clientX, e.clientY); });
+  }
+
+  // click-upgrade button (engine had upgradeTap() but no UI exposed it)
+  function bindTapUpgrade() {
+    var btn = $('tapUpgradeBtn'); if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      var st = s();
+      // tutorial gate: only allowed on the 'upgrade' step (or when tutorial done)
+      if (!tutAllows('upgradeTap')) { tutDeny(); return; }
+      if (G.upgradeTap()) {
+        if (st.sound) A.buy(); buzz(12);
+        var r = btn.getBoundingClientRect();
+        FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
+        tutOnUpgraded();
+        update();
+      } else { if (st.sound) A.error(); }
+    });
+  }
+  // refresh the click-upgrade button's labels + state each render
+  function syncTapUpgrade() {
+    var st = s(), btn = $('tapUpgradeBtn'); if (!btn) return;
+    // visible once the laptop is bought (forced-clicking phase onward)
+    var show = st.boughtLaptop && !st.over;
+    setClass(btn, 'hidden', !show);
+    if (!show) return;
+    var maxed = st.tapLevel >= C.TAP.upgrade.maxLevel;
+    if (maxed) {
+      setHTML(btn, esc(t('tap_up_max', { cur: fmt(G.tapValue()) })));
+      btn.disabled = true;
+    } else {
+      var cur = G.tapValue(), next = cur * C.TAP.upgrade.gain, cost = G.tapUpgradeCost();
+      setHTML(btn,
+        esc(t('tap_up_btn', { cur: fmt(cur), next: fmt(next) })) +
+        '<span class="tu-sub">' + esc(t('tap_up_cost', { c: fmt(cost) })) + '</span>');
+      btn.disabled = !G.canUpgradeTap();
+    }
+    // tutorial highlight only during the 'upgrade' step
+    setClass(btn, 'tut-glow', st.tutorial === 'upgrade');
   }
 
   // ============================== REFRESH ==============================
@@ -748,9 +868,10 @@
     wireGameEvents();
     bindTap();
     // train button
-    $('trainBtn').onclick = function () { var st = s(); if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
+    $('trainBtn').onclick = function () { var st = s(); if (G.tutorialActive()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (build box)
-    $('buildBtn').onclick = function () { var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); update(); } else if (s().sound) A.error(); };
+    $('buildBtn').onclick = function () { if (G.tutorialActive()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); update(); } else if (s().sound) A.error(); };
+    bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;
     for (var i = 0; i < nav.length; i++) (function (btn) {
