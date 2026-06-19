@@ -132,18 +132,23 @@
   //  chances are evaluated per in-game day, scaled by how unsafe / illegal the premises are.
   var EVENTS = {
     // FIRE — caused by low physical safety. risk grows as safety drops below this floor.
+    // Thresholds are set so the cheapest premises actually carry the risk the owner's
+    // vision intends ("пожар = купил помещение с безопасностью 60% вместо 90%"): the
+    // basement (safety 55%) sits in the armed band, while legit premises (office 82%+)
+    // are safe. warnBelow > armBelow so a hazard is ALWAYS telegraphed before it can ignite.
     fire: {
-      warnBelow: 60,         // telegraph a hazard warning when safety% < this
-      armBelow: 45,          // below this, a fire can actually ignite
+      warnBelow: 68,         // telegraph a hazard warning when safety% < this
+      armBelow: 62,          // below this, a fire can actually ignite (basement 55% is armed)
       // per-day ignition chance = base * ((armBelow - safety) / armBelow), capped
       chancePerDayMax: 0.18,
       warnCooldownDays: 6,   // don't nag more often than this
       recoverCooldownDays: 5 // can't be hit again immediately after a fire
     },
     // LAWSUIT — caused by low legality. fine scales with your scale (cash on hand).
+    // Same reachability: basement legality 60% is armed; office+ (85%+) is safe.
     lawsuit: {
-      warnBelow: 60,
-      armBelow: 45,
+      warnBelow: 70,
+      armBelow: 66,
       chancePerDayMax: 0.16,
       finePctCash: 0.18,     // fine = 18% of current cash (liquidity hit), min floor below
       fineMin: 40,
