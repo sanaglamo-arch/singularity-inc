@@ -2789,3 +2789,40 @@ button:focus:not(:focus-visible) { outline: none; }
     transform: none;
   }
 }
+
+/* ============================================================================
+   DESKTOP TAB-CONTENT COLUMN CAP (ADDITIVE — appended; desktop-only)
+   ----------------------------------------------------------------------------
+   PROBLEM: on wide screens (>=900px) the mobile-first scrolling tab panes let
+   their bar/card content stretch to the full ~880px content column, so the
+   World risk-meters / market standings and the Hardware card list look sparse
+   and "stretched-phone". The existing @media (min-width:720px) block already
+   centres .scroll children and caps several panes at 600px, but the World and
+   Hardware panes still fall back to the global .scroll > * { max-width:880px }.
+
+   FIX: at >=900px, cap the SCROLLING content of every standalone tab pane to a
+   comfortable reading column (~600px) and let .scroll's existing align-items:
+   center keep it centred. We do NOT touch the Company tab (it uses a dedicated
+   two-column desktop layout with the click-orb in a fixed 360px left column),
+   nor any full-width chrome (topbar / finance / ticker / tabbar): the centred
+   column sits cleanly inside the already-centred 1040px #app, so the bars stay
+   full-width without looking disjointed.
+
+   GUARANTEES: wholly inside @media (min-width:900px) -> at <=899px (incl. 390 &
+   500px) nothing changes. No new overflow (max-width only, no fixed widths).
+   No logic / JS / markup touched. Cards still fill the capped column because we
+   cap the pane CHILDREN, not the cards.
+   ============================================================================ */
+@media (min-width: 900px) {
+  /* Cap the per-tab scrolling content to a comfortable reading column.
+     (The Company tab is excluded — it has its own two-column desktop layout.) */
+  #upgradesPane > *,
+  #researchPane > *,
+  #alignPane > *,
+  #worldPane > *,
+  #statsPane > *,
+  #achPane > *,
+  #settingsPane > * {
+    max-width: 600px;
+  }
+}
