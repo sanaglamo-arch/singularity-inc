@@ -900,7 +900,12 @@
     // standings rows (.standrow). Persistent rows keyed by rival id, positioned by
     // CSS `order` = current rank, so the .sbar width EASES (transition: width) between
     // frames instead of being thrown away and re-created at the target width.
-    var rows = G.standings(), top = Math.max(1e-9, rows[0].power), youRank = 0;
+    var rows = G.standings(), youRank = 0;
+    // "Market position" is a SHARE board, not raw Power: sort by market value (v) and show
+    // each company's % of the total market (owner: standings must read in percent).
+    rows.sort(function (a, b) { return (b.v || 0) - (a.v || 0); });
+    var totalV = 0; for (var _tv = 0; _tv < rows.length; _tv++) totalV += (rows[_tv].v || 0);
+    totalV = Math.max(1e-9, totalV);
     var box = $('standingsRows');
     if (box && !box.__rowmap) {
       box.__rowmap = {};
@@ -919,7 +924,8 @@
     rows.forEach(function (r, i) {
       if (r.isPlayer) youRank = i;
       var name = r.isPlayer ? t('standings_you') : t('rival_name_' + r.id);
-      var w = Math.max(3, Math.min(100, (r.power / top) * 100));
+      var shareFrac = (r.v || 0) / totalV;
+      var w = Math.max(3, Math.min(100, shareFrac * 100));
       var row = box && box.__rowmap ? box.__rowmap[r.id] : null;
       if (!row) return;
       setStyleP(row, 'order', i);
@@ -928,7 +934,7 @@
       setText(row.querySelector('.srank'), '' + (i + 1));
       setText(row.querySelector('.sname'), name);
       setStyleP(row.querySelector('.sbar'), 'width', w.toFixed(0) + '%');
-      setText(row.querySelector('.sshare'), fmt(r.power));
+      setText(row.querySelector('.sshare'), pct1(shareFrac) + '%');
       // one-shot pulse on the player's row when their rank just changed (item 3)
       if (r.isPlayer && _pulseRank) { row.classList.remove('rank-flip'); void row.offsetWidth; row.classList.add('rank-flip'); }
     });
