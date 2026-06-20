@@ -2669,3 +2669,24 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   #goNewGame:not(:active):hover { filter: none; }
 }
+
+/* QA fix (v60): the base `.rel-name { flex:0 0 92px; ellipsis }` truncated the longer
+   World risk-meter labels ("Public approval" / "Одобрение общества" / "Государство и
+   закон"). In the World panel let the label size to its content and WRAP instead of
+   clipping — the bar still flexes for the rest. Additive, more-specific override. */
+#relMeters .rel-name {
+  flex: 0 1 auto;
+  max-width: 54%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.12;
+}
+/* And the staff-hire effect line ("↑ Государство и закон" в RU) wrapped instead of
+   truncating — must out-specify `.card .desc { white-space:nowrap }` (0,2,0). */
+.card .desc[id^="staffdesc-"] {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.2;
+}
