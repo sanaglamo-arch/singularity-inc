@@ -325,6 +325,12 @@
     state.trainElapsed = 0;
     // set a sensible default price near the sweet spot on first release
     if (state.version === 1) state.price = sweetSpotPrice();
+    // Seed users toward the new model's audience immediately so it EARNS from the first
+    // second. The slow inertia ramp from 0 made income (and the finance NET) momentarily
+    // read as $0 / negative right at the proud release moment — felt like the balance/income
+    // "disappeared" (owner). Jump UP to the target (never down) so every release is an
+    // instant, visible payoff and releasing always beats renting the same gear.
+    state.users = Math.max(state.users, Math.round(usersTarget()));
     // SOFT tutorial: once the first model ships, guide the player to the price slider
     if (state.tutorial === 'release' && state.version >= 1) setTutorial('price');
     emit('release', state.version);
