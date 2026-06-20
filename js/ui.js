@@ -482,6 +482,20 @@
         trainBtn.disabled = !G.canStartTraining();
         if (!G.canStartTraining()) { setText(trainHint, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) })); setClass(trainHint, 'hidden', false); }
         else { setClass(trainHint, 'hidden', true); }
+        // First-release onboarding: on a phone the Train button can sit below the fold /
+        // behind the navbar, so a new player can't see the key progression action the
+        // tutorial steers them to (blind-playtest blocker). When training FIRST becomes
+        // available (version 0, on the Lab tab), gently scroll it into view — once, and
+        // re-arm if power later drops below the requirement.
+        if (st.version === 0 && currentTab === 'company') {
+          if (G.canStartTraining()) {
+            if (!trainBtn._autoScrolled) {
+              trainBtn._autoScrolled = true;
+              try { trainBtn.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+              catch (e) { try { trainBtn.scrollIntoView(); } catch (e2) {} }
+            }
+          } else { trainBtn._autoScrolled = false; }
+        }
       }
     } else {
       setClass(trainProg, 'hidden', true);
