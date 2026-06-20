@@ -2329,3 +2329,156 @@ button:focus:not(:focus-visible) { outline: none; }
 #tapBtn.tut-orb-lock { cursor: default; }
 #tapBtn.tut-orb-lock:active { transform: none; }
 #tapBtn.tut-orb-lock.squash { animation: none; }
+
+/* ============================================================
+   v56 — PREMIUM POLISH PASS (ADDITIVE ONLY — new selectors / more-specific
+   overrides; nothing above is edited or deleted). A careful, incremental
+   refinement of the existing dark neon-violet/cyan glassy aesthetic:
+   tighter typography rhythm, crisper HUD, unified card & button surfaces,
+   refined glows, and reduced-motion-safe micro-animations. Each rule was
+   verified against a before/after render at 390 and 1280.
+   ============================================================ */
+
+/* ---- HUD: make the cash + rate read crisp and premium (most-looked-at) ---- */
+#topbar #cashVal {
+  /* tabular numerals so digits don't jitter as the value climbs; a slightly
+     richer two-layer glow for depth without noise */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  background: linear-gradient(180deg, #ffe39a 0%, var(--gold) 62%, #f59e0b 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 16px var(--glow-gold)) drop-shadow(0 1px 0 rgba(0,0,0,0.35));
+}
+#topbar #cpsVal {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-weight: 600;
+}
+/* keep the gradient-text bump readable: the gold clip needs the glow to ride along */
+#cashVal.bump { filter: drop-shadow(0 0 22px var(--glow-gold)) brightness(1.12); }
+
+/* ---- Finance line: align the numbers, tighten the rhythm ---- */
+#financeWrap #financeLine,
+#financeWrap #financeLine .fin-net,
+#financeWrap #financeLine .fin-in,
+#financeWrap #financeLine .fin-out,
+#financeWrap #financeLine .fin-rw {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+#financeWrap #dayLabel { letter-spacing: 1.1px; }
+
+/* ---- Resource cells (POWER / SHARE / VALUE): unify as crisp mini-stats ---- */
+#labMain #modelPanel #resRow .res {
+  background: linear-gradient(180deg, rgba(28,26,54,0.55), rgba(16,15,34,0.45));
+  box-shadow: var(--inset-hi);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+#labMain #modelPanel #resRow .rval {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 13.5px; letter-spacing: 0.2px;
+}
+#labMain #modelPanel #resRow .rlabel { opacity: 0.92; }
+
+/* ---- Glass panels: a touch more depth + a hairline top highlight ---- */
+#labMain .glass-panel,
+#researchPane .glass-panel,
+#worldPane .glass-panel,
+#alignPane #riskPanel,
+#upgradesPane #premCard {
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: var(--shadow-2), var(--inset-hi), 0 0 0 1px rgba(139,92,246,0.05);
+}
+
+/* ---- Hardware / generator cards: unify the surface + a refined affordable glow ---- */
+#upgradeList .card {
+  transition: transform 0.14s var(--ease-spring), border-color 0.22s var(--ease), box-shadow 0.22s var(--ease);
+}
+#upgradeList .card .name { letter-spacing: 0.25px; }
+#upgradeList .card .cost,
+#upgradeList .card .each {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+/* affordable rows: a slightly warmer, more inviting violet lift on hover (pointer
+   devices only — never changes the touch/press behavior) */
+@media (hover: hover) {
+  #upgradeList .card.affordable:hover {
+    border-color: rgba(167,139,250,0.7);
+    box-shadow: var(--shadow-1), var(--inset-hi), 0 0 0 1px rgba(139,92,246,0.32), 0 12px 36px -12px var(--glow-violet);
+    transform: translateY(-1px);
+  }
+}
+
+/* ---- Premise card numbers tabular ---- */
+#upgradesPane #premCard #premCardSpace,
+#upgradesPane #premCard #premCardMeters {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- Primary buttons: unify into a single confident treatment ---- */
+.btn-primary, #trainBtn, #hireBtn, #buyAlignBtn, #breakthroughBtn,
+#premBuyBtn, #fundingBtn, #boostBtn, #execRecruitBtn, #acquireBtn, #raceOpenBtn {
+  letter-spacing: 0.55px;
+}
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled),
+  #premBuyBtn:hover:not(:disabled),
+  #hireBtn:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow: 0 14px 38px -12px var(--glow-violet), var(--inset-hi);
+  }
+}
+
+/* ---- Market-standings rows: tabular power/value numbers read like a leaderboard ---- */
+#standingsPanel #standingsRows {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- Decision modal: option buttons get a crisper resting surface + a soft
+   left accent on hover, and the price/cost numbers align. Purely additive. ---- */
+#modalRoot .decision-opt {
+  background: linear-gradient(180deg, rgba(28,26,54,0.50), rgba(16,15,34,0.40));
+  box-shadow: var(--inset-hi);
+  transition: border-color 0.16s var(--ease), background 0.16s var(--ease),
+              box-shadow 0.16s var(--ease), transform 0.08s var(--ease-spring);
+}
+@media (hover: hover) {
+  #modalRoot .decision-opt:hover:not([disabled]):not(.cant) {
+    border-color: var(--violet-2);
+    background: linear-gradient(180deg, rgba(139,92,246,0.14), rgba(34,211,238,0.05));
+    box-shadow: var(--inset-hi), 0 10px 30px -14px var(--glow-violet);
+  }
+}
+#modalRoot .decision-opt-price { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+#modalRoot .decision-opt-label { letter-spacing: 0.2px; }
+
+/* ---- Tasteful micro-animation: soft entrance for the decision modal card so it
+   arrives with intent (reduced-motion-safe; transform/opacity only). ---- */
+#modalRoot:not(.hidden) .modal { animation: polModalIn 280ms var(--ease) both; }
+@keyframes polModalIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- Value-change pulse helper for HUD stats (opt-in class JS may add later);
+   defined here so the look is consistent if used. ---- */
+.pol-flash { animation: polFlash 360ms var(--ease) both; }
+@keyframes polFlash {
+  0%   { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #modalRoot:not(.hidden) .modal { animation: none; }
+  .pol-flash { animation: none; }
+  #upgradeList .card.affordable:hover { transform: none; }
+  .btn-primary:hover:not(:disabled),
+  #premBuyBtn:hover:not(:disabled),
+  #hireBtn:hover:not(:disabled) { box-shadow: 0 10px 30px -10px var(--glow-violet), var(--inset-hi); }
+}
