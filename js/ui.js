@@ -31,7 +31,7 @@
   function pct(x) { return Math.round(x * 100); }
   // market share reads as a fractional percent (e.g. 0.7%, 23.4%) — small shares matter
   // and shouldn't round up to a misleading whole number.
-  function pct1(x) { var v = x * 100; return (v < 10 ? v.toFixed(1) : Math.round(v).toString()); }
+  function pct1(x) { return (x * 100).toFixed(1); }   // market share: always a fractional percent (e.g. 4.5%, 96.3%) — never rounded to a whole number
   // a user count is always whole people
   function uFmt(n) { return fmt(Math.round(n)); }
   function s() { return G.state; }
@@ -907,8 +907,8 @@
     if (youRank === 0) { msg = t('race_ahead'); scol = 'var(--green)'; }
     else if (youRank === rows.length - 1) { msg = t('race_behind'); scol = 'var(--rose)'; }
     else { msg = t('race_close'); scol = 'var(--gold)'; }
-    var _raceHtml = '<span style="color:' + scol + '">' + esc(msg) + '</span>' +
-      (isFinite(leaderDays) ? ' <span class="muted small">· ' + esc(t('race_eta', { t: FMT.fmtTime(leaderDays * C.DAY_SEC) })) + '</span>' : '');
+    // (removed the confusing "Singularity ≈ {time}" leader-ETA line per owner — it read as meaningless)
+    var _raceHtml = '<span style="color:' + scol + '">' + esc(msg) + '</span>';
     // narrative identity from the choices made so far (decisions shape who you are)
     var _pathKey = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(st.storyFlags) : null;
     if (_pathKey) _raceHtml += '<br><span class="muted small">' + esc(t('your_path')) + ': <span style="color:var(--violet-2)">' + esc(t('path_' + _pathKey)) + '</span></span>';
@@ -1355,6 +1355,13 @@
     setClass(c.root, 'coach-down', below);
     c.spot.style.left = sx + 'px'; c.spot.style.top = sy + 'px';
     c.spot.style.width = sw + 'px'; c.spot.style.height = sh + 'px';
+    // Item 11b: the highlight ring must HUG the target's shape, not be a fixed rounded
+    // rectangle. A round orb got a square-ish ring (read as crooked); a button got a ring
+    // with the wrong corner radius. Mirror the target's own border-radius (circle → circle).
+    var _br = '', _rpx = 0;
+    try { _br = window.getComputedStyle(target).borderRadius || ''; _rpx = parseFloat(_br) || 0; } catch (e) {}
+    var _circular = _br.indexOf('50%') >= 0 || (_rpx > 0 && _rpx >= Math.min(rw, rh) / 2 - 1);
+    c.spot.style.borderRadius = _circular ? '50%' : (Math.min(_rpx, 24) + pad) + 'px';
     // content first (so the card can be measured for height)
     c.ic.innerHTML = ic(plan.icon || 'ic_insight');
     setText(c.title, t(plan.title, plan.vars));
