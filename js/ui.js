@@ -767,7 +767,7 @@
       '<input id="priceSlider" class="vol-slider" type="range" min="' + C.ECON.priceMin + '" max="' + C.ECON.priceMax + '" step="0.25" style="width:100%;margin:12px 0 4px" />' +
       '<div id="resRowPv" style="display:flex;gap:8px;margin-top:12px">' +
         pvTile(t('share_label'), 'pv-share') + pvTile(t('users_label'), 'pv-users') +
-        pvTile(I.getLang() === 'ru' ? 'Прибыль/мес' : 'Profit/mo', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
+        pvTile(I.getLang() === 'ru' ? '≈ Прибыль/мес' : '≈ Profit/mo', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
       '</div>';
     pane.appendChild(pb);
     // (sweet-spot line / badge / auto-set button removed — the player discovers the best
@@ -794,7 +794,7 @@
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;
     var p = (previewPrice != null) ? previewPrice : st.price;
     setText($('priceVal'), '$' + p.toFixed(2));
-    var net = G.revenuePreview(p) - G.costPerSec();
+    var net = G.rentPerSec() + G.revenuePreview(p) - G.costPerSec();   // full projected net (incl. idle rent) so it matches the finance line's "итог" basis at equilibrium
     setText($('pv-share'), pct1(G.share(p)) + '%');
     // Users tile is a PROJECTION at the selected price — distinct from the model card's
     // CURRENT users. Show the direction vs current so dragging the slider reads as
