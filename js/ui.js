@@ -212,7 +212,7 @@
     setClass($('financeWrap'), 'hidden', false);
     var d = G.dateLabel();
     setText($('dayLabel'), t('day_counter', { n: d.dayNum }));
-    var inc = G.incomePerSec() * 60, cost = G.costPerSec() * 60, nm = (inc - cost);
+    var inc = G.incomePerSec(), cost = G.costPerSec(), nm = (inc - cost);   // PER SECOND (owner: all incomes in /s, never /month)
     var fl = $('financeLine');
     if (fl) {
       var sign = nm >= 0 ? '+' : '−';
@@ -485,8 +485,8 @@
           trainBtn.disabled = false;
           // Show the payoff of releasing (owner): projected income of the model you'd ship —
           // far above renting the same gear. Per-month to match the finance line convention.
-          var projMo = (G.projectedReleaseIncomePerSec ? G.projectedReleaseIncomePerSec() : 0) * 60;
-          if (projMo > 0) { setText(trainHint, t('train_expect_income', { v: fmt(projMo) })); setClass(trainHint, 'hidden', false); }
+          var projPerSec = (G.projectedReleaseIncomePerSec ? G.projectedReleaseIncomePerSec() : 0);
+          if (projPerSec > 0) { setText(trainHint, t('train_expect_income', { v: fmt(projPerSec) })); setClass(trainHint, 'hidden', false); }
           else { setClass(trainHint, 'hidden', true); }
         } else {
           setText(trainBtn, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) }));
@@ -767,7 +767,7 @@
       '<input id="priceSlider" class="vol-slider" type="range" min="' + C.ECON.priceMin + '" max="' + C.ECON.priceMax + '" step="0.25" style="width:100%;margin:12px 0 4px" />' +
       '<div id="resRowPv" style="display:flex;gap:8px;margin-top:12px">' +
         pvTile(t('share_label'), 'pv-share') + pvTile(t('users_label'), 'pv-users') +
-        pvTile(I.getLang() === 'ru' ? '≈ Прибыль/мес' : '≈ Profit/mo', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
+        pvTile(I.getLang() === 'ru' ? '≈ Прибыль/с' : '≈ Profit/s', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
       '</div>';
     pane.appendChild(pb);
     // (sweet-spot line / badge / auto-set button removed — the player discovers the best
@@ -807,13 +807,11 @@
       else if (uRel < 0.95) { uEl.textContent = '↓ ' + uFmt(uTgt); uEl.style.color = 'var(--rose)'; }
       else { uEl.textContent = uFmt(uTgt); uEl.style.color = ''; }
     }
-    // Projected profit PER MONTH (×60) so it matches the always-visible finance line's
-    // /мес unit — one consistent forward-looking number to optimize price by (was /sec,
-    // which clashed with the /мес headline and read as a contradiction). At equilibrium
-    // this equals the finance net; right after a price change the finance line (live, by
-    // current users) just catches up to this forecast as the audience adjusts.
-    var pf = $('pv-profit'), netMo = net * 60;
-    if (pf) { pf.textContent = (netMo >= 0 ? '+' : '−') + '$' + fmt(Math.abs(netMo)); pf.style.color = netMo >= 0 ? 'var(--green)' : 'var(--rose)'; }
+    // Projected net PER SECOND (incl. idle rent) — same unit/basis as the finance line and
+    // the cps ticker, so it equals the finance net at equilibrium; right after a price change
+    // the live finance line just catches up to this forecast as the audience adjusts.
+    var pf = $('pv-profit');   // PER SECOND (owner: all incomes in /s, never /month)
+    if (pf) { pf.textContent = (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)); pf.style.color = net >= 0 ? 'var(--green)' : 'var(--rose)'; }
     var sweet = G.sweetSpotPrice(), ratio = sweet > 0 ? p / sweet : 1, arrow, col;
     if (ratio > C.RISK.gougeStartRatio) { arrow = t('approval_down'); col = 'var(--rose)'; }
     else if (ratio < 0.9) { arrow = t('approval_up'); col = 'var(--green)'; }
