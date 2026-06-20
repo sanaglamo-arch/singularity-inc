@@ -665,7 +665,12 @@
           FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
           syncHardware(); syncHud();
           popBadge(hwRefs[h.id] && hwRefs[h.id].badge);  // owned-count pop (item 3)
-        } else if (s().sound) A.error();
+        } else {
+          // Tell the player WHY the buy didn't happen (no money vs no space) instead of
+          // a silent no-op that reads as a dead button (blind-playtest finding).
+          if (s().sound) A.error();
+          toast(s().cash < G.hwCost(h.id) ? t('decision_cant_afford') : t('hw_no_space'), 'bad');
+        }
       });
       pane.appendChild(card);
       hwRefs[h.id] = { el: card, cost: card.querySelector('.cost'), desc: card.querySelector('.desc'), each: card.querySelector('.each'), buylabel: card.querySelector('.buylabel'), badge: card.querySelector('.ownedBadge'), commit: card.querySelector('.hwCommit'), commitTxt: card.querySelector('.hwCommit-txt') };
