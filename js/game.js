@@ -45,6 +45,8 @@
       version: 0,                   // 0 = pre-release; reaches AGI_VERSION on win
       users: 0,
       price: C.ECON.priceDefault,
+      effPrice: C.ECON.priceDefault,  // price the MARKET has actually felt — eases toward `price` so income/share don't snap on a price change
+      lastPriceSet: -999,             // gameTime of last APPLIED price change (price is rate-limited: once per real minute)
       // training
       training: false,
       trainElapsed: 0,
@@ -387,7 +389,8 @@
     return u * price * C.ECON.usage;
   }
   function revenuePerSec() {
-    return state.users * state.price * C.ECON.usage;
+    // uses the EASED price so income transitions smoothly after a price change
+    return state.users * (state.effPrice != null ? state.effPrice : state.price) * C.ECON.usage;
   }
   // Projected revenue/s of the model you'd ship NEXT (its higher-era demand at the best
   // price), so the payoff of releasing is visible BEFORE you commit — and it's clear a
@@ -418,15 +421,31 @@
     }
     return Math.round(best * 100) / 100;
   }
-  function setPrice(p) {
+  function setPrice(p, force) {
     p = Math.max(C.ECON.priceMin, Math.min(C.ECON.priceMax, Number(p)));
-    if (!isNaN(p)) {
-      state.price = p;
-      state.lastPriceChange = state.gameTime;   // grace the re-tune nudge after a manual change
-      // SOFT tutorial finale: setting a token price completes onboarding (free play)
-      if (state.tutorial === 'price') setTutorial(null);
-      emit('change');
-    }
+    if (isNaN(p)) return false;
+    // Token price is a strategic COMMITMENT — rate-limited to once per real minute
+    // (= 1 in-game day). Rejected (returns false) while on cooldown; the UI reverts the
+    // slider and shows the time left. force=true bypasses (engine-driven defaults).
+    if (!force && state.lastPriceSet >= 0 && (state.gameTime - state.lastPriceSet) < C.DAY_SEC) return false;
+    state.price = p;
+    state.lastPriceChange = state.gameTime;   // grace the re-tune nudge after a manual change
+    state.lastPriceSet = state.gameTime;
+    // SOFT tutorial finale: setting a token price completes onboarding (free play)
+    if (state.tutorial === 'price') setTutorial(null);
+    emit('change');
+    return true;
+  }
+  function priceCooldownLeft() {
+    if (!state || state.lastPriceSet < 0) return 0;
+    return Math.max(0, C.DAY_SEC - (state.gameTime - state.lastPriceSet));
+  }
+  // current REALISED market share (from the eased user count) — eases on a price change
+  // instead of snapping; the price-card preview still shows the instant target share.
+  function currentShare() {
+    if (!state || state.version < 1) return 0;
+    var dem = demand();
+    return dem > 0 ? Math.max(0, Math.min(1, state.users / dem)) : 0;
   }
 
   // ---------- costs ----------
@@ -755,6 +774,13 @@
     }
     if (state.tutorial) advanceTutorial();
 
+    // ease the "felt" price toward the set price so income, market share and users
+    // transition SMOOTHLY after a price change instead of snapping (owner). Converges in
+    // ~25s — well inside the once-per-minute price cooldown.
+    if (state.effPrice == null) state.effPrice = state.price;
+    state.effPrice += (state.price - state.effPrice) * 0.12 * dt;
+    if (Math.abs(state.price - state.effPrice) < 0.01) state.effPrice = state.price;
+
     // continuous income/costs
     var rev = revenuePerSec() * outputMult() * dt;
     var rent = rentPerSec() * outputMult() * dt;
@@ -921,6 +947,7 @@
     demand: demand, playerV: playerV, share: share, playerShare: playerShare,
     usersTarget: usersTarget, revenuePreview: revenuePreview, revenuePerSec: revenuePerSec,
     sweetSpotPrice: sweetSpotPrice, setPrice: setPrice, approvalNorm: approvalNorm,
+    priceCooldownLeft: priceCooldownLeft, currentShare: currentShare,
     projectedReleaseIncomePerSec: projectedReleaseIncomePerSec,
     // costs
     elecPerSec: elecPerSec, upkeepPerSec: upkeepPerSec, salaryPerSec: salaryPerSec,

@@ -456,11 +456,11 @@
     var powEl = $('computeVal'), shEl = $('shareVal'), usEl = $('valVal');
     setText(powEl, fmt(G.availablePower()));
     setText($('computeRate'), '+' + fmt(G.rentPerSec()) + '/' + ruS());
-    setText(shEl, pct1(G.playerShare()) + '%');
+    setText(shEl, pct1(G.currentShare()) + '%');   // REALISED share (eases with users), not the instant target — so it doesn't snap on a price change
     setText(usEl, uFmt(st.users));
     // pulse on a meaningful step (purchase / release / price change), not the drip
     hudPulse(powEl, G.availablePower(), 'hud-pulse-violet', 0.05, 600);
-    hudPulse(shEl, G.playerShare(), 'hud-pulse-cyan', 0.10, 700);
+    hudPulse(shEl, G.currentShare(), 'hud-pulse-cyan', 0.10, 700);
     hudPulse(usEl, st.users, 'hud-pulse-cyan', 0.06, 600);
     var def = G.currentVersionDef();
     setText($('modelProg'), 'v' + st.version + ' / ' + (C.AGI_VERSION));
@@ -548,7 +548,7 @@
     setText($('rlSmRigs'), t('summary_rigs')); setText($('rlSmRank'), t('summary_rank'));
     setText($('sm-power'), fmt(G.availablePower()));
     setText($('sm-users'), uFmt(st.users));
-    setText($('sm-share'), pct1(G.playerShare()) + '%');
+    setText($('sm-share'), pct1(G.currentShare()) + '%');
     var net = G.netPerSec(), nEl = $('sm-net');
     if (nEl) { nEl.textContent = (net >= 0 ? '+$' : '−$') + fmt(Math.abs(net)); setStyleP(nEl, 'color', net >= 0 ? 'var(--green)' : 'var(--rose)'); }
     var rigs = 0; C.HARDWARE.forEach(function (h) { rigs += st.committed[h.id]; });
@@ -768,15 +768,22 @@
       '<div id="resRowPv" style="display:flex;gap:8px;margin-top:12px">' +
         pvTile(t('share_label'), 'pv-share') + pvTile(t('users_label'), 'pv-users') +
         pvTile(I.getLang() === 'ru' ? '≈ Прибыль/с' : '≈ Profit/s', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
-      '</div>';
+      '</div>' +
+      '<div id="priceCooldown" class="muted small hidden" style="text-align:center;margin-top:10px"></div>';
     pane.appendChild(pb);
-    // (sweet-spot line / badge / auto-set button removed — the player discovers the best
-    //  price themselves from the live readouts; owner request.)
+    // (sweet-spot hints removed — the player finds the best price from the live readouts.)
+    // Price is a strategic commitment: applying a new one is rate-limited to once per real
+    // minute. You can still DRAG to preview projections; on release a locked change reverts.
 
     var slider = $('priceSlider');
     slider.value = st.price;
     slider.addEventListener('input', function () { previewPrice = parseFloat(slider.value); syncPricePreview(); });
-    slider.addEventListener('change', function () { G.setPrice(parseFloat(slider.value)); previewPrice = null; if (s().sound) A.buy(); syncPricePreview(); });
+    slider.addEventListener('change', function () {
+      var applied = G.setPrice(parseFloat(slider.value));
+      if (!applied) { slider.value = s().price; if (s().sound) A.error(); }   // on cooldown → revert, keep current price
+      else if (s().sound) A.buy();
+      previewPrice = null; syncPricePreview();
+    });
 
     // live model card
     var mc = el('div', 'card');
@@ -820,6 +827,9 @@
     // (no "sweet spot" line/badge/glow — the player reads share/users/profit/approval and
     //  finds the best price themselves. The approval arrow above is a natural consequence,
     //  not a pointer to the answer.)
+    // price-change cooldown (once per real minute): show remaining time when locked
+    var cdEl = $('priceCooldown'), cd = G.priceCooldownLeft ? G.priceCooldownLeft() : 0;
+    if (cdEl) { if (cd > 0.5) { setText(cdEl, t('price_locked', { s: Math.ceil(cd) })); setClass(cdEl, 'hidden', false); } else setClass(cdEl, 'hidden', true); }
   }
   function syncModelTab() {
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;
@@ -828,7 +838,7 @@
     syncPricePreview();
     var def = C.VERSIONS[st.version - 1];
     setText($('modelVer'), t('model_live', { label: def ? def.label : ('v' + st.version) }));
-    setText($('modelStats'), t('power_label') + ' ' + fmt(G.power()) + ' · ' + t('users_label') + ' ' + uFmt(st.users) + ' · ' + t('share_label') + ' ' + pct1(G.playerShare()) + '%');
+    setText($('modelStats'), t('power_label') + ' ' + fmt(G.power()) + ' · ' + t('users_label') + ' ' + uFmt(st.users) + ' · ' + t('share_label') + ' ' + pct1(G.currentShare()) + '%');
   }
 
   // ---------------------------------------------------------- WORLD (rivals + meters + staff)

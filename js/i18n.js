@@ -174,6 +174,7 @@
     // pricing
     price_title: 'Token Price',
     price_intro: 'Lower price wins share; too high angers society. Find the price that pays best.',
+    price_locked: 'Price set — change again in {s}s',
     price_label: 'Price: ${v}',
     price_preview: 'At ${p}: share {share}% · {users} users · {sign}${profit}/s · approval {arrow}',
     price_sweet: 'Sweet spot ≈ ${v}',
@@ -822,6 +823,7 @@
 
     price_title: 'Цена токенов',
     price_intro: 'Ниже цена — больше доля; слишком высокая злит общество. Найди цену, что приносит больше всего.',
+    price_locked: 'Цена задана — сменить через {s}с',
     price_label: 'Цена: ${v}',
     price_preview: 'При ${p}: доля {share}% · {users} юзеров · {sign}${profit}/с · одобрение {arrow}',
     price_sweet: 'Сладкая точка ≈ ${v}',
