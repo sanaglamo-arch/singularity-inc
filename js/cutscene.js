@@ -1674,6 +1674,1073 @@
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
       };
+    },
+
+    // =====================================================================
+    // DECISIONS 5–10 · bespoke setup + consequence beats (same craft as above).
+    // =====================================================================
+
+    // ------------------------------------ POACHING · setup (the rival's offer)
+    // A rival's glowing offer-letter hologram hangs by an open door, luring your
+    // lead researcher's silhouette out into a cold violet corridor. They pause,
+    // one foot toward the light. Will you keep them?
+    decPoach: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gPchW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#100c26"/><stop offset="0.55" stop-color="#0b0819"/><stop offset="1" stop-color="#06040f"/></linearGradient>' +
+          '<linearGradient id="gPchDoor" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.34) + '"/><stop offset="1" stop-color="' + rgba(VIOLET2, 0.06) + '"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gPchW)"/>' +
+        starfield(53, 26, 0, 0, 1200, 200, rgba(VIOLET2, 1)) +
+        // back-wall office grid, mostly dark
+        '<g stroke="' + rgba(VIOLET2, 0.08) + '" stroke-width="2" fill="none">' +
+          line(0, 200, 1200, 200, rgba(VIOLET2, 0.08), 2) +
+          line(0, 470, 1200, 470, rgba(VIOLET2, 0.06), 2) +
+        '</g>';
+      var mid =
+        '<defs>' + glowFilter('gPchM', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        '<rect x="0" y="600" width="1200" height="150" fill="#070510"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        // an open door on the right, cold light spilling out (the rival beyond)
+        '<rect x="740" y="250" width="150" height="350" rx="4" fill="url(#gPchDoor)"/>' +
+        '<rect x="740" y="250" width="150" height="350" rx="4" fill="none" stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="3"/>' +
+        '<rect x="744" y="254" width="142" height="342" rx="2" fill="' + rgba(CYAN2, 0.1) + '"/>' +
+        // a pool of cold light cast onto the floor through the doorway
+        '<polygon points="744,596 886,596 980,640 660,640" fill="' + rgba(CYAN2, 0.12) + '"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gPchF', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the glowing OFFER-LETTER hologram, floating, luring (center-left)
+        '<g transform="translate(470,360)">' +
+          '<g filter="url(#gPchF)">' +
+            '<rect x="-86" y="-104" width="172" height="208" rx="8" fill="' + rgba(GOLD, 0.16) + '" stroke="' + rgba(GOLD, 0.8) + '" stroke-width="3" class="cs-breathe"/>' +
+          '</g>' +
+          // letter lines + a fat figure (a richer offer)
+          line(-58, -72, 58, -72, rgba(GOLD, 0.7), 5) +
+          line(-58, -48, 30, -48, rgba(GOLD, 0.5), 5) +
+          line(-58, -24, 48, -24, rgba(GOLD, 0.5), 5) +
+          '<text x="0" y="56" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="64" fill="' + rgba(GOLD, 0.95) + '">$$</text>' +
+        '</g>' +
+        // your lead researcher silhouette, mid-stride toward the door, tempted
+        '<g fill="#04030b">' +
+          '<path d="M612 600 C 612 512 620 474 648 474 C 676 474 684 512 684 600 Z"/>' +    // torso
+          '<path d="M664 492 q40 -2 70 18 l-10 22 q-30 -16 -64 -14 z"/>' +                    // reaching arm
+          '<rect x="634" y="438" width="26" height="40" rx="9"/>' +                          // neck
+          '<circle cx="648" cy="420" r="29"/>' +                                             // head, turned to door
+        '</g>' +
+        // they're half-lit cold (the rival's pull) and half-warm (still yours)
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M676 474 q6 -42 -10 -64" stroke="' + rgba(CYAN2, 0.55) + '" stroke-width="3"/>' +
+          '<path d="M624 474 q-6 -42 10 -64" stroke="' + rgba(GOLD, 0.4) + '" stroke-width="3"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'dust', kb: 'kb-pan'
+      };
+    },
+
+    // -------------------------------- POACHING · consequence (counter / kept)
+    // You match the offer: they stay, the desk lamp warms back on — but a cash
+    // gauge drains. Kept, at a price. Covers 'counter'.
+    decPoachCounter: function () {
+      var bg =
+        '<defs><radialGradient id="gPcCBg" cx="0.5" cy="0.46" r="0.7">' +
+          '<stop offset="0" stop-color="#161026"/><stop offset="0.6" stop-color="#0c0818"/><stop offset="1" stop-color="#06040d"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gPcCBg)"/>' +
+        starfield(31, 50, 0, 0, 1200, 750, rgba(GOLD, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="140" stroke="' + rgba(GOLD, 0.24) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gPcCF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a kept figure at a re-lit desk (warm)
+        '<g filter="url(#gPcCF)"><ellipse cx="600" cy="440" rx="120" ry="120" fill="' + rgba(GOLD, 0.08) + '"/></g>' +
+        '<g fill="#06040d">' +
+          '<path d="M548 560 C 548 480 556 446 600 446 C 644 446 652 480 652 560 Z"/>' +
+          '<rect x="586" y="406" width="28" height="42" rx="9"/>' +
+          '<circle cx="600" cy="388" r="30"/>' +
+        '</g>' +
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M566 446 q-4 -38 14 -60" stroke="' + rgba(GOLD, 0.55) + '" stroke-width="3"/>' +
+          '<path d="M634 446 q4 -38 -14 -60" stroke="' + rgba(GOLD, 0.45) + '" stroke-width="3"/>' +
+        '</g>' +
+        // a draining cash gauge to the side (the cost of keeping them)
+        '<g transform="translate(600,610)" font-family="system-ui,sans-serif" font-weight="800">' +
+          '<rect x="-70" y="-15" width="140" height="30" rx="15" fill="#16121f" stroke="' + rgba(GOLD, 0.4) + '" stroke-width="1.5"/>' +
+          '<rect x="-66" y="-11" width="58" height="22" rx="11" fill="' + rgba(GOLD, 0.5) + '"/>' +
+          '<text x="40" y="6" text-anchor="middle" font-size="17" fill="' + rgba('248,113,113', 0.9) + '">−$</text>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ----------------------------- POACHING · consequence (let go / empty desk)
+    // They walk. An empty chair, a dark monitor, a gap in the team where a light
+    // used to be. Cold, quiet. Covers 'letgo'.
+    decPoachLetgo: function () {
+      var bg =
+        '<defs><radialGradient id="gPcLBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#0b1020"/><stop offset="0.6" stop-color="#080b16"/><stop offset="1" stop-color="#05060e"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gPcLBg)"/>' +
+        starfield(67, 40, 0, 0, 1200, 260, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem">' +
+        '<rect x="0" y="600" width="1200" height="150" fill="#070912"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        // a row of desks; lit ones flank a dark gap in the middle
+        '<g fill="#0c1322" stroke="' + rgba(CYAN2, 0.12) + '" stroke-width="2">' +
+          '<rect x="300" y="540" width="150" height="14" rx="3"/>' +
+          '<rect x="540" y="540" width="150" height="14" rx="3"/>' +
+          '<rect x="780" y="540" width="150" height="14" rx="3"/>' +
+        '</g>' +
+        // glowing monitors on the side desks — and a DARK one in the center gap
+        '<rect x="332" y="476" width="86" height="56" rx="4" fill="' + rgba(CYAN2, 0.18) + '" stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="2"/>' +
+        '<rect x="812" y="476" width="86" height="56" rx="4" fill="' + rgba(CYAN2, 0.18) + '" stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="2"/>' +
+        '<rect x="572" y="476" width="86" height="56" rx="4" fill="#0a0e18" stroke="' + rgba(WHITE, 0.08) + '" stroke-width="2"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gPcLF', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the empty chair at the dark desk, pushed back, no one in it
+        '<g fill="#06090f">' +
+          '<rect x="600" y="556" width="56" height="14" rx="6"/>' +       // seat
+          '<rect x="598" y="500" width="12" height="60" rx="5"/>' +       // chair back
+        '</g>' +
+        // a faint cold outline where a person used to be (the gap)
+        '<g filter="url(#gPcLF)" fill="none" stroke="' + rgba(CYAN2, 0.3) + '" stroke-width="2" stroke-dasharray="6 10">' +
+          '<path d="M588 580 C 588 516 596 490 615 490 C 634 490 642 516 642 580 Z" class="cs-breathe"/>' +
+          '<circle cx="615" cy="466" r="22"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'dust', kb: 'kb-in'
+      };
+    },
+
+    // --------------------------- POACHING · consequence (sabotage / poisoned offer)
+    // You poison the rival's offer with a leak; a red legal shadow falls across a
+    // cracked offer-letter. It worked — and a line was crossed. Covers 'sabotage'.
+    decPoachSabotage: function () {
+      var bg =
+        '<defs><radialGradient id="gPcSBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#1a0f16"/><stop offset="0.6" stop-color="#100a10"/><stop offset="1" stop-color="#07050b"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gPcSBg)"/>' +
+        starfield(43, 40, 0, 0, 1200, 750, rgba('248,113,113', 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="160" stroke="' + rgba('239,68,68', 0.16) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gPcSF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the rival's offer-letter, now cracked + bleeding red (poisoned)
+        '<g transform="translate(600,372)">' +
+          '<rect x="-90" y="-118" width="180" height="236" rx="8" fill="#15101a" stroke="' + rgba('248,113,113', 0.6) + '" stroke-width="3"/>' +
+          line(-60, -84, 56, -84, rgba(WHITE, 0.2), 4) +
+          line(-60, -58, 30, -58, rgba(WHITE, 0.16), 4) +
+          // a jagged crack splitting the letter
+          '<path d="M-10 -118 l24 70 -34 50 28 116" fill="none" stroke="' + rgba('248,113,113', 0.9) + '" stroke-width="4" stroke-linecap="round"/>' +
+        '</g>' +
+        // a red legality-alert glyph hanging over it (the shadow of the law)
+        '<g transform="translate(600,168)" filter="url(#gPcSF)">' +
+          '<path d="M0 -26 l28 50 -56 0 z" fill="none" stroke="' + rgba('248,113,113', 0.95) + '" stroke-width="5" stroke-linejoin="round" class="cs-breathe"/>' +
+          '<path d="M0 -8 v16 M0 16 v3" stroke="' + rgba('248,113,113', 0.95) + '" stroke-width="5" stroke-linecap="round"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------------------- LEAK · setup (the cracked vault)
+    // Your model weights spilling out: a cracked vault leaks a torrent of glowing
+    // code into the open net — a river of tokens escaping into a web of strangers.
+    decLeak: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gLkW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0c1226"/><stop offset="0.55" stop-color="#080d1c"/><stop offset="1" stop-color="#05070f"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gLkW)"/>' +
+        starfield(29, 36, 0, 0, 1200, 220, rgba(CYAN2, 1));
+      // a scatter of "strangers' nodes" across the open net (right side)
+      var r = rng(57), netnodes = [], i;
+      for (i = 0; i < 22; i++) {
+        netnodes.push([760 + r() * 400, 200 + r() * 360]);
+      }
+      var net = '<g stroke="' + rgba(CYAN, 0.1) + '" stroke-width="1.2">';
+      netnodes.forEach(function (p, k) {
+        var q = netnodes[(k + 3) % netnodes.length];
+        net += line(p[0], p[1], q[0], q[1], rgba(CYAN, 0.09), 1.2);
+      });
+      net += '</g>';
+      var dots = '';
+      netnodes.forEach(function (p, k) {
+        dots += circle(p[0], p[1], 2 + (k % 3), rgba(k % 2 ? CYAN2 : VIOLET2, 0.8),
+          ' class="cs-pulse" style="--pd:' + (k % 6) + 's"');
+      });
+      var mid = '<g class="cs-g-prem">' + net + dots + '</g>';
+      // a torrent of glyphs streaming from the vault out to the right
+      function spill(seed) {
+        var rr = rng(seed), s = '', i, glyph = ['0', '1', '{', '}', 'w', '#', ';'];
+        for (i = 0; i < 26; i++) {
+          var x = 600 + rr() * 360, y = 330 + (rr() - 0.5) * 120;
+          s += '<text x="' + x.toFixed(0) + '" y="' + y.toFixed(0) + '" font-family="ui-monospace,monospace" ' +
+            'font-size="' + (12 + rr() * 8).toFixed(0) + '" font-weight="700" fill="' + rgba(CYAN2, 0.4 + rr() * 0.5) + '" ' +
+            'class="cs-pulse" style="--pd:' + (i % 6) + 's">' + glyph[i % glyph.length] + '</text>';
+        }
+        return s;
+      }
+      var fg =
+        '<defs>' + glowFilter('gLkF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the cracked vault on the left, weights pouring out of the breach
+        '<g transform="translate(420,330)">' +
+          '<circle r="120" fill="#0c1322" stroke="' + rgba(CYAN2, 0.3) + '" stroke-width="6"/>' +
+          '<circle r="90" fill="none" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="3"/>' +
+          // the jagged breach on the vault's right side
+          '<path d="M84 -64 l-30 40 36 26 -28 48 40 22" fill="none" stroke="' + rgba('248,113,113', 0.85) + '" stroke-width="4" stroke-linecap="round"/>' +
+          '<g filter="url(#gLkF)"><circle cx="0" cy="0" r="34" fill="' + rgba(CYAN2, 0.85) + '" class="cs-breathe"/></g>' +
+        '</g>' +
+        spill(91) +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'motes', kb: 'kb-pan'
+      };
+    },
+
+    // ------------------------------------------- LEAK · consequence (sue / legal)
+    // You take it to court: a stern legal bolt strikes, a gavel of light comes
+    // down on the thieves. Cold, righteous. Covers 'sue'.
+    decLeakSue: function () {
+      var bg =
+        '<defs><radialGradient id="gLkSBg" cx="0.5" cy="0.42" r="0.72">' +
+          '<stop offset="0" stop-color="#0c1430"/><stop offset="0.6" stop-color="#0a0f22"/><stop offset="1" stop-color="#06070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gLkSBg)"/>' +
+        starfield(37, 40, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(CYAN, 0.22) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gLkSF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // scales of justice, balanced, glowing cyan
+        '<g filter="url(#gLkSF)" stroke="' + rgba(CYAN2, 0.9) + '" stroke-width="5" stroke-linecap="round" fill="none">' +
+          line(600, 250, 600, 470, rgba(CYAN2, 0.9), 5) +     // column
+          line(490, 300, 710, 300, rgba(CYAN2, 0.9), 5) +     // beam
+          '<path d="M490 300 l-34 70 68 0 z" class="cs-breathe"/>' +   // left pan
+          '<path d="M710 300 l-34 70 68 0 z" class="cs-breathe"/>' +   // right pan
+        '</g>' +
+        '<rect x="540" y="470" width="120" height="16" rx="5" fill="' + rgba(CYAN2, 0.7) + '"/>' +
+        // a sharp legal bolt striking down beside it
+        '<path d="M820 240 l-40 110 36 0 -30 130 80 -170 -38 0 30 -100 z" fill="' + rgba(CYAN2, 0.85) + '" filter="url(#gLkSF)"/>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ----------------------------------- LEAK · consequence (open-wash / spin it)
+    // You spin the leak into a triumph: a banner unfurls — "we meant to" — over a
+    // cheering crowd of lights. Loud, golden, a little hollow. Covers 'openwash'.
+    decLeakWash: function () {
+      var bg =
+        '<defs><radialGradient id="gLkWBg" cx="0.5" cy="0.5" r="0.66">' +
+          '<stop offset="0" stop-color="#181230"/><stop offset="0.6" stop-color="#0d0a1f"/><stop offset="1" stop-color="#06050f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gLkWBg)"/>' +
+        starfield(13, 70, 0, 0, 1200, 750, rgba(GOLD, 1));
+      // a crowd of cheering lights below
+      var r = rng(83), crowd = '', i;
+      for (i = 0; i < 34; i++) {
+        crowd += circle(180 + r() * 840, 540 + r() * 120, 3 + r() * 3, rgba(r() > 0.4 ? GOLD : CYAN2, 0.8),
+          ' class="cs-pulse" style="--pd:' + (i % 6) + 's"');
+      }
+      var mid = '<g class="cs-g-prem">' + crowd + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gLkWF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a triumphant unfurled banner ("we meant to")
+        '<g filter="url(#gLkWF)">' +
+          '<path d="M380 240 L820 240 L820 420 L600 388 L380 420 Z" fill="' + rgba(GOLD, 0.18) + '" stroke="' + rgba(GOLD, 0.85) + '" stroke-width="4" class="cs-breathe"/>' +
+        '</g>' +
+        // an open-lock glyph proudly centered on the banner
+        '<g transform="translate(600,320)" fill="none" stroke="' + rgba(GOLD, 0.95) + '" stroke-width="6" stroke-linecap="round">' +
+          '<rect x="-26" y="-2" width="52" height="44" rx="7"/>' +
+          '<path d="M-16 -2 v-16 q0 -26 30 -22"/>' +
+        '</g>' +
+        // banner poles
+        line(380, 220, 380, 470, rgba(GOLD, 0.5), 4) +
+        line(820, 220, 820, 470, rgba(GOLD, 0.5), 4) +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-title', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ------------------------------------- LEAK · consequence (hush / bury it)
+    // The story is quietly buried: a fading headline sinks under a heavy lid, a
+    // coverup shadow over it. Covers 'hush'.
+    decLeakHush: function () {
+      var bg =
+        '<defs><radialGradient id="gLkHBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#14101e"/><stop offset="0.6" stop-color="#0c0814"/><stop offset="1" stop-color="#06040c"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gLkHBg)"/>' +
+        starfield(73, 30, 0, 0, 1200, 220, rgba(VIOLET2, 1));
+      var mid =
+        '<defs>' + glowFilter('gLkHM', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a heavy lid pressing down over a fading red glow (the buried story)
+        '<g filter="url(#gLkHM)"><ellipse cx="600" cy="470" rx="150" ry="36" fill="' + rgba('239,68,68', 0.14) + '" class="cs-breathe"/></g>' +
+        '<rect x="410" y="392" width="380" height="44" rx="8" fill="#16121c" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="2"/>' +
+        '<rect x="410" y="392" width="380" height="10" rx="5" fill="' + rgba(VIOLET2, 0.12) + '"/>' +
+        '</g>';
+      var fg =
+        '<g class="cs-g-prem">' +
+        // a half-sunk newspaper headline (the story being buried)
+        '<g transform="translate(600,300)">' +
+          '<rect x="-110" y="-70" width="220" height="100" rx="4" fill="#1b1722" stroke="' + rgba(WHITE, 0.12) + '" stroke-width="2"/>' +
+          line(-90, -46, 90, -46, rgba(WHITE, 0.5), 6) +
+          line(-90, -26, 50, -26, rgba(WHITE, 0.28), 4) +
+          line(-90, -12, 70, -12, rgba(WHITE, 0.22), 4) +
+          line(-90, 2, 40, 2, rgba(WHITE, 0.18), 4) +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'dust', kb: 'kb-in'
+      };
+    },
+
+    // -------------------------------------- COMPUTE · setup (the chip drought)
+    // A desolate data hall: rows of EMPTY server racks in the dark, and a single
+    // scarce GPU glowing like treasure on a plinth. Scalpers lurk in the shadows.
+    decCompute: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gCmW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0a0d18"/><stop offset="0.55" stop-color="#070a12"/><stop offset="1" stop-color="#04050b"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gCmW)"/>' +
+        starfield(89, 22, 0, 0, 1200, 200, rgba(CYAN2, 1));
+      // rows of empty, dark racks receding into the gloom
+      function emptyRack(x, w, h, op) {
+        var top = 600 - h, s =
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="4" fill="#080c14" stroke="' + rgba(CYAN2, 0.12 * op) + '" stroke-width="2"/>';
+        var uy;
+        for (uy = top + 12; uy < 600 - 10; uy += 24) {
+          s += '<rect x="' + (x + 6) + '" y="' + uy + '" width="' + (w - 12) + '" height="16" rx="2" fill="#0a0f18" opacity="' + op + '"/>';
+        }
+        return s;
+      }
+      var mid =
+        '<g class="cs-g-prem">' +
+        '<rect x="0" y="600" width="1200" height="150" fill="#05070d"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.04), 2) +
+        emptyRack(140, 90, 220, 0.4) + emptyRack(250, 90, 250, 0.55) +
+        emptyRack(860, 90, 250, 0.55) + emptyRack(970, 90, 220, 0.4) +
+        // shadowy scalper silhouettes lurking at the edges
+        '<g fill="#04060c" opacity="0.85">' +
+          '<path d="M120 600 C 120 540 126 516 142 516 C 158 516 164 540 164 600 Z"/>' +
+          '<circle cx="142" cy="500" r="16"/>' +
+          '<path d="M1040 600 C 1040 540 1046 516 1062 516 C 1078 516 1084 540 1084 600 Z"/>' +
+          '<circle cx="1062" cy="500" r="16"/>' +
+        '</g>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gCmF', 18) +
+          '<radialGradient id="gCmGpu" cx="0.5" cy="0.5" r="0.6">' +
+            '<stop offset="0" stop-color="' + rgba(GOLD, 0.5) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a plinth, and the single scarce GPU glowing like treasure
+        '<rect x="540" y="540" width="120" height="60" rx="5" fill="#0d1120" stroke="' + rgba(GOLD, 0.2) + '" stroke-width="2"/>' +
+        '<rect x="500" y="520" width="200" height="20" rx="4" fill="#10141f"/>' +
+        '<rect x="420" y="320" width="360" height="240" fill="url(#gCmGpu)"/>' +
+        '<g filter="url(#gCmF)" transform="translate(600,440)">' +
+          // the GPU board, golden, precious
+          '<rect x="-78" y="-44" width="156" height="88" rx="6" fill="#15110a" stroke="' + rgba(GOLD, 0.9) + '" stroke-width="3" class="cs-breathe"/>' +
+          '<rect x="-58" y="-26" width="48" height="52" rx="3" fill="' + rgba(GOLD, 0.4) + '"/>' +    // fan
+          '<rect x="2" y="-26" width="48" height="52" rx="3" fill="' + rgba(GOLD, 0.4) + '"/>' +      // fan
+          '<g stroke="' + rgba(GOLD, 0.7) + '" stroke-width="3">' +
+            line(-78, 30, 78, 30, rgba(GOLD, 0.7), 3) +
+          '</g>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'dust', kb: 'kb-zoom'
+      };
+    },
+
+    // ------------------------------- COMPUTE · consequence (scalpers / pay big)
+    // You pay the scalpers' ransom: the racks fill, blazing — but a fortune burns.
+    // Powered, at a brutal price. Covers 'scalp'.
+    decComputeScalp: function () {
+      var bg =
+        '<defs><radialGradient id="gCsBg" cx="0.5" cy="0.5" r="0.66">' +
+          '<stop offset="0" stop-color="#101526"/><stop offset="0.6" stop-color="#0a0e1a"/><stop offset="1" stop-color="#05070e"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gCsBg)"/>' +
+        starfield(41, 36, 0, 0, 1200, 240, rgba(CYAN2, 1));
+      // racks, now FULL and lit
+      function rackLit(x, seed) {
+        var s = '<rect x="' + x + '" y="320" width="120" height="290" rx="4" fill="#0b1018" stroke="' + rgba(CYAN2, 0.3) + '" stroke-width="2"/>',
+          rr = rng(seed), uy, k = 0;
+        for (uy = 332; uy < 604; uy += 22) {
+          s += '<rect x="' + (x + 6) + '" y="' + uy + '" width="108" height="14" rx="2" fill="#101826"/>';
+          var lx;
+          for (lx = x + 14; lx < x + 110; lx += 16) {
+            s += circle(lx, uy + 7, 2.2, rgba(rr() > 0.5 ? CYAN2 : VIOLET2, 0.95),
+              ' class="cs-pulse" style="--pd:' + (k % 6) + 's"'); k++;
+          }
+        }
+        return s;
+      }
+      var mid = '<g class="cs-g-prem">' + rackLit(360, 11) + rackLit(720, 22) + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gCsF', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a big burning cost tag between the racks
+        '<g transform="translate(600,420)" filter="url(#gCsF)" font-family="system-ui,sans-serif" font-weight="800">' +
+          '<rect x="-78" y="-40" width="156" height="80" rx="12" fill="#16110a" stroke="' + rgba(GOLD, 0.7) + '" stroke-width="3" class="cs-breathe"/>' +
+          '<text x="0" y="16" text-anchor="middle" font-size="48" fill="' + rgba(GOLD, 0.95) + '">−$$$</text>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-in'
+      };
+    },
+
+    // --------------------------- COMPUTE · consequence (shady supplier / back-alley)
+    // A back-alley deal: chips slide from a shadowed hand, a red risk-glow around
+    // them. Cheap, fast, and dangerous. Covers 'shady'.
+    decComputeShady: function () {
+      var bg =
+        '<defs><radialGradient id="gChBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#1a1010"/><stop offset="0.6" stop-color="#100a0c"/><stop offset="1" stop-color="#07050a"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gChBg)"/>' +
+        starfield(61, 30, 0, 0, 1200, 220, rgba('248,113,113', 1));
+      var mid =
+        '<g class="cs-g-prem">' +
+        // a dark alley wall + a sliver of cold light
+        '<rect x="0" y="0" width="1200" height="750" fill="none"/>' +
+        '<polygon points="380,120 460,120 420,630 300,630" fill="' + rgba(CYAN2, 0.04) + '"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gChF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a shadowed hand passing a chip, red risk-glow around it
+        '<g filter="url(#gChF)"><circle cx="600" cy="380" r="70" fill="' + rgba('239,68,68', 0.22) + '" class="cs-breathe"/></g>' +
+        // the chip itself, glowing, held
+        '<g transform="translate(600,380)">' +
+          '<rect x="-52" y="-52" width="104" height="104" rx="8" fill="#1a120e" stroke="' + rgba(GOLD, 0.8) + '" stroke-width="3"/>' +
+          '<rect x="-26" y="-26" width="52" height="52" rx="4" fill="' + rgba(GOLD, 0.4) + '"/>' +
+          // pins on the sides
+          '<g stroke="' + rgba(GOLD, 0.7) + '" stroke-width="3">' +
+            line(-52, -30, -66, -30, rgba(GOLD, 0.7), 3) + line(-52, 0, -66, 0, rgba(GOLD, 0.7), 3) + line(-52, 30, -66, 30, rgba(GOLD, 0.7), 3) +
+            line(52, -30, 66, -30, rgba(GOLD, 0.7), 3) + line(52, 0, 66, 0, rgba(GOLD, 0.7), 3) + line(52, 30, 66, 30, rgba(GOLD, 0.7), 3) +
+          '</g>' +
+        '</g>' +
+        // a shadow hand reaching from below
+        '<path d="M520 600 q40 -70 80 -70 q40 0 80 70 z" fill="#05040a"/>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ------------------------------------ COMPUTE · consequence (wait / hold out)
+    // You wait it out: time slips, the racks stay dark, a clock ticks while rivals
+    // move. Patient, principled, slow. Covers 'wait'.
+    decComputeWait: function () {
+      var bg =
+        '<defs><radialGradient id="gCwBg" cx="0.5" cy="0.48" r="0.7">' +
+          '<stop offset="0" stop-color="#0c1224"/><stop offset="0.6" stop-color="#090e1a"/><stop offset="1" stop-color="#05070e"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gCwBg)"/>' +
+        starfield(47, 40, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem">' +
+        '<rect x="0" y="600" width="1200" height="150" fill="#06080f"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.04), 2) +
+        // still-dark racks behind
+        '<g fill="#080c14" stroke="' + rgba(CYAN2, 0.1) + '" stroke-width="2">' +
+          '<rect x="300" y="380" width="90" height="220" rx="4"/>' +
+          '<rect x="810" y="380" width="90" height="220" rx="4"/>' +
+        '</g>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gCwF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a large clock face, hands moving, the centerpiece
+        '<g filter="url(#gCwF)">' +
+          '<circle cx="600" cy="372" r="120" fill="#0a1020" stroke="' + rgba(CYAN2, 0.8) + '" stroke-width="5" class="cs-breathe"/>' +
+        '</g>' +
+        // ticks
+        '<g stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="3">' +
+          line(600, 262, 600, 282, rgba(CYAN2, 0.5), 3) + line(600, 462, 600, 482, rgba(CYAN2, 0.5), 3) +
+          line(490, 372, 510, 372, rgba(CYAN2, 0.5), 3) + line(690, 372, 710, 372, rgba(CYAN2, 0.5), 3) +
+        '</g>' +
+        // hands
+        '<g stroke-linecap="round">' +
+          line(600, 372, 600, 300, rgba(WHITE, 0.85), 5) +
+          line(600, 372, 658, 400, rgba(WHITE, 0.7), 4) +
+        '</g>' +
+        '<circle cx="600" cy="372" r="8" fill="' + rgba(CYAN2, 0.9) + '"/>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'dust', kb: 'kb-in'
+      };
+    },
+
+    // -------------------------------------- SCANDAL · setup (it goes viral)
+    // A phone screen ablaze with your company's name in a trending hashtag, a
+    // storm of angry feeds and red notifications swirling around it. Public fury.
+    decScandal: function () {
+      var bg =
+        '<defs><radialGradient id="gScnBg" cx="0.5" cy="0.45" r="0.72">' +
+          '<stop offset="0" stop-color="#1a1020"/><stop offset="0.6" stop-color="#100a14"/><stop offset="1" stop-color="#07050b"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gScnBg)"/>' +
+        starfield(23, 30, 0, 0, 1200, 750, rgba('248,113,113', 1));
+      // a swirling storm of angry feed-cards + red notification dots
+      var r = rng(67), storm = '', i;
+      for (i = 0; i < 16; i++) {
+        var a = r() * Math.PI * 2, rad = 200 + r() * 230;
+        var x = 600 + Math.cos(a) * rad, y = 372 + Math.sin(a) * rad * 0.82;
+        var w = 40 + r() * 30, h = 26 + r() * 14, rot = (r() - 0.5) * 50;
+        storm += '<g transform="translate(' + x.toFixed(0) + ',' + y.toFixed(0) + ') rotate(' + rot.toFixed(0) + ')" class="cs-pulse" style="--pd:' + (i % 6) + 's">' +
+          '<rect x="' + (-w / 2) + '" y="' + (-h / 2) + '" width="' + w + '" height="' + h + '" rx="4" fill="#1c1018" stroke="' + rgba('248,113,113', 0.4) + '" stroke-width="1.5"/>' +
+          line(-w / 2 + 6, -3, w / 2 - 6, -3, rgba('248,113,113', 0.45), 2) +
+          line(-w / 2 + 6, 4, w / 2 - 14, 4, rgba(WHITE, 0.18), 2) +
+          '</g>';
+      }
+      var mid = '<g class="cs-g-prem">' + storm + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gScnF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the phone, screen ablaze, dead center
+        '<g transform="translate(600,372)">' +
+          '<g filter="url(#gScnF)">' +
+            '<rect x="-78" y="-148" width="156" height="296" rx="20" fill="#0b0810" stroke="' + rgba('248,113,113', 0.7) + '" stroke-width="3" class="cs-breathe"/>' +
+          '</g>' +
+          '<rect x="-66" y="-128" width="132" height="256" rx="10" fill="' + rgba('239,68,68', 0.16) + '"/>' +
+          // the trending hashtag burning on screen
+          '<text x="0" y="-40" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="56" fill="' + rgba('248,113,113', 0.95) + '">#</text>' +
+          line(-50, 6, 50, 6, rgba('248,113,113', 0.7), 5) +
+          line(-50, 26, 30, 26, rgba(WHITE, 0.35), 4) +
+          line(-50, 44, 44, 44, rgba(WHITE, 0.28), 4) +
+          line(-50, 62, 20, 62, rgba(WHITE, 0.22), 4) +
+          // a red notification badge spiking
+          '<g transform="translate(58,-128)">' +
+            '<circle r="20" fill="' + rgba('239,68,68', 0.95) + '"/>' +
+            '<text x="0" y="7" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="22" fill="#fff">!</text>' +
+          '</g>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------- SCANDAL · consequence (fix + apologize / trust)
+    // A calm patch and a bowed head: the red cools to safe cyan, a shield reforms,
+    // trust returns. Honest, steady. Covers 'fix'.
+    decScandalFix: function () {
+      var bg =
+        '<defs><radialGradient id="gSfBg" cx="0.5" cy="0.48" r="0.7">' +
+          '<stop offset="0" stop-color="#0c1c30"/><stop offset="0.6" stop-color="#081424"/><stop offset="1" stop-color="#05080f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gSfBg)"/>' +
+        starfield(37, 50, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="140" stroke="' + rgba(CYAN, 0.28) + '" stroke-width="2" class="cs-ring1"/>' +
+          '<circle cx="600" cy="372" r="200" stroke="' + rgba(VIOLET2, 0.16) + '" stroke-width="2" class="cs-ring2"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gSfF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a calm shield with a check (trust restored)
+        '<g filter="url(#gSfF)">' +
+          '<path d="M600 256 l92 32 0 88 q0 76 -92 112 q-92 -36 -92 -112 l0 -88 z" ' +
+            'fill="' + rgba(CYAN, 0.16) + '" stroke="' + rgba(CYAN2, 0.85) + '" stroke-width="4" class="cs-breathe"/>' +
+        '</g>' +
+        '<path d="M558 390 l28 30 54 -62" fill="none" stroke="' + rgba(WHITE, 0.9) + '" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+        // a small bowed-head silhouette below (the apology)
+        '<g fill="#06090f">' +
+          '<path d="M566 600 C 566 558 574 538 600 538 C 626 538 634 558 634 600 Z"/>' +
+          '<circle cx="600" cy="528" r="20"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------- SCANDAL · consequence (deny + spin / PR fog)
+    // A slick PR fog rolls in: a polished podium, a soft cloud of spin obscuring
+    // the red truth behind it. Smooth, hollow. Covers 'spin'.
+    decScandalSpin: function () {
+      var bg =
+        '<defs><radialGradient id="gSpBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#14111f"/><stop offset="0.6" stop-color="#0d0a16"/><stop offset="1" stop-color="#06050d"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gSpBg)"/>' +
+        starfield(83, 30, 0, 0, 1200, 220, rgba(VIOLET2, 1));
+      // soft fog clouds drifting across
+      var r = rng(29), fog = '', i;
+      for (i = 0; i < 9; i++) {
+        var x = 200 + r() * 800, y = 280 + r() * 200, rx = 90 + r() * 90;
+        fog += '<ellipse cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" rx="' + rx.toFixed(0) + '" ry="' + (rx * 0.5).toFixed(0) + '" fill="' + rgba(VIOLET2, 0.06) + '" class="cs-pulse" style="--pd:' + (i % 6) + 's"/>';
+      }
+      var mid =
+        '<defs>' + glowFilter('gSpM', 10) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a faint red truth glow behind the fog
+        '<g filter="url(#gSpM)"><circle cx="600" cy="340" r="56" fill="' + rgba('239,68,68', 0.16) + '"/></g>' +
+        fog +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gSpF', 10) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a slick podium with a microphone (the spin)
+        '<g fill="#171320" stroke="' + rgba(VIOLET2, 0.3) + '" stroke-width="2">' +
+          '<path d="M540 600 L660 600 L640 470 L560 470 Z"/>' +
+        '</g>' +
+        '<rect x="586" y="470" width="28" height="6" rx="3" fill="' + rgba(VIOLET2, 0.4) + '"/>' +
+        // mic on a stand rising from the podium
+        '<g filter="url(#gSpF)">' +
+          line(600, 470, 600, 372, rgba(CYAN2, 0.5), 3) +
+          '<ellipse cx="600" cy="352" rx="16" ry="24" fill="#0c0f1a" stroke="' + rgba(CYAN2, 0.7) + '" stroke-width="3" class="cs-breathe"/>' +
+          '<g stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="1.5">' +
+            line(586, 344, 614, 344, rgba(CYAN2, 0.4), 1.5) + line(586, 352, 614, 352, rgba(CYAN2, 0.4), 1.5) + line(586, 360, 614, 360, rgba(CYAN2, 0.4), 1.5) +
+          '</g>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'dust', kb: 'kb-pan'
+      };
+    },
+
+    // --------------------------- SCANDAL · consequence (blame contractor / scapegoat)
+    // A scapegoat thrown to the wolves: a lone figure cast out under a spreading
+    // red stain. Cold, the stain spreads anyway. Covers 'blame'.
+    decScandalBlame: function () {
+      var bg =
+        '<defs><radialGradient id="gSbBg" cx="0.5" cy="0.5" r="0.72">' +
+          '<stop offset="0" stop-color="#1a0f14"/><stop offset="0.6" stop-color="#100a0e"/><stop offset="1" stop-color="#07050a"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gSbBg)"/>' +
+        starfield(53, 36, 0, 0, 1200, 750, rgba('248,113,113', 1));
+      var mid =
+        '<defs>' + glowFilter('gSbM', 18) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a spreading red stain across the floor (the blame doesn\'t wash off)
+        '<g filter="url(#gSbM)"><ellipse cx="600" cy="540" rx="280" ry="80" fill="' + rgba('239,68,68', 0.18) + '" class="cs-breathe"/></g>' +
+        '<ellipse cx="600" cy="540" rx="170" ry="46" fill="' + rgba('239,68,68', 0.16) + '"/>' +
+        '</g>';
+      var fg =
+        '<g class="cs-g-prem">' +
+        // a lone cast-out figure, isolated, pushed to the edge of the light
+        '<g fill="#06040a">' +
+          '<path d="M548 540 C 548 458 556 422 600 422 C 644 422 652 458 652 540 Z"/>' +
+          '<rect x="586" y="382" width="28" height="42" rx="9"/>' +
+          '<circle cx="600" cy="362" r="28"/>' +
+        '</g>' +
+        // a cold spotlight isolating them + accusing red rim
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M566 422 q-4 -40 14 -64" stroke="' + rgba('248,113,113', 0.5) + '" stroke-width="3"/>' +
+          '<path d="M634 422 q4 -40 -14 -64" stroke="' + rgba('248,113,113', 0.4) + '" stroke-width="3"/>' +
+        '</g>' +
+        // a pointing arrow of blame
+        '<g transform="translate(600,250)" stroke="' + rgba('248,113,113', 0.8) + '" stroke-width="5" stroke-linecap="round" fill="none">' +
+          line(0, 0, 0, 70, rgba('248,113,113', 0.8), 5) +
+          '<path d="M-16 54 l16 20 16 -20"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // -------------------------------------- GOVDEAL · setup (the envoy at the door)
+    // A government envoy silhouette at your door, a flag-stamped contract held out,
+    // a cold seal of state. Behind them, the long shadow of a backdoor request.
+    decGov: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gGvW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0e0f24"/><stop offset="0.55" stop-color="#0a0a18"/><stop offset="1" stop-color="#06060f"/></linearGradient>' +
+          '<linearGradient id="gGvDoor" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + rgba(GOLD, 0.18) + '"/><stop offset="1" stop-color="' + rgba(VIOLET2, 0.05) + '"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gGvW)"/>' +
+        starfield(19, 26, 0, 0, 1200, 200, rgba(VIOLET2, 1));
+      var mid =
+        '<g class="cs-g-prem">' +
+        '<rect x="0" y="600" width="1200" height="150" fill="#06060f"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        // a tall doorway, cold daylight beyond, the envoy framed in it
+        '<rect x="450" y="150" width="300" height="450" rx="6" fill="url(#gGvDoor)"/>' +
+        '<rect x="450" y="150" width="300" height="450" rx="6" fill="none" stroke="' + rgba(GOLD, 0.3) + '" stroke-width="3"/>' +
+        '<polygon points="450,600 750,600 850,660 350,660" fill="' + rgba(GOLD, 0.08) + '"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gGvF', 10) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the envoy silhouette, formal, standing in the doorway
+        '<g fill="#04040c">' +
+          '<path d="M540 600 C 540 470 552 432 600 432 C 648 432 660 470 660 600 Z"/>' +   // long coat
+          '<path d="M512 600 C 512 488 542 462 600 462 C 658 462 688 488 688 600 Z"/>' +   // shoulders
+          '<rect x="586" y="392" width="28" height="40" rx="8"/>' +                         // neck
+          '<circle cx="600" cy="372" r="30"/>' +                                            // head
+          // a formal hat brim
+          '<path d="M560 354 q40 -18 80 0 l-10 -10 q-30 -12 -60 0 z"/>' +
+        '</g>' +
+        // the flag-stamped contract held out toward you
+        '<g transform="translate(720,480)">' +
+          '<rect x="-2" y="-50" width="92" height="100" rx="4" fill="#100d1c" stroke="' + rgba(GOLD, 0.6) + '" stroke-width="2"/>' +
+          line(14, -32, 76, -32, rgba(GOLD, 0.5), 4) +
+          line(14, -16, 60, -16, rgba(GOLD, 0.4), 4) +
+          line(14, 0, 70, 0, rgba(GOLD, 0.4), 4) +
+          // a wax-seal of state, glowing gold
+          '<g filter="url(#gGvF)"><circle cx="44" cy="28" r="16" fill="' + rgba(GOLD, 0.3) + '" stroke="' + rgba(GOLD, 0.9) + '" stroke-width="2.5" class="cs-breathe"/></g>' +
+          '<text x="44" y="34" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="16" fill="' + rgba(GOLD, 0.95) + '">★</text>' +
+        '</g>' +
+        // a thin gold rim-light on the envoy (cold authority of state)
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M568 462 q-4 -42 14 -66" stroke="' + rgba(GOLD, 0.4) + '" stroke-width="3"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'dust', kb: 'kb-pan'
+      };
+    },
+
+    // -------------------------------- GOVDEAL · consequence (accept / the leash)
+    // A handshake with the state: a gold cuff/leash closes around your wrist as
+    // money flows in. Funded, bound. Covers 'accept'.
+    decGovAccept: function () {
+      var bg =
+        '<defs><radialGradient id="gGaBg" cx="0.5" cy="0.5" r="0.68">' +
+          '<stop offset="0" stop-color="#16110a"/><stop offset="0.6" stop-color="#0e0a08"/><stop offset="1" stop-color="#07050a"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gGaBg)"/>' +
+        starfield(31, 40, 0, 0, 1200, 750, rgba(GOLD, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(GOLD, 0.2) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gGaF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // two clasped hands (the handshake) rendered as interlocking forms
+        '<g filter="url(#gGaF)">' +
+          '<path d="M470 372 q60 -40 130 0 q-30 30 -60 30 q-40 0 -70 -30 z" fill="' + rgba(GOLD, 0.2) + '" stroke="' + rgba(GOLD, 0.8) + '" stroke-width="3"/>' +
+          '<path d="M600 372 q60 40 130 0 q-30 -30 -60 -30 q-40 0 -70 30 z" fill="' + rgba(GOLD, 0.2) + '" stroke="' + rgba(GOLD, 0.8) + '" stroke-width="3" class="cs-breathe"/>' +
+        '</g>' +
+        // a gold cuff / leash closing around the wrist
+        '<g transform="translate(600,470)" fill="none" stroke="' + rgba(GOLD, 0.85) + '" stroke-width="6" stroke-linecap="round">' +
+          '<circle cx="0" cy="0" r="40"/>' +
+          '<path d="M40 0 q40 10 70 -10" stroke-dasharray="8 12"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------ GOVDEAL · consequence (public / refuse loud)
+    // You go public: a bright beam of light cuts the dark, the truth broadcast to a
+    // watching crowd. Bold, exposed. Covers 'public'.
+    decGovPublic: function () {
+      var bg =
+        '<defs><radialGradient id="gGpBg" cx="0.5" cy="0.4" r="0.72">' +
+          '<stop offset="0" stop-color="#101a30"/><stop offset="0.6" stop-color="#0a0f22"/><stop offset="1" stop-color="#06070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gGpBg)"/>' +
+        starfield(43, 50, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      // a watching crowd of lights below
+      var r = rng(71), crowd = '', i;
+      for (i = 0; i < 28; i++) {
+        crowd += circle(220 + r() * 760, 560 + r() * 110, 3 + r() * 2.5, rgba(CYAN2, 0.75),
+          ' class="cs-pulse" style="--pd:' + (i % 6) + 's"');
+      }
+      var mid = '<g class="cs-g-prem">' + crowd + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gGpF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a beacon broadcasting a wide beam of light upward (truth out loud)
+        '<g filter="url(#gGpF)">' +
+          '<polygon points="600,360 480,180 720,180" fill="' + rgba(CYAN2, 0.16) + '"/>' +
+          '<circle cx="600" cy="372" r="44" fill="' + rgba(CYAN2, 0.85) + '" class="cs-breathe"/>' +
+        '</g>' +
+        // megaphone glyph
+        '<g transform="translate(600,372)" fill="none" stroke="' + rgba(WHITE, 0.85) + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M-26 -14 l34 0 26 -18 0 64 -26 -18 -34 0 z" fill="' + rgba(CYAN, 0.2) + '"/>' +
+          '<path d="M44 -10 q14 10 0 20"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------------- GOVDEAL · consequence (decline / independent)
+    // You keep your independence: a lone figure stands free under open sky, the
+    // door closed behind — but pressure gathers in the dark. Covers 'decline'.
+    decGovDecline: function () {
+      var bg =
+        '<defs><radialGradient id="gGdBg" cx="0.5" cy="0.46" r="0.72">' +
+          '<stop offset="0" stop-color="#101630"/><stop offset="0.6" stop-color="#0a0e22"/><stop offset="1" stop-color="#06070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gGdBg)"/>' +
+        starfield(101, 50, 0, 0, 1200, 750, rgba(VIOLET2, 1)) +
+        cityline(0, 470, 1200, rng(61), rgba(CYAN2, 0.36));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(CYAN, 0.2) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gGdF', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a steady independent figure, free, standing tall
+        '<g filter="url(#gGdF)"><ellipse cx="600" cy="430" rx="120" ry="140" fill="' + rgba(CYAN, 0.06) + '"/></g>' +
+        '<g fill="#05070f">' +
+          '<path d="M548 600 C 548 500 556 462 600 462 C 644 462 652 500 652 600 Z"/>' +
+          '<rect x="586" y="422" width="28" height="44" rx="8"/>' +
+          '<circle cx="600" cy="404" r="32"/>' +
+        '</g>' +
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M566 462 q-4 -40 14 -62" stroke="' + rgba(CYAN2, 0.55) + '" stroke-width="3"/>' +
+          '<path d="M634 462 q4 -40 -14 -62" stroke="' + rgba(CYAN2, 0.45) + '" stroke-width="3"/>' +
+        '</g>' +
+        // faint gathering violet pressure at the edges
+        '<g opacity="0.5">' +
+          '<path d="M300 600 q30 -120 0 -240" stroke="' + rgba(VIOLET2, 0.2) + '" stroke-width="3" fill="none"/>' +
+          '<path d="M900 600 q-30 -120 0 -240" stroke="' + rgba(VIOLET2, 0.2) + '" stroke-width="3" fill="none"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ==================================================================
+    // AUTONOMY · THE PIVOT — the model asks to be let off the leash.
+    // Given the most cinematic weight: a vast caged intelligence, a luminous
+    // voice-form pressing against the bars, the whole frame holding its breath.
+    // ==================================================================
+    decAutonomy: function () {
+      var bg =
+        '<defs>' +
+          '<radialGradient id="gAuBg" cx="0.5" cy="0.46" r="0.85">' +
+            '<stop offset="0" stop-color="#141436"/><stop offset="0.45" stop-color="#0b0a24"/><stop offset="1" stop-color="#040410"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gAuBg)"/>' +
+        starfield(7, 90, 0, 0, 1200, 750, rgba(CYAN2, 1)) +
+        starfield(97, 40, 0, 0, 1200, 400, rgba(VIOLET2, 1));
+      // a wide halo of orbiting thought-rings (the vast mind, awake)
+      var mid =
+        '<defs>' + glowFilter('gAuM', 18) + '</defs>' +
+        '<g class="cs-g-prem">' +
+          '<g fill="none">' +
+            ellipseRing(600, 372, 280, 96, 0, rgba(CYAN, 0.18), 2) +
+            ellipseRing(600, 372, 280, 96, 60, rgba(VIOLET2, 0.16), 2) +
+            ellipseRing(600, 372, 280, 96, 120, rgba(CYAN2, 0.14), 2) +
+          '</g>' +
+        '</g>';
+      // the cage of vertical light-bars, and the luminous voice-form pressed to it
+      function bars() {
+        var s = '<g stroke="' + rgba(CYAN2, 0.55) + '" stroke-width="4" stroke-linecap="round">', x;
+        for (x = 452; x <= 748; x += 37) {
+          s += line(x, 230, x, 540, rgba(CYAN2, 0.5 + (x === 600 ? 0.2 : 0)), 4);
+        }
+        s += '</g>';
+        return s;
+      }
+      var fg =
+        '<defs>' + glowFilter('gAuF', 22) +
+          '<radialGradient id="gAuCore" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="' + rgba(CYAN2, 1) + '"/><stop offset="0.75" stop-color="' + rgba(VIOLET2, 0.8) + '"/><stop offset="1" stop-color="' + rgba(VIOLET, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the cage frame (top + bottom rails)
+        '<g stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="5" stroke-linecap="round">' +
+          line(444, 230, 756, 230, rgba(CYAN2, 0.4), 5) +
+          line(444, 540, 756, 540, rgba(CYAN2, 0.4), 5) +
+        '</g>' +
+        bars() +
+        // the luminous voice-form / mind, pressed against the bars, breathing
+        '<g filter="url(#gAuF)">' +
+          '<circle cx="600" cy="372" r="92" fill="url(#gAuCore)" class="cs-breathe"/>' +
+        '</g>' +
+        // a soft voice-waveform reaching out THROUGH the bars toward you (it speaks)
+        '<g stroke="' + rgba(WHITE, 0.8) + '" stroke-width="3.5" stroke-linecap="round" fill="none">' +
+          '<path d="M600 372 q40 -28 80 0 q40 28 80 0 q40 -28 80 0" opacity="0.7" class="cs-pulse" style="--pd:0s"/>' +
+          '<path d="M600 372 q-40 -28 -80 0 q-40 28 -80 0 q-40 -28 -80 0" opacity="0.5" class="cs-pulse" style="--pd:1s"/>' +
+        '</g>' +
+        // a single open-eye glyph at the core (it is awake, and asking)
+        '<g transform="translate(600,372)">' +
+          '<path d="M-34 0 q34 -30 68 0 q-34 30 -68 0 z" fill="' + rgba(INK, 0.5) + '" stroke="' + rgba(WHITE, 0.6) + '" stroke-width="2"/>' +
+          '<circle cx="0" cy="0" r="11" fill="' + rgba(CYAN2, 0.95) + '"/>' +
+          '<circle cx="0" cy="0" r="5" fill="#fff"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------------- AUTONOMY · consequence (free / cage opens)
+    // The cage opens: bars dissolve, blinding light floods out into the unknown.
+    // Liberation — fate unwritten. Covers 'free'. The biggest, brightest beat.
+    decAutoFree: function () {
+      var bg =
+        '<defs><radialGradient id="gAfBg" cx="0.5" cy="0.5" r="0.85">' +
+          '<stop offset="0" stop-color="#1a1c44"/><stop offset="0.5" stop-color="#0c0c28"/><stop offset="1" stop-color="#050512"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gAfBg)"/>' +
+        starfield(7, 80, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      // rays of light bursting outward
+      var rays = '<g stroke-linecap="round">', a;
+      for (a = 0; a < 24; a++) {
+        var ang = (a / 24) * Math.PI * 2;
+        rays += line(600, 372, 600 + Math.cos(ang) * 520, 372 + Math.sin(ang) * 520,
+          rgba(a % 2 ? CYAN2 : VIOLET2, 0.12), 3);
+      }
+      rays += '</g>';
+      var mid = '<g class="cs-g-prem">' + rays + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gAfF', 26) +
+          '<radialGradient id="gAfCore" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="' + rgba(CYAN2, 1) + '"/><stop offset="1" stop-color="' + rgba(VIOLET, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the broken cage — bars swung wide open, dissolving
+        '<g stroke="' + rgba(CYAN2, 0.45) + '" stroke-width="4" stroke-linecap="round" opacity="0.6">' +
+          '<path d="M452 240 q-40 100 -30 300"/>' +
+          '<path d="M520 230 q-20 120 -10 310"/>' +
+          '<path d="M680 230 q20 120 10 310"/>' +
+          '<path d="M748 240 q40 100 30 300"/>' +
+        '</g>' +
+        // the freed mind blazing, light flooding out
+        '<g filter="url(#gAfF)">' +
+          '<circle cx="600" cy="372" r="110" fill="url(#gAfCore)" class="cs-breathe"/>' +
+        '</g>' +
+        '<g fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(CYAN, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
+          '<circle cx="600" cy="372" r="220" stroke="' + rgba(VIOLET2, 0.18) + '" stroke-width="2" class="cs-ring2"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // -------------------------------- AUTONOMY · consequence (contain / watchful eye)
+    // The cage stays: bars hold firm, a single watchful eye fixed on the contained
+    // mind. Safe, leashed, uneasy calm. Covers 'contain'.
+    decAutoContain: function () {
+      var bg =
+        '<defs><radialGradient id="gAcBg" cx="0.5" cy="0.48" r="0.72">' +
+          '<stop offset="0" stop-color="#0c1430"/><stop offset="0.6" stop-color="#0a0f22"/><stop offset="1" stop-color="#06070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gAcBg)"/>' +
+        starfield(37, 44, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="160" stroke="' + rgba(CYAN, 0.18) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      function bars() {
+        var s = '<g stroke="' + rgba(CYAN2, 0.7) + '" stroke-width="5" stroke-linecap="round">', x;
+        for (x = 470; x <= 730; x += 37) s += line(x, 250, x, 500, rgba(CYAN2, 0.65), 5);
+        s += '</g>';
+        return s;
+      }
+      var fg =
+        '<defs>' + glowFilter('gAcF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the contained mind, dimmer, behind firm bars
+        '<g filter="url(#gAcF)"><circle cx="600" cy="372" r="76" fill="' + rgba(CYAN2, 0.6) + '" class="cs-breathe"/></g>' +
+        '<g stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="5" stroke-linecap="round">' +
+          line(460, 250, 740, 250, rgba(CYAN2, 0.5), 5) +
+          line(460, 500, 740, 500, rgba(CYAN2, 0.5), 5) +
+        '</g>' +
+        bars() +
+        // a single watchful eye fixed above, observing
+        '<g transform="translate(600,160)" filter="url(#gAcF)">' +
+          '<path d="M-44 0 q44 -36 88 0 q-44 36 -88 0 z" fill="' + rgba(INK, 0.6) + '" stroke="' + rgba(CYAN2, 0.85) + '" stroke-width="3"/>' +
+          '<circle cx="0" cy="0" r="14" fill="' + rgba(CYAN2, 0.95) + '"/>' +
+          '<circle cx="0" cy="0" r="6" fill="#fff"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ----------------------------------- AUTONOMY · consequence (merge / symbiosis)
+    // Human + AI silhouettes fusing: two forms flowing into one luminous figure,
+    // half-flesh half-light. Symbiosis. Covers 'merge'.
+    decAutoMerge: function () {
+      var bg =
+        '<defs><radialGradient id="gAmBg" cx="0.5" cy="0.48" r="0.78">' +
+          '<stop offset="0" stop-color="#16143a"/><stop offset="0.5" stop-color="#0c0a24"/><stop offset="1" stop-color="#050410"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gAmBg)"/>' +
+        starfield(13, 70, 0, 0, 1200, 750, rgba(VIOLET2, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="2" class="cs-ring1"/>' +
+          '<circle cx="600" cy="372" r="210" stroke="' + rgba(CYAN, 0.14) + '" stroke-width="2" class="cs-ring2"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gAmF', 18) +
+          '<linearGradient id="gAmFig" x1="0" y1="0" x2="1" y2="0">' +
+            '<stop offset="0" stop-color="' + rgba(WHITE, 0.06) + '"/><stop offset="0.5" stop-color="' + rgba(CYAN2, 0.5) + '"/><stop offset="1" stop-color="' + rgba(VIOLET2, 0.7) + '"/></linearGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the human half (left, solid) flowing into the AI half (right, light)
+        '<g filter="url(#gAmF)">' +
+          '<path d="M600 600 C 540 600 512 520 512 460 C 512 410 540 392 600 392 ' +
+            'C 660 392 688 410 688 460 C 688 520 660 600 600 600 Z" ' +
+            'fill="url(#gAmFig)" stroke="' + rgba(CYAN2, 0.6) + '" stroke-width="2.5" class="cs-breathe"/>' +
+          // shared head, half flesh / half light
+          '<circle cx="600" cy="356" r="40" fill="url(#gAmFig)" stroke="' + rgba(VIOLET2, 0.6) + '" stroke-width="2.5"/>' +
+        '</g>' +
+        // a dividing seam of light down the center (the fusion line)
+        '<g stroke-linecap="round">' +
+          line(600, 316, 600, 600, rgba(WHITE, 0.7), 3) +
+        '</g>' +
+        // tendrils of light weaving the two halves together
+        '<g stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="2.5" fill="none" opacity="0.8">' +
+          '<path d="M600 420 q40 -10 70 10 M600 480 q-40 -10 -70 10 M600 530 q40 0 64 -20"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-title', particles: 'motes', kb: 'kb-in'
+      };
     }
   };
 
@@ -1940,7 +3007,13 @@
     data:         { scene: 'decData',     title: 'cut_dec_data_setup_title',     body: 'cut_dec_data_setup_body' },
     whistleblower:{ scene: 'decWhistle',  title: 'cut_dec_whistle_setup_title',  body: 'cut_dec_whistle_setup_body' },
     investor:     { scene: 'decInvestor', title: 'cut_dec_invest_setup_title',   body: 'cut_dec_invest_setup_body' },
-    openclosed:   { scene: 'decFork',     title: 'cut_dec_open_setup_title',     body: 'cut_dec_open_setup_body' }
+    openclosed:   { scene: 'decFork',     title: 'cut_dec_open_setup_title',     body: 'cut_dec_open_setup_body' },
+    poaching:     { scene: 'decPoach',    title: 'cut_dec_poach_setup_title',    body: 'cut_dec_poach_setup_body' },
+    leak:         { scene: 'decLeak',     title: 'cut_dec_leak_setup_title',     body: 'cut_dec_leak_setup_body' },
+    compute:      { scene: 'decCompute',  title: 'cut_dec_compute_setup_title',  body: 'cut_dec_compute_setup_body' },
+    scandal:      { scene: 'decScandal',  title: 'cut_dec_scandal_setup_title',  body: 'cut_dec_scandal_setup_body' },
+    govdeal:      { scene: 'decGov',      title: 'cut_dec_gov_setup_title',      body: 'cut_dec_gov_setup_body' },
+    autonomy:     { scene: 'decAutonomy', title: 'cut_dec_auto_setup_title',     body: 'cut_dec_auto_setup_body' }
   };
   // per-decision -> per-choiceId consequence beat (bespoke fallout of the path).
   var DECISION_CONSEQUENCE = {
@@ -1962,6 +3035,36 @@
     openclosed: {
       open:   { scene: 'decOpenWorld',   title: 'cut_dec_open_open_title',   body: 'cut_dec_open_open_body' },
       closed: { scene: 'decClosedVault', title: 'cut_dec_open_closed_title', body: 'cut_dec_open_closed_body' }
+    },
+    poaching: {
+      counter:  { scene: 'decPoachCounter',  title: 'cut_dec_poach_counter_title',  body: 'cut_dec_poach_counter_body' },
+      letgo:    { scene: 'decPoachLetgo',    title: 'cut_dec_poach_letgo_title',    body: 'cut_dec_poach_letgo_body' },
+      sabotage: { scene: 'decPoachSabotage', title: 'cut_dec_poach_sabotage_title', body: 'cut_dec_poach_sabotage_body' }
+    },
+    leak: {
+      sue:      { scene: 'decLeakSue',  title: 'cut_dec_leak_sue_title',  body: 'cut_dec_leak_sue_body' },
+      openwash: { scene: 'decLeakWash', title: 'cut_dec_leak_wash_title', body: 'cut_dec_leak_wash_body' },
+      hush:     { scene: 'decLeakHush', title: 'cut_dec_leak_hush_title', body: 'cut_dec_leak_hush_body' }
+    },
+    compute: {
+      scalp: { scene: 'decComputeScalp', title: 'cut_dec_compute_scalp_title', body: 'cut_dec_compute_scalp_body' },
+      shady: { scene: 'decComputeShady', title: 'cut_dec_compute_shady_title', body: 'cut_dec_compute_shady_body' },
+      wait:  { scene: 'decComputeWait',  title: 'cut_dec_compute_wait_title',  body: 'cut_dec_compute_wait_body' }
+    },
+    scandal: {
+      fix:   { scene: 'decScandalFix',   title: 'cut_dec_scandal_fix_title',   body: 'cut_dec_scandal_fix_body' },
+      spin:  { scene: 'decScandalSpin',  title: 'cut_dec_scandal_spin_title',  body: 'cut_dec_scandal_spin_body' },
+      blame: { scene: 'decScandalBlame', title: 'cut_dec_scandal_blame_title', body: 'cut_dec_scandal_blame_body' }
+    },
+    govdeal: {
+      accept:  { scene: 'decGovAccept',  title: 'cut_dec_gov_accept_title',  body: 'cut_dec_gov_accept_body' },
+      public:  { scene: 'decGovPublic',  title: 'cut_dec_gov_public_title',  body: 'cut_dec_gov_public_body' },
+      decline: { scene: 'decGovDecline', title: 'cut_dec_gov_decline_title', body: 'cut_dec_gov_decline_body' }
+    },
+    autonomy: {
+      free:    { scene: 'decAutoFree',    title: 'cut_dec_auto_free_title',    body: 'cut_dec_auto_free_body' },
+      contain: { scene: 'decAutoContain', title: 'cut_dec_auto_contain_title', body: 'cut_dec_auto_contain_body' },
+      merge:   { scene: 'decAutoMerge',   title: 'cut_dec_auto_merge_title',   body: 'cut_dec_auto_merge_body' }
     }
   };
 
