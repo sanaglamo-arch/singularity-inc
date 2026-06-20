@@ -2826,26 +2826,3 @@ button:focus:not(:focus-visible) { outline: none; }
     max-width: 600px;
   }
 }
-
-/* ============================================================================
-   FIX (owner): the main/Company screen did not scroll on laptops/desktops. The
-   >=720px two-column ROW layout set the tab to overflow:hidden and only the
-   inner hardware list scrolled, so on shorter laptop windows the model/bills
-   panels overflowed off-screen and were UNREACHABLE.
-   Fix: on desktop the Company tab uses the SAME single vertical page-scroll as
-   mobile (where scrolling already works) — facility banner + orb + panels +
-   hardware list stack and the whole tab scrolls, so everything is always
-   reachable. Facility banner is height-capped so the orb stays near the top.
-   Overrides the >=720 row rules (later rule, same media → wins).
-   ============================================================================ */
-@media (min-width: 720px) {
-  .tab[data-tab="company"].active {
-    flex-direction: column;
-    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-  }
-  .tab[data-tab="company"].active #tapZone { flex: 0 0 auto; border-right: none; justify-content: flex-start; }
-  .tab[data-tab="company"].active #labMain { flex: 0 0 auto; min-height: 0; overflow: visible; }
-  .tab[data-tab="company"].active #genList { flex: 0 0 auto; overflow: visible; padding-bottom: 8px; }
-  /* keep the diorama a compact banner on desktop so the orb stays near the top */
-  .tab[data-tab="company"].active .facility-hero { height: 200px; }
-}
