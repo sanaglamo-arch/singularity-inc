@@ -2690,3 +2690,102 @@ button:focus:not(:focus-visible) { outline: none; }
   text-overflow: clip;
   line-height: 1.2;
 }
+
+/* =================================================================
+   v61 — TACTILE MICRO-INTERACTIONS (backlog "микроанимации")
+   APPEND-ONLY, NON-LAYOUT. Adds a premium, restrained press/lift feel
+   to primary CTAs, decision choice cards, and clickable .card items.
+   Rules below are NEW or MORE-SPECIFIC than the base — nothing above is
+   edited. Only transform / opacity / filter / box-shadow / transition are
+   used (no width/height/margin/padding/font-size/flex/gap/position/inset).
+   At rest every element renders pixel-identical to before — all effect is
+   on :active / :hover only. Tutorial/coach outlines are deliberately not
+   matched. Disabled/.cant choices get no hover/active effect.
+   ================================================================= */
+
+/* ---- Primary CTAs: ensure the press transition is smooth, then a tactile
+   press = settle down (translateY) + micro-squash + slightly dimmer.
+   Compounds over the base `:active { transform: scale(.98) }` by being
+   equally/ more specific; resting state is untouched. ---- */
+.btn-primary, #prestigeBtn, #buyAlignBtn, #breakthroughBtn,
+.modal .row button, .pcard button, .adbtn {
+  transition: transform 0.12s var(--ease-spring), box-shadow 0.18s var(--ease), filter 0.12s var(--ease), background 0.2s;
+}
+.btn-primary:active:not(:disabled),
+#prestigeBtn:active:not(:disabled),
+#buyAlignBtn:active:not(:disabled),
+#breakthroughBtn:active:not(:disabled),
+.modal .row button:active:not(:disabled),
+.pcard button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+  filter: brightness(0.96);
+}
+
+/* ---- Faint hover LIFT (pointer devices only; no transform so touch/tap
+   hit-areas are never shifted) — box-shadow only. ---- */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:active):not(:disabled),
+  #prestigeBtn:hover:not(:active):not(:disabled),
+  #buyAlignBtn:hover:not(:active):not(:disabled),
+  #breakthroughBtn:hover:not(:active):not(:disabled) {
+    box-shadow: 0 14px 34px -12px var(--glow-violet), 0 0 0 1px rgba(139,92,246,0.18), var(--inset-hi);
+  }
+  .modal .row button.primary:hover:not(:active):not(:disabled),
+  .modal .primary:hover:not(:active):not(:disabled),
+  .pcard:not(.owned) button:hover:not(:active):not(:disabled) {
+    box-shadow: 0 12px 30px -12px var(--glow-violet), var(--inset-hi);
+  }
+}
+
+/* ---- Decision choice cards: gentle settle on press + a soft transient
+   brand-palette glow (violet→cyan, low alpha). Excludes [disabled]/.cant.
+   More-specific than the base `.decision-opt:active { scale(.985) }`. ---- */
+#modalRoot .decision-opt:active:not([disabled]):not(.cant) {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: var(--inset-hi),
+              0 6px 22px -10px rgba(139,92,246,0.50),
+              0 0 0 1px rgba(34,211,238,0.18);
+}
+
+/* ---- Generic clickable cards (.affordable) + legacy .cardchoice: same
+   restrained press + soft glow. .locked / disabled get nothing. ---- */
+.card.affordable:active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: var(--shadow-1), var(--inset-hi),
+              0 0 0 1px rgba(139,92,246,0.30),
+              0 8px 26px -10px rgba(139,92,246,0.55);
+}
+.cardchoice:active:not([disabled]):not(.cant) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 6px 20px -10px rgba(34,211,238,0.45);
+}
+
+/* ---- Explicitly neutralize the new effects on non-interactive choices so a
+   disabled/unaffordable row never lifts, glows, or presses. ---- */
+.decision-opt[disabled]:active,
+.decision-opt.cant:active,
+.cardchoice[disabled]:active,
+.cardchoice.cant:active,
+.card.locked:active,
+.pcard button:disabled:active,
+.modal .row button:disabled:active {
+  transform: none;
+  box-shadow: var(--inset-hi);
+  filter: none;
+}
+
+/* ---- Reduced-motion: drop the non-essential press transforms/glows so the
+   experience stays calm and rest is pixel-identical. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:active:not(:disabled),
+  #prestigeBtn:active:not(:disabled),
+  #buyAlignBtn:active:not(:disabled),
+  #breakthroughBtn:active:not(:disabled),
+  .modal .row button:active:not(:disabled),
+  .pcard button:active:not(:disabled),
+  #modalRoot .decision-opt:active:not([disabled]):not(.cant),
+  .card.affordable:active,
+  .cardchoice:active:not([disabled]):not(.cant) {
+    transform: none;
+  }
+}
