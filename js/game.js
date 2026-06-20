@@ -222,7 +222,7 @@
       state.trainElapsed += C.TRAIN.clickAccel;
     }
     var v = tapValue();
-    state.cash += v;
+    if (isFinite(v)) state.cash += v;   // never let a bad click value corrupt the balance
     // advance the forced tutorial when the player can afford the first click upgrade
     if (state.tutorial === 'click' && state.cash >= tapUpgradeCost()) setTutorial('upgrade');
     return v;
@@ -784,7 +784,10 @@
     // continuous income/costs
     var rev = revenuePerSec() * outputMult() * dt;
     var rent = rentPerSec() * outputMult() * dt;
+    if (!isFinite(rev)) rev = 0;            // a bad delta must never corrupt the balance
+    if (!isFinite(rent)) rent = 0;          // (owner: "balance sometimes just disappears")
     state.cash += rev + rent;
+    if (!isFinite(state.cash)) state.cash = 0;
     var hadRent = state.lifetimeRent;
     state.lifetimeRevenue += rev;
     state.lifetimeRent += rent;
@@ -846,7 +849,7 @@
     return { earned: earned, t: t, elecBill: elecBill, taxBill: 0 };
   }
   function applyOffline(earned, off) {
-    if (earned > 0) state.cash += earned;
+    if (earned > 0 && isFinite(earned)) state.cash += earned;
     if (off && off.t) {
       state.gameTime += off.t;
       state.elecAccrued += off.elecBill || 0;
@@ -887,6 +890,13 @@
         if (s.staff[st.id] == null) s.staff[st.id] = 0;
         if (s.staff[st.id] > C.STAFF_CFG.maxLevel) s.staff[st.id] = C.STAFF_CFG.maxLevel; // clamp old count-saves to level<=10
       });
+      // harden against a "vanished balance": never load a non-finite number
+      if (typeof s.cash !== 'number' || !isFinite(s.cash)) s.cash = f.cash;
+      if (typeof s.users !== 'number' || !isFinite(s.users)) s.users = 0;
+      if (typeof s.price !== 'number' || !isFinite(s.price)) s.price = f.price;
+      // sync the "felt" price to the saved price on load — the market is "settled" from the
+      // player's view after a reload, so income shouldn't dip for ~25s.
+      s.effPrice = s.price;
       state = s;
       return true;
     } catch (e) { return false; }
