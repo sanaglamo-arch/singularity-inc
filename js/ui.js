@@ -1103,12 +1103,19 @@
       var def = C.VERSIONS[v - 1];
       FX.celebrate(window.innerWidth / 2, window.innerHeight / 2, def ? def.label : ('v' + v), v >= 3);
       // STORY: a brief one-beat flourish the FIRST time a model ships — "the world noticed".
-      // Plays before the price-teach modal (which is queued, so it follows the cutscene).
+      // Clean climax handoff: play the cinematic FIRST, then land on the Model tab and
+      // show the price instruction IN CONTEXT (next to the slider) — instead of stacking
+      // the teach modal over the Lab before the tab even switches.
+      var firstReleaseTeach = function () {
+        switchTab('research');
+        if (!s().ftue.release) { s().ftue.release = 1; teachModal({ icon: ic('ic_brain'), title: t('ftue_release_title'), body: t('ftue_release_body') }); }
+      };
       if (!s().seenFirstModel && window.GAME_CUTSCENE) {
         s().seenFirstModel = true; G.save();
-        window.GAME_CUTSCENE.firstModel();
+        window.GAME_CUTSCENE.firstModel(firstReleaseTeach);
+      } else if (!s().ftue.release) {
+        firstReleaseTeach();
       }
-      if (!s().ftue.release) { s().ftue.release = 1; teachModal({ icon: ic('ic_brain'), title: t('ftue_release_title'), body: t('ftue_release_body'), onOk: function () { switchTab('research'); } }); }
       renderStatic(); update();
     });
     G.on('bill', function (amount) { if (amount > 0 && !s().ftue.bill) { s().ftue.bill = 1; teachModal({ icon: ic('ic_cash'), title: t('ftue_bill_title'), body: t('ftue_bill_body') }); } });
