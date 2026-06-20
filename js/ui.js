@@ -929,9 +929,22 @@
     // staff rows
     C.STAFF.forEach(function (st2) {
       var d = document.getElementById('staffdesc-' + st2.id); if (!d) return;
-      d.textContent = t('staff_desc_' + st2.id) + ' · ' + t('staff_count', { n: st.staff[st2.id] });
+      var lvl = G.staffLevel(st2.id);
+      var base = t('staff_desc_' + st2.id);
+      if (lvl >= 1) {
+        if (st2.effect === 'tax') {
+          base += ' · ' + t('staff_lvl', { n: lvl }) + ' (−' + Math.round(lvl * C.STAFF_CFG.taxPerLevel * 100) + '%)';
+        } else {
+          base += ' · ' + t('staff_lvl', { n: lvl }) + ' (+' + G.levelEffect(lvl) + ')';
+        }
+      }
+      d.textContent = base;
       var b = document.getElementById('staffhire-' + st2.id);
-      if (b) { b.textContent = t('staff_hire', { c: fmt(G.staffHireCost(st2.id)) }); b.disabled = !G.canHire(st2.id); }
+      if (b) {
+        if (lvl >= C.STAFF_CFG.maxLevel) { b.textContent = t('staff_max'); b.disabled = true; }
+        else if (lvl >= 1) { b.textContent = t('staff_upgrade', { n: lvl + 1, c: fmt(G.staffHireCost(st2.id)) }); b.disabled = !G.canHire(st2.id); }
+        else { b.textContent = t('staff_hire', { c: fmt(G.staffHireCost(st2.id)) }); b.disabled = !G.canHire(st2.id); }
+      }
     });
   }
 

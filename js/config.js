@@ -141,21 +141,31 @@
     taxRate: 0.18            // 18% of revenue earned in the month
   };
 
-  // ---- employees (salaries accrue into bills) ----
+  // ---- staff (buy once at lvl 1, then upgrade with one-time cash; NO salaries) ----
+  //  salary kept only as a legacy no-op field; effect maps a staffer to its meter/tax lever.
   var STAFF = [
-    { id: 'lawyer',    salary: 0.4, effect: 'legality' },   // ↓ state risk
-    { id: 'security',  salary: 0.4, effect: 'safety'   },   // ↓ safety risk
-    { id: 'marketer',  salary: 0.4, effect: 'approval' },   // ↑ approval
-    { id: 'economist', salary: 0.4, effect: 'tax'      }    // ↓ tax
+    { id: 'lawyer',    salary: 0, effect: 'legality' },   // ↓ state risk
+    { id: 'security',  salary: 0, effect: 'safety'   },   // ↓ safety risk
+    { id: 'marketer',  salary: 0, effect: 'approval' },   // ↑ approval
+    { id: 'economist', salary: 0, effect: 'tax'      }    // ↓ tax
   ];
   var STAFFBYID = {};
   STAFF.forEach(function (s) { STAFFBYID[s.id] = s; });
   var STAFF_CFG = {
-    hireCostMult: 90,        // first hire costs salary*this; grows
+    // --- NEW buy-once + level-up design ---
+    maxLevel: 10,            // each staffer levels 1..10 (0 = not hired)
+    effectBase: 4,          // meter bonus at level 1
+    effectMax: 25,          // meter bonus at level 10 (also the cap)
+    taxPerLevel: 0.01,      // economist: -1% tax per level
+    taxMax: 0.10,           // -10% at level 10
+    hireBase: 1500,         // cost to reach level 1
+    hireGrowth: 1.8,        // cost to reach level L = round(hireBase * hireGrowth^(L-1))
+    // --- legacy fields kept for any stray references (unused by new code) ---
+    hireCostMult: 90,
     hireCostGrowth: 1.35,
-    perStaffEffect: 0.015,   // each staffer nudges its meter by 1.5 pts/effect (capped)
-    maxEffect: 25,           // a meter buff caps at 25 pts from staff
-    taxReductionPer: 0.005,  // economist: -0.5% tax each
+    perStaffEffect: 0.015,
+    maxEffect: 25,
+    taxReductionPer: 0.005,
     taxReductionMax: 0.10
   };
 

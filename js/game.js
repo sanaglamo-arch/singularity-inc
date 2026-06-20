@@ -397,12 +397,10 @@
   // ---------- costs ----------
   function elecPerSec() { return totalKw() * C.BILLS.elecRateKwh / 3600; }
   function upkeepPerSec() { var pm = C.PREMBYID[state.premise]; return pm ? pm.upkeep : 0; }
-  function salaryPerSec() {
-    var s = 0; C.STAFF.forEach(function (st) { s += state.staff[st.id] * st.salary; }); return s;
-  }
+  function salaryPerSec() { return 0; } // staff have no salary in the buy-once + level-up design
   function costPerSec() { return elecPerSec() + upkeepPerSec() + salaryPerSec(); }
   function effectiveTaxRate() {
-    var red = Math.min(C.STAFF_CFG.taxReductionMax, state.staff.economist * C.STAFF_CFG.taxReductionPer);
+    var red = Math.min(C.STAFF_CFG.taxMax, state.staff.economist * C.STAFF_CFG.taxPerLevel);
     return Math.max(0, C.BILLS.taxRate - red);
   }
 
@@ -413,14 +411,22 @@
   function incomePerSec() { return (rentPerSec() + revenuePerSec()) * outputMult(); }
   function netPerSec() { return incomePerSec() - costPerSec(); }
 
-  // ---------- staff ----------
-  function staffHireCost(id) {
-    var s = C.STAFFBYID[id];
-    var n = state.staff[id];
-    return Math.round(s.salary * C.STAFF_CFG.hireCostMult * Math.pow(C.STAFF_CFG.hireCostGrowth, n));
+  // ---------- staff (buy once at lvl 1, then upgrade with one-time cash up to maxLevel) ----------
+  function staffLevel(id) { return state.staff[id] || 0; }
+  // meter bonus for a given level: 0 if not hired; lvl 1..10 → 4,6,9,11,13,16,18,20,23,25 (capped)
+  function levelEffect(level) {
+    if (level <= 0) return 0;
+    var cfg = C.STAFF_CFG;
+    var e = Math.round(cfg.effectBase + (level - 1) * (cfg.effectMax - cfg.effectBase) / (cfg.maxLevel - 1));
+    return Math.min(cfg.effectMax, e);
   }
-  function canHire(id) { return state.cash >= staffHireCost(id); }
-  function hire(id) {
+  function staffHireCost(id) {
+    var lvl = state.staff[id] || 0;
+    if (lvl >= C.STAFF_CFG.maxLevel) return Infinity;
+    return Math.round(C.STAFF_CFG.hireBase * Math.pow(C.STAFF_CFG.hireGrowth, lvl));
+  }
+  function canHire(id) { return (state.staff[id] || 0) < C.STAFF_CFG.maxLevel && state.cash >= staffHireCost(id); }
+  function hire(id) { // buy (lvl 0→1) or level up
     if (!canHire(id)) return false;
     state.cash -= staffHireCost(id);
     state.staff[id]++;
@@ -428,10 +434,11 @@
     return true;
   }
   function staffBonus(effect) {
-    // count staff of this effect, return point bonus (capped)
-    var n = 0;
-    C.STAFF.forEach(function (s) { if (s.effect === effect) n += state.staff[s.id]; });
-    return Math.min(C.STAFF_CFG.maxEffect, n * C.STAFF_CFG.perStaffEffect * 100);
+    // exactly one staffer per meter effect — return its level's bonus
+    var found = null;
+    C.STAFF.forEach(function (s) { if (s.effect === effect) found = s.id; });
+    if (!found) return 0;
+    return levelEffect(state.staff[found] || 0);
   }
 
   // ---------- risk meters ----------
@@ -815,7 +822,10 @@
       if (!hadTutorial && s.boughtLaptop) s.tutorial = null;
       // ensure hw/committed/staff have all ids
       C.HARDWARE.forEach(function (h) { if (s.hw[h.id] == null) s.hw[h.id] = 0; if (s.committed[h.id] == null) s.committed[h.id] = 0; });
-      C.STAFF.forEach(function (st) { if (s.staff[st.id] == null) s.staff[st.id] = 0; });
+      C.STAFF.forEach(function (st) {
+        if (s.staff[st.id] == null) s.staff[st.id] = 0;
+        if (s.staff[st.id] > C.STAFF_CFG.maxLevel) s.staff[st.id] = C.STAFF_CFG.maxLevel; // clamp old count-saves to level<=10
+      });
       state = s;
       return true;
     } catch (e) { return false; }
@@ -878,6 +888,7 @@
     costPerSec: costPerSec, incomePerSec: incomePerSec, netPerSec: netPerSec, effectiveTaxRate: effectiveTaxRate,
     // staff
     staffHireCost: staffHireCost, canHire: canHire, hire: hire, staffBonus: staffBonus,
+    staffLevel: staffLevel, levelEffect: levelEffect,
     // bills
     billForecast: billForecast, nextBillIn: nextBillIn, nextBillDay: nextBillDay,
     payBill: payBill, billCovered: billCovered,
