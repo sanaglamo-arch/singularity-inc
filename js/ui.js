@@ -1600,15 +1600,30 @@
   // each showing its label and a one-line consequence hint. Choosing applies the
   // effects, closes, fires a confirmation toast and (optionally) a single
   // consequence cutscene beat.
+  // The exact cash COST of a choice (a positive number) or 0 if the choice has no
+  // cash cost (free / a cash gain). Read straight from the choice's effects bag so
+  // the price shown is always the real number, never hardcoded.
+  function decisionCost(c) {
+    var eff = c && c.effects;
+    if (eff && typeof eff.cash === 'number' && eff.cash < 0) return -eff.cash;
+    return 0;
+  }
   function showDecisionModal(d) {
     queueModal(function () {
+      var st = s();
       var btns = '';
       for (var i = 0; i < d.choices.length; i++) {
         var c = d.choices[i];
+        var cost = decisionCost(c);
+        var unaffordable = cost > 0 && st.cash < cost;
+        // append the exact $ amount to the label so "expensive" reads as a real number
+        var price = cost > 0 ? '<span class="decision-opt-price"> · −' + esc(money(cost)) + '</span>' : '';
         btns +=
-          '<button class="decision-opt" data-choice="' + esc(c.id) + '">' +
-          '<span class="decision-opt-label">' + esc(t(c.label)) + '</span>' +
+          '<button class="decision-opt' + (unaffordable ? ' cant' : '') + '" data-choice="' + esc(c.id) + '"' +
+            (unaffordable ? ' disabled aria-disabled="true"' : '') + '>' +
+          '<span class="decision-opt-label">' + esc(t(c.label)) + price + '</span>' +
           '<span class="decision-opt-hint">' + esc(t(c.hint)) + '</span>' +
+          (unaffordable ? '<span class="decision-opt-cant">' + esc(t('decision_cant_afford')) + '</span>' : '') +
           '</button>';
       }
       showModal(
@@ -1624,6 +1639,8 @@
       for (var j = 0; j < nodes.length; j++) {
         (function (node) {
           node.onclick = function () {
+            // a disabled (unaffordable) choice must never apply — hard guard.
+            if (node.disabled || node.classList.contains('cant')) { var stx = s(); if (stx.sound) A.error(); return; }
             var st = s();
             if (st.sound) A.buy();
             var choice = window.GAME_STORY.applyChoice(st, d.id, node.getAttribute('data-choice'));

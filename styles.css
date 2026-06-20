@@ -2253,6 +2253,64 @@ button:focus:not(:focus-visible) { outline: none; }
 }
 
 /* ============================================================
+   v54 — FIX 1: decision choice PRICE + unaffordable DISABLED state.
+   ADDITIVE — new selectors only; nothing above is edited.
+   The exact $ cost is appended inline to the choice label; if the player
+   can't afford it the whole button reads as disabled with a short reason. */
+.decision-opt-price {
+  font-family: var(--font-display); font-weight: 800;
+  color: var(--rose); white-space: nowrap;
+}
+.decision-opt-cant {
+  display: block; margin-top: 5px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--rose); opacity: 0.92;
+}
+/* a choice the player cannot afford: dimmed, non-interactive, clearly off */
+.decision-opt[disabled],
+.decision-opt.cant {
+  cursor: not-allowed; opacity: 0.5;
+  border-color: rgba(251,92,120,0.45);
+  background: rgba(251,92,120,0.05);
+}
+.decision-opt[disabled]:hover,
+.decision-opt.cant:hover {
+  border-color: rgba(251,92,120,0.45);
+  background: rgba(251,92,120,0.05);
+}
+.decision-opt[disabled]:active,
+.decision-opt.cant:active { transform: none; }
+.decision-opt[disabled] .decision-opt-price,
+.decision-opt.cant .decision-opt-price { color: var(--rose); }
+
+/* ============================================================
+   v54 — FIX 2: the Company/main tab must scroll vertically when its content
+   (facility hero + orb + stats + model panel + train button) is taller than a
+   short viewport, WITHOUT horizontal overflow and WITHOUT colliding with the
+   fixed top HUD or the bottom #tabbar. ADDITIVE — these new selectors compound
+   over the existing `.tab[data-tab="company"].active { overflow-y:auto }` rule;
+   nothing above is edited.
+   - confirm the contract (vertical scroll, contained overscroll, momentum on touch)
+   - guarantee the LAST controls clear the bottom nav with generous scroll padding
+   - never let a child force horizontal overflow at narrow widths */
+@media (max-width: 719px) {
+  .tab[data-tab="company"].active {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* room so the train button / funding CTA / bills clear the fixed tabbar when
+       scrolled to the very bottom on a short phone */
+    padding-bottom: 14px;
+  }
+  /* the lower content column grows to its natural height (never collapses) so the
+     tab's scrollHeight reflects all of it and everything below the fold is reachable */
+  .tab[data-tab="company"].active > #labMain { flex: 0 0 auto; min-height: 0; }
+  /* belt-and-braces: no company child may spill sideways at 390 */
+  .tab[data-tab="company"].active > * { max-width: 100%; }
+}
+
+/* ============================================================
    v49 — early-game ONBOARDING polish (ADDITIVE, new selectors only).
    Mobile multi-touch tap, FTUE focus (lock the non-target orb), coach ring align.
    All rules below are NEW selectors and compound over the base; nothing existing

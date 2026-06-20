@@ -271,6 +271,7 @@
     // ===================== STORY DECISIONS (EN) =====================
     decision_eyebrow: 'A DECISION',
     decision_made: 'The die is cast.',
+    decision_cant_afford: "Can't afford",
     // 1 — data for the next model
     dec_data_title: 'Feeding the Next Model',
     dec_data_body: 'v2 is starving for data. Your researchers need a corpus big enough to make the next leap — and how you get it will follow you.',
@@ -817,6 +818,7 @@
     // ===================== STORY DECISIONS (RU) =====================
     decision_eyebrow: 'РЕШЕНИЕ',
     decision_made: 'Жребий брошен.',
+    decision_cant_afford: 'Не хватает денег',
     // 1 — данные для следующей модели
     dec_data_title: 'Топливо для новой модели',
     dec_data_body: 'v2 голодает по данным. Исследователям нужен корпус, способный дать следующий скачок, — и то, как вы его добудете, вас не отпустит.',
