@@ -120,7 +120,75 @@
       ]
     },
 
-    // 5) GOVERNMENT DEAL  (~v6)  — the 6th idea, slotted before the pivot
+    // 5a) TALENT POACHING  (~v3)  — a rival raids your lead researcher.
+    {
+      id: 'poaching',
+      icon: 'ic_manager',
+      title: 'dec_poach_title', body: 'dec_poach_body',
+      when: function (s) { return s.version >= 3; },
+      choices: [
+        { id: 'counter', label: 'dec_poach_a_label', hint: 'dec_poach_a_hint',
+          effects: { cash: -7000, approval: +4, flag: 'principled' } },
+        { id: 'letgo',   label: 'dec_poach_b_label', hint: 'dec_poach_b_hint',
+          effects: { approval: -10, safety: -6, flag: 'careful' } },
+        { id: 'sabotage',label: 'dec_poach_c_label', hint: 'dec_poach_c_hint',
+          effects: { legality: -12, cash: -1500, flag: 'ruthless' },
+          beat: { scene: 'rivals', title: 'dec_poach_c_beat_title', body: 'dec_poach_c_beat_body' } }
+      ]
+    },
+
+    // 5b) MODEL WEIGHTS LEAK  (~v5)  — your weights are loose on the web.
+    {
+      id: 'leak',
+      icon: 'ic_risk',
+      title: 'dec_leak_title', body: 'dec_leak_body',
+      when: function (s) { return s.version >= 5; },
+      choices: [
+        { id: 'sue',     label: 'dec_leak_a_label', hint: 'dec_leak_a_hint',
+          effects: { cash: -9000, legality: +12, flag: 'principled' } },
+        { id: 'openwash',label: 'dec_leak_b_label', hint: 'dec_leak_b_hint',
+          effects: { approval: +14, cash: -6000, flag: ['hype', 'open'] },
+          beat: { scene: 'model', title: 'dec_leak_b_beat_title', body: 'dec_leak_b_beat_body' } },
+        { id: 'hush',    label: 'dec_leak_c_label', hint: 'dec_leak_c_hint',
+          effects: { legality: -14, approval: -6, flag: 'coverup' } }
+      ]
+    },
+
+    // 5c) COMPUTE CRISIS  (~v6)  — chips are scarce; the race waits for no one.
+    {
+      id: 'compute',
+      icon: 'ic_bolt',
+      title: 'dec_compute_title', body: 'dec_compute_body',
+      when: function (s) { return s.version >= 6; },
+      choices: [
+        { id: 'scalp',   label: 'dec_compute_a_label', hint: 'dec_compute_a_hint',
+          effects: { cash: -14000, safety: +4, flag: 'careful' } },
+        { id: 'shady',   label: 'dec_compute_b_label', hint: 'dec_compute_b_hint',
+          effects: { cash: -2000, safety: -12, legality: -8, flag: 'ruthless' },
+          beat: { scene: 'rivals', title: 'dec_compute_b_beat_title', body: 'dec_compute_b_beat_body' } },
+        { id: 'wait',    label: 'dec_compute_c_label', hint: 'dec_compute_c_hint',
+          effects: { approval: +4, safety: +6, flag: 'principled' } }
+      ]
+    },
+
+    // 5d) ETHICS SCANDAL  (~v7)  — a harmful output goes viral; the public turns.
+    {
+      id: 'scandal',
+      icon: 'ic_risk',
+      title: 'dec_scandal_title', body: 'dec_scandal_body',
+      when: function (s) { return s.version >= 7; },
+      choices: [
+        { id: 'fix',     label: 'dec_scandal_a_label', hint: 'dec_scandal_a_hint',
+          effects: { cash: -4000, approval: +12, safety: +10, flag: 'responsible' },
+          beat: { scene: 'stakes', title: 'dec_scandal_a_beat_title', body: 'dec_scandal_a_beat_body' } },
+        { id: 'spin',    label: 'dec_scandal_b_label', hint: 'dec_scandal_b_hint',
+          effects: { approval: -14, flag: ['hype', 'ruthless'] } },
+        { id: 'blame',   label: 'dec_scandal_c_label', hint: 'dec_scandal_c_hint',
+          effects: { legality: -12, approval: -4, flag: 'coverup' } }
+      ]
+    },
+
+    // 6a) GOVERNMENT DEAL  (~v6)  — the 6th idea, slotted before the pivot
     {
       id: 'govdeal',
       icon: 'ic_risk',
