@@ -13,9 +13,9 @@
   //  effective value = base * gain^level * (1 + heat*COMBO_BONUS). Tuned so a real fast
   //  tapper averages ~$0.10/click at lvl 0 → ~100 rapid clicks ≈ $10 (owner's scenario).
   var TAP = {
-    base: 0.063,             // $ per COLD click at level 0 (engaged avg ≈ $0.10 with разгон)
+    base: 0.10,               // cold click value — raised from 0.063 to ease early grind (sim-gated; completability preserved)
     upgrade: {
-      baseCost: 10,          // first click upgrade
+      baseCost: 6,           // first click upgrade — cheaper hook (sim-gated)
       costMult: 2.0,         // ×2 cost curve
       gain: 2.0,             // each upgrade ×2 the click value
       maxLevel: 30
