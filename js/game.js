@@ -389,6 +389,26 @@
   function revenuePerSec() {
     return state.users * state.price * C.ECON.usage;
   }
+  // Projected revenue/s of the model you'd ship NEXT (its higher-era demand at the best
+  // price), so the payoff of releasing is visible BEFORE you commit — and it's clear a
+  // released model earns far more than renting the same gear (owner).
+  function projectedReleaseIncomePerSec() {
+    var nextVer = (state.version || 0) + 1;
+    if (nextVer > C.AGI_VERSION) return 0;
+    var def = C.VERSIONS[nextVer - 1];
+    var base = (def && def.demandBase) || 40;
+    var an = approvalNorm();
+    var reach = C.ECON.reachMin + (1 - C.ECON.reachMin) * an;
+    var dem = base * Math.pow(C.ECON.demandGrowth, nextVer) * C.ECON.userScale * reach;
+    var pw = availablePower();   // releasing commits all idle gear → this becomes model power
+    var bestRev = 0, riv = sumRivalV();
+    for (var p = C.ECON.priceMin; p <= C.ECON.priceMax; p += 0.5) {
+      var pv = vOf(pw, p, an); var tot = pv + riv;
+      var rev = dem * (tot > 0 ? pv / tot : 0) * p * C.ECON.usage;
+      if (rev > bestRev) bestRev = rev;
+    }
+    return bestRev;
+  }
   // sweet spot: price that maximizes revenuePreview (numeric scan)
   function sweetSpotPrice() {
     var best = C.ECON.priceMin, bestRev = -1;
@@ -901,6 +921,7 @@
     demand: demand, playerV: playerV, share: share, playerShare: playerShare,
     usersTarget: usersTarget, revenuePreview: revenuePreview, revenuePerSec: revenuePerSec,
     sweetSpotPrice: sweetSpotPrice, setPrice: setPrice, approvalNorm: approvalNorm,
+    projectedReleaseIncomePerSec: projectedReleaseIncomePerSec,
     // costs
     elecPerSec: elecPerSec, upkeepPerSec: upkeepPerSec, salaryPerSec: salaryPerSec,
     costPerSec: costPerSec, incomePerSec: incomePerSec, netPerSec: netPerSec, effectiveTaxRate: effectiveTaxRate,

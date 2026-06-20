@@ -483,11 +483,16 @@
         if (G.canStartTraining()) {
           setText(trainBtn, t('train_start', { label: def.label }));
           trainBtn.disabled = false;
+          // Show the payoff of releasing (owner): projected income of the model you'd ship —
+          // far above renting the same gear. Per-month to match the finance line convention.
+          var projMo = (G.projectedReleaseIncomePerSec ? G.projectedReleaseIncomePerSec() : 0) * 60;
+          if (projMo > 0) { setText(trainHint, t('train_expect_income', { v: fmt(projMo) })); setClass(trainHint, 'hidden', false); }
+          else { setClass(trainHint, 'hidden', true); }
         } else {
           setText(trainBtn, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) }));
           trainBtn.disabled = true;
+          setClass(trainHint, 'hidden', true);
         }
-        setClass(trainHint, 'hidden', true);
         // First-release onboarding: on a phone the Train button can sit below the fold /
         // behind the navbar, so a new player can't see the key progression action the
         // tutorial steers them to (blind-playtest blocker). When training FIRST becomes
@@ -763,19 +768,15 @@
       '<div id="resRowPv" style="display:flex;gap:8px;margin-top:12px">' +
         pvTile(t('share_label'), 'pv-share') + pvTile(t('users_label'), 'pv-users') +
         pvTile(I.getLang() === 'ru' ? 'Прибыль/' + ruS() : 'Profit/s', 'pv-profit') + pvTile(t('meter_approval'), 'pv-appr') +
-      '</div>' +
-      '<div id="sweetLine" class="muted small" style="margin-top:12px;text-align:center"></div>' +
-      '<div id="sweetBadgeWrap"><span id="sweetBadge" class="sweet-badge"></span></div>';
+      '</div>';
     pane.appendChild(pb);
-    var sweetBtn = el('button', 'wide', t('price_set_default'));
-    sweetBtn.style.marginTop = '10px';
-    pb.appendChild(sweetBtn);
+    // (sweet-spot line / badge / auto-set button removed — the player discovers the best
+    //  price themselves from the live readouts; owner request.)
 
     var slider = $('priceSlider');
     slider.value = st.price;
     slider.addEventListener('input', function () { previewPrice = parseFloat(slider.value); syncPricePreview(); });
     slider.addEventListener('change', function () { G.setPrice(parseFloat(slider.value)); previewPrice = null; if (s().sound) A.buy(); syncPricePreview(); });
-    sweetBtn.onclick = function () { var sw = G.sweetSpotPrice(); G.setPrice(sw); slider.value = sw; previewPrice = null; if (s().sound) A.buy(); syncPricePreview(); };
 
     // live model card
     var mc = el('div', 'card');
@@ -813,14 +814,9 @@
     else if (ratio < 0.9) { arrow = t('approval_up'); col = 'var(--green)'; }
     else { arrow = t('approval_flat'); col = 'var(--cyan)'; }
     var pa = $('pv-appr'); if (pa) { pa.textContent = arrow; pa.style.color = col; }
-    setText($('sweetLine'), t('price_sweet', { v: sweet.toFixed(2) }));
-    // ADDITIVE polish: reward nailing the price — soft green glow on the value +
-    // a "★ Sweet spot" badge when within ~10% of the sweet spot. Purely cosmetic.
-    var inSweet = sweet > 0 && ratio >= 0.9 && ratio <= 1.1;
-    var pvEl = $('priceVal'); if (pvEl) setClass(pvEl, 'sweet', inSweet);
-    var slEl = $('priceSlider'); if (slEl) setClass(slEl, 'sweet', inSweet);  // item 4: thumb glow
-    var badge = $('sweetBadge');
-    if (badge) { setText(badge, t('price_sweet_badge')); setClass(badge, 'on', inSweet); }
+    // (no "sweet spot" line/badge/glow — the player reads share/users/profit/approval and
+    //  finds the best price themselves. The approval arrow above is a natural consequence,
+    //  not a pointer to the answer.)
   }
   function syncModelTab() {
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;

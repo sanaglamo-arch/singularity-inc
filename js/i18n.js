@@ -89,7 +89,7 @@
     ftue_release_power_arrow: 'Buy hardware for Power',
     ftue_release_power_gohw_body: 'Open Hardware and buy gear — each rig adds Power toward training v1.',
     ftue_price_step_title: 'Token price — the heart of the game',
-    ftue_price_step_body: 'Token price is the heart of the game. Lower price → more users and share, but thinner margin. Too high → users leave and the public gets angry. Aim for the sweet spot.',
+    ftue_price_step_body: 'Token price is the heart of the game. Lower price → more users and share, but thinner margin. Too high → users leave and the public gets angry. Find the price that pays best.',
     ftue_price_step_arrow: 'Drag to set the price',
 
     // hardware
@@ -165,6 +165,7 @@
     model_live: 'Live: {label}',
     train_need_power: 'Need {req} Power to train {label} (have {have})',
     train_start: 'Train {label}',
+    train_expect_income: 'Release ≈ ${v}/mo',
     train_progress: 'Training {label}… {pct}%',
     train_click_faster: 'Click to train faster!',
     train_time_left: '{t} left',
@@ -172,7 +173,7 @@
 
     // pricing
     price_title: 'Token Price',
-    price_intro: 'Lower price wins share; too high angers society. Tune to your sweet spot.',
+    price_intro: 'Lower price wins share; too high angers society. Find the price that pays best.',
     price_label: 'Price: ${v}',
     price_preview: 'At ${p}: share {share}% · {users} users · {sign}${profit}/s · approval {arrow}',
     price_sweet: 'Sweet spot ≈ ${v}',
@@ -616,7 +617,7 @@
     ftue_rent_title: 'Passive income unlocked',
     ftue_rent_body: 'Idle hardware rents out to other companies — that\'s passive income, ticking in even while you\'re away. When you release a model, this hardware switches from renting to powering your model instead.',
     ftue_release_title: 'First model released — set your price',
-    ftue_release_body: 'Your hardware now powers a live model. Use the Token Price slider: lower price = more users but thinner margin; too high = users leave AND the public gets angry. Aim for the sweet spot — it drifts as you grow.',
+    ftue_release_body: 'Your hardware now powers a live model. Use the Token Price slider: lower price = more users but thinner margin; too high = users leave AND the public gets angry. Find the price that pays best — it shifts as you grow.',
     ftue_bill_title: 'Your first bill',
     ftue_bill_body: 'Electricity and upkeep pile into a weekly bill. You have 1 in-game day to pay it. Overdue = output drops −30% until you settle — and if it stays unpaid, the board steps in. Keep cash ready.',
     ftue_meter_title: 'A risk meter just moved',
@@ -740,7 +741,7 @@
     ftue_release_power_arrow: 'Покупай железо ради Мощности',
     ftue_release_power_gohw_body: 'Открой «Железо» и покупай оборудование — каждый риг добавляет Мощность для тренировки v1.',
     ftue_price_step_title: 'Цена токенов — сердце игры',
-    ftue_price_step_body: 'Цена токенов — сердце игры. Ниже цена → больше юзеров и доли, но тоньше маржа. Дорого → юзеры уходят, общество злится. Целься в сладкую точку.',
+    ftue_price_step_body: 'Цена токенов — сердце игры. Ниже цена → больше юзеров и доли, но тоньше маржа. Дорого → юзеры уходят, общество злится. Найди цену, что приносит больше всего.',
     ftue_price_step_arrow: 'Тяни, чтобы задать цену',
 
     hw_title: 'Железо',
@@ -813,13 +814,14 @@
     model_live: 'Активна: {label}',
     train_need_power: 'Нужно {req} Мощности для {label} (есть {have})',
     train_start: 'Тренировать {label}',
+    train_expect_income: 'После выпуска ≈ ${v}/мес',
     train_progress: 'Тренировка {label}… {pct}%',
     train_click_faster: 'Кликай, чтобы тренировать быстрее!',
     train_time_left: 'осталось {t}',
     release_done: 'Выпущена {label}! Железо в продакшене; аренда остановлена, идёт Мощность.',
 
     price_title: 'Цена токенов',
-    price_intro: 'Ниже цена — больше доля; слишком высокая злит общество. Найди сладкую точку.',
+    price_intro: 'Ниже цена — больше доля; слишком высокая злит общество. Найди цену, что приносит больше всего.',
     price_label: 'Цена: ${v}',
     price_preview: 'При ${p}: доля {share}% · {users} юзеров · {sign}${profit}/с · одобрение {arrow}',
     price_sweet: 'Сладкая точка ≈ ${v}',
@@ -1257,7 +1259,7 @@
     ftue_rent_title: 'Пассивный доход открыт',
     ftue_rent_body: 'Простаивающее железо сдаётся в аренду другим компаниям — это твой пассивный доход, капает даже пока тебя нет. Когда выпустишь модель, это железо перейдёт из аренды в продакшен и будет давать Мощность.',
     ftue_release_title: 'Первая модель выпущена — поставь цену',
-    ftue_release_body: 'Теперь железо крутит живую модель. Используй слайдер цены токенов: ниже цена = больше юзеров, но тоньше маржа; слишком высокая = юзеры уходят И общество злится. Целься в сладкую точку — она дрейфует по мере роста.',
+    ftue_release_body: 'Теперь железо крутит живую модель. Используй слайдер цены токенов: ниже цена = больше юзеров, но тоньше маржа; слишком высокая = юзеры уходят И общество злится. Найди цену, что приносит больше всего — она смещается по мере роста.',
     ftue_bill_title: 'Твой первый счёт',
     ftue_bill_body: 'Электричество и обслуживание копятся в недельный счёт. На оплату — 1 игровой день. Просрочка = выработка −30% до оплаты, а если не платить дальше — вмешается совет директоров. Держи деньги наготове.',
     ftue_meter_title: 'Метрика риска сдвинулась',
