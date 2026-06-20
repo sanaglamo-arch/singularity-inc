@@ -11,6 +11,14 @@
   function on(ev, fn) { (listeners[ev] = listeners[ev] || []).push(fn); }
   function emit(ev, a) { (listeners[ev] || []).forEach(function (fn) { try { fn(a); } catch (e) {} }); }
 
+  // ---------- one-time onboarding gate ----------
+  // The forced first-run tutorial (laptop->click->...->price) must run ONLY on the very
+  // first playthrough. After a loss/restart it must NOT repeat (owner). Persist a flag in
+  // its OWN localStorage key so it survives reset() (which wipes the save).
+  var TUT_DONE_KEY = 'singularity_inc_tut_done';
+  function tutorialEverDone() { try { return localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) { return false; } }
+  function markTutorialDone() { try { localStorage.setItem(TUT_DONE_KEY, '1'); } catch (e) {} }
+
   // ---------- state ----------
   var state = null;
 
@@ -30,7 +38,7 @@
       //   'laptop'->'click'->'upgrade'->'server'->'release'->'price'->null(done)
       // laptop..server are HARD-LOCK steps (only the one action allowed);
       // release+price are SOFT (free play, the coach just keeps pointing — never traps).
-      tutorial: 'laptop',
+      tutorial: tutorialEverDone() ? null : 'laptop',   // forced onboarding only on the FIRST run; restarts skip straight to free play
       hw: hw,
       committed: committed,
       premise: C.START.premise,
@@ -144,6 +152,7 @@
   function tutorialHardLock() { return !!(state && state.tutorial && TUT_HARD[state.tutorial]); }
   function setTutorial(step) {
     if (!state || state.tutorial === step) return;
+    if (!step && state.tutorial) markTutorialDone();   // onboarding just completed → never force it again on later runs
     state.tutorial = step;
     emit('tutorial', step);
     emit('change');
@@ -840,6 +849,9 @@
   function init() {
     var loaded = load();
     if (!loaded) state = freshState();
+    // Migrate existing experienced players: if the loaded save is clearly past onboarding,
+    // record the one-time flag now so a later loss/restart never re-runs the forced tutorial.
+    if (loaded && state && (state.boughtLaptop || (state.version || 0) >= 1 || state.tutorial == null)) markTutorialDone();
     // language from saved or i18n detect
     if (state.lang && window.GAME_I18N) window.GAME_I18N.setLang(state.lang);
     else if (window.GAME_I18N) state.lang = window.GAME_I18N.getLang();
