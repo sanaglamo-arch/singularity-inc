@@ -2775,7 +2775,14 @@
     var kind = opts.kind || 'intro';
     var idx = 0, ended = false, timer = null, ceiling = null;
     // dwell per beat (ms). reduced-motion -> shorter (less waiting).
-    var BEAT_MS = reduce ? 2800 : 7200;
+    // Auto-advance is a long anti-AFK SAFETY ONLY — the player reads at their own
+    // pace and taps Next; nothing should flip the beat out from under them while
+    // they're still reading (owner feedback: cutscenes auto-advanced/closed too fast
+    // to read — was 7200ms, and 2800ms under reduced-motion, far too quick). 30s for
+    // every mode (reduced-motion must NOT rush the text). CEILING derives from this so
+    // it can never close mid-read: manual dwell per beat is < BEAT_MS (else it auto-
+    // advances), so total manual time < BEAT_MS*beats < CEILING.
+    var BEAT_MS = 30000;
     var CEILING_MS = (BEAT_MS * beats.length) + 6000;
 
     var ov = document.createElement('div');
