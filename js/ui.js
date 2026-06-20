@@ -478,10 +478,16 @@
         setClass(trainHint, 'hidden', false);
       } else {
         setClass(trainProg, 'hidden', true);
-        setText(trainBtn, t('train_start', { label: def.label }));
-        trainBtn.disabled = !G.canStartTraining();
-        if (!G.canStartTraining()) { setText(trainHint, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) })); setClass(trainHint, 'hidden', false); }
-        else { setClass(trainHint, 'hidden', true); }
+        // When you can't train yet, the BUTTON ITSELF states the blocker (Need N Power…)
+        // instead of a greyed "Train v1" that reads as a silent dead end (blind-playtest).
+        if (G.canStartTraining()) {
+          setText(trainBtn, t('train_start', { label: def.label }));
+          trainBtn.disabled = false;
+        } else {
+          setText(trainBtn, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) }));
+          trainBtn.disabled = true;
+        }
+        setClass(trainHint, 'hidden', true);
         // First-release onboarding: on a phone the Train button can sit below the fold /
         // behind the navbar, so a new player can't see the key progression action the
         // tutorial steers them to (blind-playtest blocker). When training FIRST becomes
