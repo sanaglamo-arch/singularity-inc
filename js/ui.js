@@ -1567,8 +1567,25 @@
       if (host) window.GAME_FACILITY.render(host);
     } catch (e) {}
   }
+  var _lastMusicI = null;
+  // Drive the procedural ambient's intensity from game state (vision: ambient builds with
+  // ERA and TENSION). era = version progress toward Singularity; danger = an overdue bill or
+  // a dangerously low risk meter. Throttled so the music only re-voices on meaningful change.
+  // Audio-only and a no-op when music is off — cannot affect gameplay/layout.
+  function syncMusicIntensity() {
+    if (!M || !s().music) return;
+    var st = s();
+    var era = Math.min(1, (st.version || 0) / C.AGI_VERSION);
+    var danger = 0;
+    if (st.overdue) danger += 0.30;
+    var minMeter = Math.min(st.safety, st.approval, st.legality) / 100;
+    if (minMeter < 0.5) danger += (0.5 - minMeter) * 0.8;
+    var target = Math.max(0, Math.min(1, 0.15 + era * 0.6 + danger));
+    if (_lastMusicI === null || Math.abs(target - _lastMusicI) > 0.04) { _lastMusicI = target; try { M.setIntensity(target); } catch (e) {} }
+  }
   function update() {
     syncHud();
+    syncMusicIntensity();
     syncFacility();
     if (currentTab === 'company') syncLab();
     else if (currentTab === 'upgrades') syncHardware();
