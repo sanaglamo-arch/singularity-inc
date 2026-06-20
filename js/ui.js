@@ -419,6 +419,12 @@
     else setText(hint, t('tap_hint_click'));
     setClass($('riskMini'), 'hidden', true);
     syncCombo(st);
+    // FTUE (items 2–7): when the current step does NOT permit clicking the orb (the
+    // 'laptop' step, and the buy-server phase of 'server'), the orb must read as locked
+    // — no :active squash / press feedback when tapped. doTap() already denies the action
+    // (cash unchanged + toast); this kills the visual press too. tutAllows('click') is the
+    // single source of truth, so the orb is interactive exactly when the step permits it.
+    setClass($('tapBtn'), 'tut-orb-lock', G.tutorialActive() && !tutAllows('click'));
     setClass($('breakthroughBtn'), 'hidden', true);
     setClass($('labOrbRow'), 'hidden', true);
     setClass($('prestigeCta'), 'hidden', true);
@@ -430,7 +436,15 @@
     // are not part of those steps, so hide them. On the SOFT 'release'/'price' steps the
     // model panel (train CTA + "Need X Power" readout) IS the target — keep it visible.
     var tutOn = G.tutorialHardLock();
-    setClass($('modelPanel'), 'hidden', tutOn);
+    // Item 7: the train CTA / "Тренировать v1" model panel must NOT exist until the
+    // player has enough Power to actually train (v1's powerReq, ≥6 early). Before that
+    // the panel would tempt a disabled button + show "Need X Power" during the release
+    // step — instead we hide the whole panel and the release coach points at BUYING
+    // HARDWARE ("копи Мощность — покупай железо"). Once power ≥ req the panel appears and
+    // the coach points at the train button. Only gate this pre-v1 (version 0): after the
+    // first model ships the panel is the live model/training hub and must always show.
+    var prePower = (st.version < 1) && (G.availablePower() < G.powerReq());
+    setClass($('modelPanel'), 'hidden', tutOn || prePower);
 
     // --- model panel (reuse #modelPanel / #resRow / #trainBtn / #trainProg) ---
     var powEl = $('computeVal'), shEl = $('shareVal'), usEl = $('valVal');
@@ -654,7 +668,19 @@
       var afford = st.cash >= h.cost, space = G.freeM2() >= h.m2, can = G.canBuyHw(h.id);
       // forced tutorial: only the current step's item is permitted; dim everything else
       var allowed = tutAllows('buyHw:' + h.id);
-      var isTarget = !!tut && allowed;   // the single item the tutorial points at
+      // Item 9: the free starter "Старый ноут" (laptop, no rent) only belongs in the list
+      // for the very first 'laptop' tutorial step (which points at it to buy). Once owned
+      // it has served its purpose — hide its card from the buy list thereafter so it
+      // doesn't sit there cluttering. (own counts idle+committed laptops.)
+      if (h.id === 'laptop' && (st.boughtLaptop || own >= 1) && tut !== 'laptop') {
+        setClass(r.el, 'hidden', true);
+        return;
+      }
+      setClass(r.el, 'hidden', false);
+      // Item 8: HIGHLIGHT (gold tutorial glow / affordable accent) only when the item is
+      // genuinely buyable — canBuyHw(id) === enough cash AND fits m². An item you can't
+      // afford must read as locked, never highlighted.
+      var isTarget = !!tut && allowed && can;   // the single item the tutorial points at
       setText(r.desc, t('hw_power') + ' +' + fmt(h.power) + ' · ' + (h.rent > 0 ? t('hw_rent') + ' $' + fmt(h.rent) + '/' + ruS() : t('common_free')) + ' · ' + fmt(h.m2) + t('hw_m2'));
       var ownTxt = [];
       if (idle > 0) ownTxt.push(t('hw_owned', { n: idle }));
@@ -1106,7 +1132,18 @@
       // affordability and nothing can drain cash here), so locking the orb can't
       // trap them — it just keeps the single onboarding action in focus.
       case 'upgrade': return action === 'upgradeTap';
-      case 'server':  return action === 'click' || action === 'upgradeTap' || action === 'buyHw:miniserver';
+      case 'server':
+        // PHASE-AWARE (items 2–7): while still EARNING toward the mini-server, clicking
+        // the orb IS the action. Once the player can afford it, the coach switches to
+        // "open Hardware / buy the server" — so the orb (and click-upgrade) must DENY
+        // there, leaving the single buy action in focus. buyHw:miniserver is always
+        // permitted (it's the goal of the step).
+        if (action === 'buyHw:miniserver') return true;
+        if (action === 'click' || action === 'upgradeTap') {
+          var st = s();
+          return st.cash < G.hwCost('miniserver');   // earn phase only
+        }
+        return false;
     }
     return true;
   }
@@ -1122,7 +1159,12 @@
     var step = G.tutorialStep(), nudge = $('nudge');
     if (!nudge) return;
     if (!step) { setClass(nudge, 'hidden', true); setClass(nudge, 'go', false); clearTutorialChrome(); return; }
-    setClass(nudge, 'hidden', false);
+    // Item 7 (layering): the floating .ftue-coach overlay is now the single guidance UI.
+    // The legacy inline #nudge banner duplicated the same prompt INSIDE #labMain and
+    // overlapped/cluttered the release coach ("overlapping ugly"). Keep it hidden during
+    // the forced tutorial — the coach overlay carries the message — while we still drive
+    // the bottom-nav blocking below.
+    setClass(nudge, 'hidden', true);
     setClass(nudge, 'go', true);
     var ni = nudge.querySelector('.nicon'); if (ni && !ni.__set) { ni.__set = 1; ni.innerHTML = ic('ic_insight'); }
     setText($('nudgeText'), t(TUT_PROMPT[step] || 'tut_buy_laptop'));
@@ -1229,6 +1271,15 @@
     // train CTA + the "Need X Power" readout. The player freely buys hardware/clicks to
     // accumulate Power; nothing is locked, so this can never trap.
     if (step === 'release') {
+      // Item 7: before there's enough Power to train v1, there is NO train button to point
+      // at (the model panel is hidden). Point the player at BUYING HARDWARE instead — on
+      // Hardware highlight the gear, elsewhere point at the Hardware nav. Only once
+      // power ≥ req does the train CTA exist; then point at it.
+      var havePow = G.availablePower(), needPow = G.powerReq();
+      if (havePow < needPow) {
+        if (currentTab !== 'upgrades') return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_release_power_title', body: 'ftue_release_power_gohw_body', hint: 'ftue_release_power_arrow', icon: 'gen_serverRack', light: true, vars: { req: fmt(needPow), have: fmt(havePow) } };
+        return { sel: '#upgradesTitle', dir: 'down', title: 'ftue_release_power_title', body: 'ftue_release_power_body', hint: 'ftue_release_power_arrow', icon: 'gen_serverRack', light: true, vars: { req: fmt(needPow), have: fmt(havePow) } };
+      }
       if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_goto_lab_arrow', icon: 'ic_brain', light: true };
       return { sel: '#trainBtn', dir: 'down', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_release_step_arrow', icon: 'ic_brain', light: true };
     }
@@ -1283,11 +1334,22 @@
     var c = buildCoach();
     setClass(c.root, 'coach-light', !!plan.light);
     var vw = window.innerWidth, vh = window.innerHeight;
-    // spotlight: a rounded ring exactly over the target; CSS box-shadow dims the rest
+    // spotlight: a rounded ring exactly over the target; CSS box-shadow dims the rest.
+    // Item 11 (alignment): build the padded box SYMMETRICALLY around the target and snap
+    // every edge to whole pixels, so the ring stays centered on its button at 390 and
+    // never drifts. Earlier the left/top were clamped to 0 WITHOUT shrinking width, which
+    // pushed the ring off-center near a screen edge, and sub-pixel left/top made it read
+    // crooked. We round the target box first, then expand by pad on every side, then clamp
+    // to the viewport while preserving the centered geometry.
     var pad = 8;
-    var sx = Math.max(0, r.left - pad), sy = Math.max(0, r.top - pad);
-    var sw = Math.min(r.width + pad * 2, vw - sx), sh = r.height + pad * 2;
-    var cxv = r.left + r.width / 2;
+    var rl = Math.round(r.left), rt = Math.round(r.top);
+    var rw = Math.round(r.width), rh = Math.round(r.height);
+    var sx = rl - pad, sy = rt - pad, sw = rw + pad * 2, sh = rh + pad * 2;
+    // clamp to viewport while keeping the box hugging the target (shrink, don't shift off)
+    if (sx < 0) { sw += sx; sx = 0; }
+    if (sy < 0) { sh += sy; sy = 0; }
+    if (sx + sw > vw) sw = vw - sx;
+    var cxv = rl + rw / 2;
     // Decide which side the card sits on by where the target lives. Targets in the
     // lower 45% of the frame (nav bar, low cards) → card ABOVE, arrow points DOWN.
     // Targets higher up → card BELOW, arrow points UP. This keeps the arrow on-screen
@@ -1342,11 +1404,34 @@
       buzz(6);
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
     }
+    // MOBILE MULTI-TOUCH (item 1): register EVERY tap on `pointerdown` instead of
+    // `click`. `click` carries the legacy ~300ms touch delay AND is suppressed when a
+    // second finger lands mid-gesture (multi-touch cancels the click), so two-hand
+    // rapid tapping felt laggy / dropped taps. pointerdown fires immediately and once
+    // per pointer, so each finger counts and разгон/heat builds at full speed.
+    // `touch-action: none` on #tapBtn (CSS, additive) kills the delay + scroll-intent.
+    // Guard: a pointerdown is followed by a synthetic `click` on the same tap — we set
+    // _tapPdHandled so that click does NOT double-count. Keyboard (Space/Enter) fires a
+    // click with detail===0 and no preceding pointerdown, so it still works.
+    var _tapPdHandled = false, _tapPdClear = null;
+    tapBtn.addEventListener('pointerdown', function (e) {
+      // primary button only for mouse; touch/pen always have button 0
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      _tapPdHandled = true;
+      // self-heal: if the trailing synthetic click never arrives (released off-target,
+      // multi-touch swallow), drop the guard so a later keyboard click still registers.
+      if (_tapPdClear) clearTimeout(_tapPdClear);
+      _tapPdClear = setTimeout(function () { _tapPdHandled = false; }, 700);
+      doTap(e.clientX, e.clientY);
+    });
     tapBtn.addEventListener('click', function (e) {
       // Keyboard-activation (Space/Enter on the focused orb) fires a synthetic click
       // with detail===0 and clientX/Y===0. Pass null,null so doTap() falls back to the
       // orb center — otherwise "+$X" would float from the screen corner (0,0).
       if (e.detail === 0 || (e.clientX === 0 && e.clientY === 0)) { doTap(null, null); return; }
+      // pointer-driven tap already handled by pointerdown above — swallow the trailing
+      // click so the same physical tap isn't counted twice.
+      if (_tapPdHandled) { _tapPdHandled = false; return; }
       doTap(e.clientX, e.clientY);
     });
 
@@ -1391,6 +1476,13 @@
     var st = s(), btn = $('tapUpgradeBtn'); if (!btn) return;
     // visible once the laptop is bought (forced-clicking phase onward)
     var show = st.boughtLaptop && !st.over;
+    // FTUE focus (items 2–7): during a HARD-LOCK coach step, only the CURRENT target
+    // control is on screen — sibling action buttons are HIDDEN (not just dimmed) so
+    // nothing peeks behind the coach card. The click-upgrade button is part of the
+    // 'upgrade' step ONLY; on 'click' / 'server' / 'laptop' it must not show behind the
+    // coach (owner saw it at ~$22 during the click step). Free play / soft steps: normal.
+    var step = G.tutorialStep();
+    if (step && G.tutorialHardLock() && step !== 'upgrade') show = false;
     setClass(btn, 'hidden', !show);
     if (!show) return;
     var maxed = st.tapLevel >= C.TAP.upgrade.maxLevel;

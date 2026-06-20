@@ -2251,3 +2251,23 @@ button:focus:not(:focus-visible) { outline: none; }
   display: block; font-size: 11.5px; line-height: 1.4; color: var(--muted);
   margin-top: 4px; overflow-wrap: anywhere; word-break: break-word;
 }
+
+/* ============================================================
+   v49 — early-game ONBOARDING polish (ADDITIVE, new selectors only).
+   Mobile multi-touch tap, FTUE focus (lock the non-target orb), coach ring align.
+   All rules below are NEW selectors and compound over the base; nothing existing
+   is edited. ============================================================ */
+
+/* Item 1: the orb registers taps on pointerdown (JS). Kill any residual touch delay
+   / scroll-or-zoom gesture intent ON THE ORB so every rapid two-hand tap fires
+   instantly and each pointer counts. (Global already sets manipulation; this is the
+   stronger, orb-specific rule.) */
+#tapBtn { touch-action: none; }
+
+/* Items 2–7: when the current forced-tutorial step does NOT permit clicking the orb
+   (the 'laptop' step + the buy-server phase of 'server'), the orb must read as locked —
+   no :active squash / press feedback when tapped. doTap() already denies the action;
+   this removes the visual press so a blocked tap does NOTHING visible. */
+#tapBtn.tut-orb-lock { cursor: default; }
+#tapBtn.tut-orb-lock:active { transform: none; }
+#tapBtn.tut-orb-lock.squash { animation: none; }

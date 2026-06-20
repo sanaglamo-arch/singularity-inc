@@ -1132,6 +1132,17 @@
       sfx('breakthrough');
     }
 
+    // Item 10: tap-to-skip/advance GRACE. While rapidly tapping the orb toward $40 the
+    // servers cutscene pops, and a click already in motion would instantly skip it. Arm
+    // skip/advance only AFTER a short grace from open, so an in-flight tap can't dismiss
+    // the cutscene. A deliberate tap after the grace works normally. Applies to all
+    // cutscenes (every play() call). The auto-advance timer + Skip button respect it too.
+    var GRACE_MS = 700;
+    var armedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    function graceOver() {
+      var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      return (now - armedAt) >= GRACE_MS;
+    }
     function advance() {
       if (ended) return;
       if (idx >= beats.length - 1) { end(false); return; }
@@ -1156,9 +1167,11 @@
     function onResize() { if (ov && ov.classList) ov.classList.toggle('cs-portrait', isPortrait()); }
     window.addEventListener('resize', onResize);
 
-    nextBtn.addEventListener('click', function (e) { e.stopPropagation(); advance(); });
-    skipBtn.addEventListener('click', function (e) { e.stopPropagation(); end(false); });
-    ov.querySelector('.cs-stage').addEventListener('click', function () { advance(); });
+    // user-driven dismissals (stage tap-to-advance, Next, Skip) are ignored until the
+    // grace window passes — see GRACE_MS above. The auto-advance beat timer is exempt.
+    nextBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!graceOver()) return; advance(); });
+    skipBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!graceOver()) return; end(false); });
+    ov.querySelector('.cs-stage').addEventListener('click', function () { if (!graceOver()) return; advance(); });
 
     active = { end: end };
     ceiling = setTimeout(function () { end(false); }, CEILING_MS);
