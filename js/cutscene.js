@@ -1018,6 +1018,662 @@
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-steel', particles: 'motes', kb: 'kb-in'
       };
+    },
+
+    // =====================================================================
+    // DECISION CINEMA — bespoke 1-beat framings for the first four STORY
+    // DECISIONS. Each SETUP scene establishes the dilemma cinematically just
+    // BEFORE its modal opens; each CONSEQUENCE scene shows the fallout of the
+    // path taken AFTER the choice. Built in the master-craft style (layered
+    // bg/mid/fg parallax + grade + particles), focal content centered on x=600
+    // and tagged .cs-g-prem so the existing portrait recomposition lifts it
+    // into the visible band at 390. No new CSS needed.
+    // =====================================================================
+
+    // ----------------------------------------- DATA · setup (the scrape question)
+    // A dim server room at night. Two short racks flank center; between them a
+    // glowing data-stream column pours scraped text/glyphs down toward a hungry
+    // model-core at the floor. Cold, illicit, electric. Grade: steel.
+    decData: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gDatW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0b1226"/><stop offset="0.55" stop-color="#080d1c"/><stop offset="1" stop-color="#05070f"/></linearGradient>' +
+          '<radialGradient id="gDatCold" cx="0.5" cy="0.5" r="0.6">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.16) + '"/><stop offset="1" stop-color="' + rgba(CYAN2, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gDatW)"/>' +
+        starfield(67, 30, 0, 0, 1200, 240, rgba(CYAN2, 1)) +
+        // faint cooling-duct seams across the back wall
+        '<g stroke="' + rgba(WHITE, 0.04) + '" stroke-width="2">' +
+          line(0, 150, 1200, 150, rgba(WHITE, 0.04), 2) +
+          line(0, 470, 1200, 470, rgba(WHITE, 0.04), 2) +
+        '</g>' +
+        '<rect width="1200" height="750" fill="url(#gDatCold)"/>';
+
+      // a vertical glowing data column of falling glyphs (the scraped corpus)
+      function stream(cx, seed, col) {
+        var r = rng(seed), s = '', y, k = 0;
+        var glyph = ['0', '1', '{', '}', '<', '>', ';', '/', '#', '*'];
+        for (y = 230; y < 560; y += 26) {
+          var gx = cx + (r() - 0.5) * 70;
+          var on = r() > 0.25;
+          s += '<text x="' + gx.toFixed(0) + '" y="' + y + '" text-anchor="middle" ' +
+            'font-family="ui-monospace,monospace" font-size="15" font-weight="700" ' +
+            'fill="' + rgba(col, on ? 0.85 : 0.28) + '"' + (on ? ' class="cs-pulse" style="--pd:' + (k % 6) + 's"' : '') + '>' +
+            glyph[(k * 7) % glyph.length] + '</text>';
+          k++;
+        }
+        return s;
+      }
+      var mid =
+        '<defs>' + glowFilter('gDatCore', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // concrete floor + cold pool
+        '<rect x="0" y="600" width="1200" height="150" fill="#070a12"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        '<ellipse cx="600" cy="612" rx="260" ry="42" fill="' + rgba(CYAN2, 0.08) + '"/>' +
+        // the column of falling scraped data, dead center
+        '<rect x="540" y="210" width="120" height="370" rx="10" fill="' + rgba(CYAN, 0.05) + '" stroke="' + rgba(CYAN2, 0.18) + '" stroke-width="1.5"/>' +
+        stream(600, 21, CYAN2) + stream(600, 88, VIOLET2) +
+        '</g>';
+
+      // two racks flanking the data column + the hungry model-core drinking it in
+      function rack(x, w, h) {
+        var top = 600 - h, s =
+          '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="4" fill="#0b1018" stroke="' + rgba(CYAN2, 0.2) + '" stroke-width="2"/>';
+        var uy, k = 0, rr = rng(x + 3);
+        for (uy = top + 12; uy < 600 - 10; uy += 26) {
+          s += '<rect x="' + (x + 6) + '" y="' + uy + '" width="' + (w - 12) + '" height="20" rx="2" fill="#101826"/>';
+          var lx;
+          for (lx = x + 14; lx < x + w - 12; lx += 16) {
+            var on = rr() > 0.5;
+            s += circle(lx, uy + 10, 2.3, rgba(rr() > 0.5 ? CYAN2 : VIOLET2, on ? 0.95 : 0.2),
+              on ? ' class="cs-pulse" style="--pd:' + (k % 6) + 's"' : '');
+            k++;
+          }
+        }
+        return s;
+      }
+      var fg =
+        '<defs>' + glowFilter('gDatF', 12) +
+          '<radialGradient id="gDatFill" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="' + rgba(CYAN2, 1) + '"/><stop offset="1" stop-color="' + rgba(CYAN, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        rack(404, 132, 300) +
+        rack(664, 132, 300) +
+        // the model-core at the base of the column, drinking the stream
+        '<g filter="url(#gDatF)"><circle cx="600" cy="566" r="38" fill="url(#gDatFill)" class="cs-breathe"/></g>' +
+        // cold rim-light tracing the near rack edges
+        '<g fill="none" stroke-linecap="round">' +
+          line(404, 300, 404, 600, rgba(CYAN2, 0.3), 3) +
+          line(796, 300, 796, 600, rgba(CYAN2, 0.26), 3) +
+        '</g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // -------------------------------------- DATA · consequence (the scrape path)
+    // The crawler unleashed: a web of grabbed nodes spreads across the dark, and
+    // a red legal-alert glyph rises among them. Free data, gathering storm.
+    decDataScrape: function () {
+      var bg =
+        '<defs><radialGradient id="gScrBg" cx="0.5" cy="0.5" r="0.66">' +
+          '<stop offset="0" stop-color="#10121c"/><stop offset="0.6" stop-color="#0a0c14"/><stop offset="1" stop-color="#05060c"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gScrBg)"/>' +
+        starfield(29, 70, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      // a sprawling web of grabbed nodes (the open web, crawled)
+      var r = rng(43), nodes = [], i;
+      for (i = 0; i < 30; i++) {
+        var a = r() * Math.PI * 2, rad = 120 + r() * 260;
+        nodes.push([600 + Math.cos(a) * rad, 375 + Math.sin(a) * rad * 0.8]);
+      }
+      var links = '<g stroke="' + rgba(CYAN, 0.12) + '" stroke-width="1.2">';
+      nodes.forEach(function (p, k) {
+        links += line(600, 375, p[0], p[1], rgba(CYAN, 0.10), 1.2);
+        var q = nodes[(k + 4) % nodes.length];
+        links += line(p[0], p[1], q[0], q[1], rgba(VIOLET2, 0.08), 1);
+      });
+      links += '</g>';
+      var dots = '';
+      nodes.forEach(function (p, k) {
+        dots += circle(p[0], p[1], 2 + (k % 3) * 1.4, rgba(k % 2 ? CYAN2 : VIOLET2, 0.85),
+          ' class="cs-pulse" style="--pd:' + (k % 6) + 's"');
+      });
+      var mid = '<g class="cs-g-prem">' + links + dots + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gScrAlert', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // grabber-core, swollen with everything it took
+        '<g filter="url(#gScrAlert)"><circle cx="600" cy="375" r="42" fill="' + rgba(CYAN2, 0.85) + '" class="cs-breathe"/></g>' +
+        // a rising red legal-alert glyph (the lawyer taking notes)
+        '<g transform="translate(600,222)">' +
+          '<g filter="url(#gScrAlert)"><circle r="30" fill="' + rgba('239,68,68', 0.25) + '"/></g>' +
+          '<path d="M0 -22 l24 42 -48 0 z" fill="none" stroke="' + rgba('248,113,113', 0.95) + '" stroke-width="4" stroke-linejoin="round"/>' +
+          '<path d="M0 -8 v14 M0 12 v2" stroke="' + rgba('248,113,113', 0.95) + '" stroke-width="4" stroke-linecap="round"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------- DATA · consequence (the clean / careful path)
+    // A single pristine, consented dataset crystal glows on a clean pedestal —
+    // lawful, yours, calm. Cyan-violet, breathing. Covers license + synthetic.
+    decDataClean: function () {
+      var bg =
+        '<defs><radialGradient id="gClnBg" cx="0.5" cy="0.46" r="0.7">' +
+          '<stop offset="0" stop-color="#121333"/><stop offset="0.6" stop-color="#0a0a22"/><stop offset="1" stop-color="#06060f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gClnBg)"/>' +
+        starfield(57, 60, 0, 0, 1200, 750, rgba(VIOLET2, 1));
+      var mid =
+        '<defs>' + glowFilter('gClnG', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+          // orderly concentric rings (clean, structured corpus)
+          '<g fill="none">' +
+            '<circle cx="600" cy="372" r="120" stroke="' + rgba(CYAN, 0.28) + '" stroke-width="2" class="cs-ring1"/>' +
+            '<circle cx="600" cy="372" r="180" stroke="' + rgba(VIOLET2, 0.18) + '" stroke-width="2" class="cs-ring2"/>' +
+          '</g>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gClnF', 16) +
+          '<linearGradient id="gClnCry" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.95) + '"/><stop offset="1" stop-color="' + rgba(VIOLET, 0.7) + '"/></linearGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a clean pedestal
+        '<rect x="520" y="520" width="160" height="20" rx="5" fill="#161a36"/>' +
+        '<rect x="544" y="540" width="112" height="70" rx="4" fill="#10142c" stroke="' + rgba(VIOLET2, 0.2) + '" stroke-width="2"/>' +
+        // the consented-data crystal, faceted + glowing
+        '<g filter="url(#gClnF)">' +
+          '<polygon points="600,300 660,400 600,520 540,400" fill="url(#gClnCry)" class="cs-breathe"/>' +
+          '<polygon points="600,300 600,520 540,400" fill="' + rgba(WHITE, 0.14) + '"/>' +
+          line(600, 300, 600, 520, rgba(WHITE, 0.4), 1.5) +
+          line(540, 400, 660, 400, rgba(WHITE, 0.3), 1.5) +
+        '</g>' +
+        // a small green "consent/legal OK" check beside it
+        '<g transform="translate(600,256)">' +
+          '<circle r="22" fill="' + rgba('34,197,94', 0.16) + '" stroke="' + rgba('74,222,128', 0.7) + '" stroke-width="2"/>' +
+          '<path d="M-10 0 l7 8 13 -16" fill="none" stroke="' + rgba('134,239,172', 0.95) + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------- WHISTLEBLOWER · setup (lone terminal)
+    // A lone figure at a glowing terminal late at night. One monitor blazes in a
+    // dark room; on it, a half-typed message to the press. The cursor blinks.
+    decWhistle: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gWhsW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0c0f22"/><stop offset="0.55" stop-color="#080a18"/><stop offset="1" stop-color="#05060f"/></linearGradient>' +
+          '<radialGradient id="gWhsScr" cx="0.5" cy="0.5" r="0.6">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.22) + '"/><stop offset="1" stop-color="' + rgba(CYAN2, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gWhsW)"/>' +
+        // a distant office-window grid, mostly dark — everyone's gone home
+        '<g class="cs-g-bsmwin" opacity="0.55">' +
+          '<rect x="120" y="110" width="170" height="120" rx="4" fill="#0c1426"/>' +
+          '<g stroke="' + rgba(VIOLET2, 0.14) + '" stroke-width="2" fill="none">' +
+            line(177, 110, 177, 230, rgba(VIOLET2, 0.14), 2) +
+            line(234, 110, 234, 230, rgba(VIOLET2, 0.14), 2) +
+            line(120, 170, 290, 170, rgba(VIOLET2, 0.12), 2) +
+          '</g>' +
+          '<rect x="186" y="120" width="9" height="11" fill="' + rgba(GOLD, 0.5) + '"/>' +
+        '</g>' +
+        // the screen's cold glow pooling out into the dark room
+        '<rect width="1200" height="750" fill="url(#gWhsScr)"/>';
+
+      var mid =
+        '<defs>' + glowFilter('gWhsM', 10) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // desk + the bright monitor, center stage
+        '<rect x="0" y="600" width="1200" height="150" fill="#070912"/>' +
+        line(0, 600, 1200, 600, rgba(WHITE, 0.05), 2) +
+        '<rect x="430" y="560" width="340" height="14" rx="3" fill="#141a30"/>' +
+        // the monitor on a stand
+        '<rect x="500" y="356" width="200" height="140" rx="6" fill="#0a1018" stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="2"/>' +
+        '<rect x="590" y="496" width="20" height="40" fill="#0c1220"/>' +
+        '<rect x="556" y="536" width="88" height="8" rx="3" fill="#0c1220"/>' +
+        // the blazing screen — a half-typed message
+        '<g filter="url(#gWhsM)">' +
+          '<rect x="508" y="364" width="184" height="124" rx="3" fill="' + rgba(CYAN2, 0.16) + '"/>' +
+        '</g>' +
+        '<g>' +
+          line(522, 386, 678, 386, rgba(CYAN2, 0.7), 4) +
+          line(522, 404, 654, 404, rgba(CYAN2, 0.5), 4) +
+          line(522, 422, 672, 422, rgba(CYAN2, 0.55), 4) +
+          line(522, 440, 600, 440, rgba(CYAN2, 0.45), 4) +
+          // the blinking cursor at the end of the half-typed line
+          '<rect x="606" y="432" width="7" height="16" fill="' + rgba(WHITE, 0.95) + '" class="cs-pulse" style="--pd:0s"/>' +
+        '</g>' +
+        '</g>';
+
+      var fg =
+        '<g class="cs-g-prem">' +
+        // the lone figure, hunched at the desk, lit from the front by the screen
+        '<g fill="#04060e">' +
+          '<rect x="376" y="470" width="14" height="150" rx="6" fill="#080a14"/>' +     // chair back
+          '<path d="M392 660 C 392 590 388 548 410 522 C 426 502 442 490 456 458 ' +
+            'L 540 458 C 552 506 554 588 552 660 Z"/>' +                                // torso
+          '<path d="M500 488 C 532 500 558 520 576 542 L 560 564 C 538 542 512 526 488 518 Z"/>' + // arm to keyboard
+          '<path d="M456 460 q4 -18 24 -22 q28 -6 42 16 q10 30 -18 44 q-30 12 -48 -10 q-6 -14 0 -28 z"/>' +
+          '<circle cx="490" cy="438" r="30"/>' +                                        // head
+        '</g>' +
+        // cold rim-light from the screen on the figure's near edge
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M520 426 q14 22 8 62 q-2 24 -10 60" stroke="' + rgba(CYAN2, 0.6) + '" stroke-width="4"/>' +
+          '<path d="M512 418 q14 8 14 24" stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="3"/>' +
+        '</g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-steel', particles: 'dust', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------ WHISTLEBLOWER · consequence (pay / cover-up path)
+    // An envelope of hush-money slides across the dark; the secret stays buried
+    // under a heavy lid. Gold + shadow, uneasy. Covers 'pay'.
+    decWhistlePay: function () {
+      var bg =
+        '<defs><radialGradient id="gPayBg" cx="0.5" cy="0.5" r="0.7">' +
+          '<stop offset="0" stop-color="#161026"/><stop offset="0.6" stop-color="#0c0817"/><stop offset="1" stop-color="#06040d"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gPayBg)"/>' +
+        starfield(83, 30, 0, 0, 1200, 220, rgba(GOLD, 1));
+      var mid =
+        '<defs>' + glowFilter('gPayG', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a heavy vault lid / slab pressing down over a buried glow (the secret)
+        '<ellipse cx="600" cy="430" rx="220" ry="60" fill="' + rgba(GOLD, 0.05) + '"/>' +
+        '<g filter="url(#gPayG)"><ellipse cx="600" cy="470" rx="120" ry="34" fill="' + rgba('239,68,68', 0.18) + '" class="cs-breathe"/></g>' +
+        '<rect x="430" y="392" width="340" height="40" rx="8" fill="#16121f" stroke="' + rgba(GOLD, 0.22) + '" stroke-width="2"/>' +
+        '<rect x="430" y="392" width="340" height="10" rx="5" fill="' + rgba(GOLD, 0.12) + '"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gPayF', 8) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // an envelope of hush-money sliding in from the side
+        '<g transform="translate(600,300)">' +
+          '<rect x="-90" y="-44" width="180" height="100" rx="6" fill="#1c1830" stroke="' + rgba(GOLD, 0.55) + '" stroke-width="2"/>' +
+          '<path d="M-90 -44 L0 18 L90 -44" fill="none" stroke="' + rgba(GOLD, 0.55) + '" stroke-width="2"/>' +
+          // a peek of cash inside
+          '<rect x="-40" y="-6" width="80" height="44" rx="3" fill="' + rgba('34,197,94', 0.22) + '" stroke="' + rgba('74,222,128', 0.5) + '" stroke-width="1.5"/>' +
+          '<text x="0" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="26" fill="' + rgba('134,239,172', 0.85) + '">$</text>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'dust', kb: 'kb-pan'
+      };
+    },
+
+    // -------------------- WHISTLEBLOWER · consequence (listen / responsible path)
+    // The brake is pulled: a calm shield blooms over the work; the red flaw cools
+    // to safe cyan. The room exhales. Covers 'listen' (and a calm 'fire' fallback).
+    decWhistleListen: function () {
+      var bg =
+        '<defs><radialGradient id="gLisBg" cx="0.5" cy="0.48" r="0.7">' +
+          '<stop offset="0" stop-color="#0c1c30"/><stop offset="0.6" stop-color="#081424"/><stop offset="1" stop-color="#05080f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gLisBg)"/>' +
+        starfield(37, 56, 0, 0, 1200, 750, rgba(CYAN2, 1));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="130" stroke="' + rgba(CYAN, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
+          '<circle cx="600" cy="372" r="196" stroke="' + rgba(VIOLET2, 0.18) + '" stroke-width="2" class="cs-ring2"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gLisF', 16) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a large calm shield (safety restored) with a check inside
+        '<g filter="url(#gLisF)">' +
+          '<path d="M600 250 l96 34 0 92 q0 78 -96 116 q-96 -38 -96 -116 l0 -92 z" ' +
+            'fill="' + rgba(CYAN, 0.16) + '" stroke="' + rgba(CYAN2, 0.85) + '" stroke-width="4" class="cs-breathe"/>' +
+        '</g>' +
+        '<path d="M556 388 l30 32 56 -66" fill="none" stroke="' + rgba(WHITE, 0.9) + '" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------- INVESTOR · setup (the glass boardroom)
+    // A glass boardroom at night. A long table runs toward the city window; at
+    // its head looms a tall suited silhouette, hand flat on the table — pressure.
+    // City lights glitter beyond. Grade: violet, corporate cold.
+    decInvestor: function () {
+      var bg =
+        '<defs>' +
+          '<linearGradient id="gInvW" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#141033"/><stop offset="0.55" stop-color="#0d0a24"/><stop offset="1" stop-color="#080614"/></linearGradient>' +
+          '<linearGradient id="gInvGlass" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + rgba(VIOLET2, 0.3) + '"/><stop offset="0.6" stop-color="' + rgba(CYAN2, 0.16) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0.08) + '"/></linearGradient>' +
+        '</defs>' +
+        '<rect width="1200" height="750" fill="url(#gInvW)"/>' +
+        // floor-to-ceiling glass with a glittering night skyline beyond
+        '<g class="cs-g-offwin">' +
+          '<rect x="150" y="90" width="900" height="380" rx="4" fill="url(#gInvGlass)" opacity="0.6"/>' +
+          cityline(150, 470, 900, rng(91), rgba(CYAN2, 0.7)) +
+          starfield(19, 40, 158, 100, 884, 180, rgba(WHITE, 1)) +
+          '<g stroke="' + rgba(WHITE, 0.16) + '" stroke-width="3" fill="none">' +
+            '<rect x="150" y="90" width="900" height="380" rx="4"/>' +
+            line(450, 90, 450, 470, rgba(WHITE, 0.14), 3) +
+            line(750, 90, 750, 470, rgba(WHITE, 0.14), 3) +
+            line(150, 280, 1050, 280, rgba(WHITE, 0.1), 3) +
+          '</g>' +
+        '</g>';
+
+      var mid =
+        '<defs>' + glowFilter('gInvM', 6) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a long boardroom table receding toward the head of the table (center)
+        '<polygon points="360,720 840,720 700,470 500,470" fill="#15112c" stroke="' + rgba(VIOLET2, 0.26) + '" stroke-width="2"/>' +
+        '<polygon points="360,720 840,720 700,470 500,470" fill="' + rgba(VIOLET2, 0.06) + '"/>' +
+        // sheen down the table center
+        '<polygon points="588,720 612,720 590,470 610,470" fill="' + rgba(CYAN2, 0.1) + '"/>' +
+        // empty chairs flanking the table
+        '<g fill="#100d22">' +
+          '<rect x="372" y="600" width="40" height="56" rx="6"/>' +
+          '<rect x="788" y="600" width="40" height="56" rx="6"/>' +
+          '<rect x="430" y="520" width="30" height="44" rx="5"/>' +
+          '<rect x="740" y="520" width="30" height="44" rx="5"/>' +
+        '</g>' +
+        '</g>';
+
+      var fg =
+        '<g class="cs-g-prem">' +
+        // the looming suit at the head of the table, hand flat on the surface
+        '<g fill="#040308">' +
+          // body / suit, broad-shouldered, slightly imposing
+          '<path d="M548 470 C 548 416 560 392 600 392 C 640 392 652 416 652 470 ' +
+            'L 666 470 C 670 448 678 436 690 432 L 690 470 Z"/>' +
+          // the flat hand pressing the table
+          '<path d="M636 462 q34 -8 54 4 l-2 14 q-30 -6 -52 2 z"/>' +
+          // shoulders
+          '<path d="M512 470 C 512 432 540 410 600 410 C 660 410 688 432 688 470 Z"/>' +
+          // neck + head
+          '<rect x="586" y="356" width="28" height="36" rx="8"/>' +
+          '<circle cx="600" cy="338" r="30"/>' +
+        '</g>' +
+        // a thin violet rim-light tracing the suit (cold authority)
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M568 470 q-2 -52 14 -78" stroke="' + rgba(VIOLET2, 0.55) + '" stroke-width="3"/>' +
+          '<path d="M632 470 q2 -52 -14 -78" stroke="' + rgba(VIOLET2, 0.45) + '" stroke-width="3"/>' +
+          '<path d="M578 318 q22 -16 44 0" stroke="' + rgba(CYAN2, 0.4) + '" stroke-width="3"/>' +
+        '</g>' +
+        // a small glowing contract/figure floating where the hand presses
+        '<g transform="translate(688,452)">' +
+          '<rect x="-2" y="-22" width="58" height="40" rx="3" fill="#100d22" stroke="' + rgba(GOLD, 0.5) + '" stroke-width="1.5"/>' +
+          '<text x="27" y="6" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="20" fill="' + rgba(GOLD, 0.9) + '">$</text>' +
+        '</g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'motes', kb: 'kb-pan'
+      };
+    },
+
+    // --------------------------------- INVESTOR · consequence (ship-for-hype path)
+    // A flood of cash crashes in while the safety gauge cracks. Gold deluge, a
+    // hairline fracture across a cyan shield. Covers 'ship' (and 'negotiate' lite).
+    decInvestShip: function () {
+      var bg =
+        '<defs><radialGradient id="gShpBg" cx="0.5" cy="0.4" r="0.72">' +
+          '<stop offset="0" stop-color="#1c1730"/><stop offset="0.6" stop-color="#0e0a1c"/><stop offset="1" stop-color="#06040d"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gShpBg)"/>' +
+        starfield(73, 40, 0, 0, 1200, 360, rgba(GOLD, 1));
+      // a cascade of coins raining down (the hype money)
+      var r = rng(61), coins = '', i;
+      for (i = 0; i < 16; i++) {
+        var cx = 360 + r() * 480, cy = 180 + r() * 360, rr = 8 + r() * 6;
+        coins += '<g class="cs-pulse" style="--pd:' + (i % 6) + 's">' +
+          circle(cx, cy, rr, rgba(GOLD, 0.9)) +
+          '<text x="' + cx + '" y="' + (cy + rr * 0.45) + '" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="' + (rr * 1.3).toFixed(0) + '" fill="#5b3d05">$</text>' +
+          '</g>';
+      }
+      var mid =
+        '<g class="cs-g-prem">' +
+          '<g stroke-linecap="round" opacity="0.5">' +
+            line(420, 120, 400, 620, rgba(GOLD, 0.16), 2) +
+            line(600, 90, 600, 660, rgba(GOLD, 0.2), 2) +
+            line(780, 120, 800, 620, rgba(GOLD, 0.16), 2) +
+          '</g>' +
+          coins +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gShpF', 14) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a cyan safety shield with a hairline crack spreading (safety takes the hit)
+        '<g filter="url(#gShpF)">' +
+          '<path d="M600 470 l-70 -26 0 -64 q0 -54 70 -82 q70 28 70 82 l0 64 z" ' +
+            'fill="' + rgba(CYAN, 0.12) + '" stroke="' + rgba(CYAN2, 0.7) + '" stroke-width="3.5" class="cs-breathe"/>' +
+        '</g>' +
+        '<path d="M600 312 l-14 60 22 36 -18 50" fill="none" stroke="' + rgba('248,113,113', 0.9) + '" stroke-width="3" stroke-linecap="round"/>' +
+        '<path d="M608 372 l30 -10 M586 408 l-26 6" fill="none" stroke="' + rgba('248,113,113', 0.7) + '" stroke-width="2.4" stroke-linecap="round"/>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-amber', particles: 'embers', kb: 'kb-zoom'
+      };
+    },
+
+    // ------------------------------ INVESTOR · consequence (refuse / hold path)
+    // The door closes on the money; a steady figure stands with arms crossed,
+    // clean and unbought, the city calm behind. Covers 'refuse'.
+    decInvestHold: function () {
+      var bg =
+        '<defs><radialGradient id="gHldBg" cx="0.5" cy="0.46" r="0.72">' +
+          '<stop offset="0" stop-color="#101630"/><stop offset="0.6" stop-color="#0a0e22"/><stop offset="1" stop-color="#06070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gHldBg)"/>' +
+        starfield(47, 50, 0, 0, 1200, 750, rgba(CYAN2, 1)) +
+        cityline(0, 470, 1200, rng(101), rgba(CYAN2, 0.4));
+      var mid =
+        '<g class="cs-g-prem" fill="none">' +
+          '<circle cx="600" cy="372" r="150" stroke="' + rgba(CYAN, 0.22) + '" stroke-width="2" class="cs-ring1"/>' +
+        '</g>';
+      var fg =
+        '<defs>' + glowFilter('gHldF', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a steady standing founder, arms crossed, calm and unbought
+        '<g filter="url(#gHldF)"><ellipse cx="600" cy="430" rx="130" ry="150" fill="' + rgba(CYAN, 0.06) + '"/></g>' +
+        '<g fill="#05070f">' +
+          '<path d="M540 600 C 540 510 548 470 600 470 C 652 470 660 510 660 600 Z"/>' +     // torso
+          '<path d="M548 510 q52 26 104 0 l4 26 q-56 26 -112 0 z"/>' +                        // crossed arms
+          '<rect x="586" y="430" width="28" height="44" rx="8"/>' +                          // neck
+          '<circle cx="600" cy="412" r="32"/>' +                                             // head
+        '</g>' +
+        '<g fill="none" stroke-linecap="round">' +
+          '<path d="M566 470 q-4 -40 14 -64" stroke="' + rgba(CYAN2, 0.55) + '" stroke-width="3"/>' +
+          '<path d="M634 470 q4 -40 -14 -64" stroke="' + rgba(CYAN2, 0.45) + '" stroke-width="3"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------ OPENCLOSED · setup (the fork in the road)
+    // A literal fork in a dark road. Left branch: an OPEN padlock, shackle thrown
+    // wide, warm light spilling out to the crowd. Right branch: a sealed VAULT,
+    // locked tight, glinting cold. The model-core hovers at the split — choose.
+    decFork: function () {
+      var bg =
+        '<defs><radialGradient id="gFrkBg" cx="0.5" cy="0.36" r="0.78">' +
+          '<stop offset="0" stop-color="#121233"/><stop offset="0.5" stop-color="#0a0a22"/><stop offset="1" stop-color="#05050f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gFrkBg)"/>' +
+        starfield(11, 70, 0, 0, 1200, 360, rgba(VIOLET2, 1)) +
+        // a horizon line; the road rises from the foreground and splits
+        line(0, 470, 1200, 470, rgba(VIOLET2, 0.14), 2);
+
+      var mid =
+        '<defs>' +
+          glowFilter('gFrkOpen', 12) + glowFilter('gFrkLock', 8) +
+          '<radialGradient id="gFrkWarm" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="' + rgba(GOLD, 0.4) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
+          '<radialGradient id="gFrkCold" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="' + rgba(CYAN2, 0.28) + '"/><stop offset="1" stop-color="' + rgba(CYAN2, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // the splitting road (one path forks left + right from a near point)
+        '<polygon points="560,720 640,720 700,470 500,470" fill="#13112a" stroke="' + rgba(VIOLET2, 0.16) + '" stroke-width="1.5"/>' +
+        '<polygon points="500,470 700,470 470,300 360,300" fill="' + rgba(GOLD, 0.05) + '" stroke="' + rgba(GOLD, 0.2) + '" stroke-width="1.5"/>' +   // left = open (warm)
+        '<polygon points="500,470 700,470 840,300 730,300" fill="' + rgba(CYAN, 0.05) + '" stroke="' + rgba(CYAN2, 0.2) + '" stroke-width="1.5"/>' + // right = closed (cold)
+        // dashed lane markings down the near stem
+        '<g stroke="' + rgba(WHITE, 0.18) + '" stroke-width="3" stroke-dasharray="10 16">' +
+          line(600, 700, 600, 478, rgba(WHITE, 0.16), 3) +
+        '</g>' +
+        '<rect x="280" y="220" width="320" height="200" fill="url(#gFrkWarm)"/>' +
+        '<rect x="640" y="220" width="320" height="200" fill="url(#gFrkCold)"/>' +
+        '</g>';
+
+      var fg =
+        '<defs>' + glowFilter('gFrkCore', 14) +
+          '<radialGradient id="gFrkCoreF" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="' + rgba(VIOLET2, 1) + '"/><stop offset="1" stop-color="' + rgba(VIOLET, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        // LEFT — an OPEN padlock (shackle thrown wide), warm, the people’s choice
+        '<g transform="translate(414,300)">' +
+          '<g filter="url(#gFrkOpen)" fill="none" stroke="' + rgba(GOLD, 0.92) + '" stroke-width="7" stroke-linecap="round">' +
+            '<path d="M-26 -6 q0 -52 44 -52 q30 0 36 26"/>' +              // open shackle, swung aside
+          '</g>' +
+          '<rect x="-34" y="-6" width="68" height="56" rx="9" fill="' + rgba(GOLD, 0.2) + '" stroke="' + rgba(GOLD, 0.92) + '" stroke-width="5"/>' +
+          '<circle cx="0" cy="20" r="7" fill="' + rgba(GOLD, 0.95) + '"/>' +
+          // little crowd of people-dots receiving it
+          '<g fill="' + rgba(GOLD, 0.7) + '">' +
+            '<circle cx="-44" cy="86" r="6"/><circle cx="-22" cy="92" r="6"/><circle cx="2" cy="88" r="6"/><circle cx="26" cy="92" r="6"/><circle cx="48" cy="86" r="6"/>' +
+          '</g>' +
+        '</g>' +
+        // RIGHT — a sealed VAULT / locked padlock, cold, the margins choice
+        '<g transform="translate(786,300)">' +
+          '<rect x="-40" y="-8" width="80" height="64" rx="10" fill="' + rgba(CYAN, 0.14) + '" stroke="' + rgba(CYAN2, 0.9) + '" stroke-width="5"/>' +
+          '<path d="M-26 -8 v-14 q0 -28 26 -28 q26 0 26 28 v14" fill="none" stroke="' + rgba(CYAN2, 0.9) + '" stroke-width="6" stroke-linecap="round"/>' +
+          '<circle cx="0" cy="20" r="7" fill="' + rgba(CYAN2, 0.95) + '"/>' +
+          '<rect x="-3" y="22" width="6" height="20" rx="3" fill="' + rgba(CYAN2, 0.95) + '"/>' +
+          // a glint of cold light off the steel
+          line(-30, 4, -14, 4, rgba(WHITE, 0.5), 3) +
+        '</g>' +
+        // the model-core hovering at the split, awaiting the choice
+        '<g filter="url(#gFrkCore)"><circle cx="600" cy="468" r="34" fill="url(#gFrkCoreF)" class="cs-breathe"/></g>' +
+        '</g>';
+
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-violet', particles: 'motes', kb: 'kb-in'
+      };
+    },
+
+    // ------------------------------------ OPENCLOSED · consequence (open path)
+    // The weights set free: an unlocked core radiates to a world of tinkerers,
+    // a million small lights building on your work. Warm, generous. Covers 'open'.
+    decOpenWorld: function () {
+      var bg =
+        '<defs><radialGradient id="gOpnBg" cx="0.5" cy="0.5" r="0.66">' +
+          '<stop offset="0" stop-color="#181230"/><stop offset="0.6" stop-color="#0d0a1f"/><stop offset="1" stop-color="#06050f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gOpnBg)"/>' +
+        starfield(13, 80, 0, 0, 1200, 750, rgba(GOLD, 1));
+      // a million tinkerers: a wide scatter of small warm lights building outward
+      var r = rng(77), lights = '', i, pts = [];
+      for (i = 0; i < 40; i++) {
+        var a = r() * Math.PI * 2, rad = 130 + r() * 280;
+        var x = 600 + Math.cos(a) * rad, y = 372 + Math.sin(a) * rad * 0.82;
+        pts.push([x, y]);
+        lights += circle(x, y, 2 + r() * 2.4, rgba(r() > 0.4 ? GOLD : CYAN2, 0.85),
+          ' class="cs-pulse" style="--pd:' + (i % 7) + 's"');
+      }
+      var links = '<g stroke="' + rgba(GOLD, 0.1) + '" stroke-width="1">';
+      pts.forEach(function (p) { links += line(600, 372, p[0], p[1], rgba(GOLD, 0.08), 1); });
+      links += '</g>';
+      var mid = '<g class="cs-g-prem">' + links + lights + '</g>';
+      var fg =
+        '<defs>' + glowFilter('gOpnF', 16) +
+          '<radialGradient id="gOpnCore" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="' + rgba(GOLD, 1) + '"/><stop offset="1" stop-color="' + rgba(GOLD, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        '<g fill="none">' +
+          '<circle cx="600" cy="372" r="120" stroke="' + rgba(GOLD, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
+          '<circle cx="600" cy="372" r="186" stroke="' + rgba(CYAN, 0.16) + '" stroke-width="2" class="cs-ring2"/>' +
+        '</g>' +
+        // the unlocked core: an open padlock glyph riding the bloom
+        '<g filter="url(#gOpnF)"><circle cx="600" cy="372" r="48" fill="url(#gOpnCore)" class="cs-breathe"/></g>' +
+        '<g transform="translate(600,372)" fill="none" stroke="' + rgba(INK, 0.6) + '" stroke-width="4" stroke-linecap="round">' +
+          '<rect x="-16" y="-2" width="32" height="26" rx="5"/>' +
+          '<path d="M-10 -2 v-10 q0 -16 18 -14"/>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-title', particles: 'motes', kb: 'kb-zoom'
+      };
+    },
+
+    // ----------------------------------- OPENCLOSED · consequence (closed path)
+    // The model sealed in a cold vault: one core locked behind heavy steel doors,
+    // fat margins, a colder public. Covers 'closed'.
+    decClosedVault: function () {
+      var bg =
+        '<defs><radialGradient id="gVltBg" cx="0.5" cy="0.5" r="0.66">' +
+          '<stop offset="0" stop-color="#0d1426"/><stop offset="0.6" stop-color="#0a0f1c"/><stop offset="1" stop-color="#05070f"/></radialGradient></defs>' +
+        '<rect width="1200" height="750" fill="url(#gVltBg)"/>' +
+        starfield(101, 40, 0, 0, 1200, 260, rgba(CYAN2, 1));
+      var mid =
+        '<defs>' + glowFilter('gVltM', 12) + '</defs>' +
+        '<g class="cs-g-prem">' +
+        // a heavy round vault door, bolts around the rim, sealed
+        '<circle cx="600" cy="372" r="190" fill="#0c1322" stroke="' + rgba(CYAN2, 0.28) + '" stroke-width="6"/>' +
+        '<circle cx="600" cy="372" r="150" fill="none" stroke="' + rgba(CYAN2, 0.18) + '" stroke-width="3"/>' +
+        '</g>';
+      // bolt studs around the rim
+      function bolts() {
+        var s = '', i;
+        for (i = 0; i < 16; i++) {
+          var a = (i / 16) * Math.PI * 2;
+          s += circle(600 + Math.cos(a) * 168, 372 + Math.sin(a) * 168, 5, rgba(CYAN2, 0.6));
+        }
+        return s;
+      }
+      var fg =
+        '<defs>' + glowFilter('gVltF', 14) +
+          '<radialGradient id="gVltCore" cx="0.5" cy="0.5" r="0.5">' +
+            '<stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="' + rgba(CYAN2, 0.9) + '"/><stop offset="1" stop-color="' + rgba(CYAN, 0) + '"/></radialGradient>' +
+        '</defs>' +
+        '<g class="cs-g-prem">' +
+        bolts() +
+        // the central locking wheel + a glimpse of the precious core within
+        '<g filter="url(#gVltF)"><circle cx="600" cy="372" r="40" fill="url(#gVltCore)" class="cs-breathe"/></g>' +
+        '<g fill="none" stroke="' + rgba(CYAN2, 0.8) + '" stroke-width="6" stroke-linecap="round">' +
+          line(600, 322, 600, 422, rgba(CYAN2, 0.8), 6) +
+          line(550, 372, 650, 372, rgba(CYAN2, 0.8), 6) +
+          line(565, 337, 635, 407, rgba(CYAN2, 0.6), 6) +
+          line(635, 337, 565, 407, rgba(CYAN2, 0.6), 6) +
+        '</g>' +
+        '<circle cx="600" cy="372" r="14" fill="#0c1322" stroke="' + rgba(CYAN2, 0.8) + '" stroke-width="4"/>' +
+        // a small "$ margin" pill to the side (fatter margins)
+        '<g transform="translate(600,612)" font-family="system-ui,sans-serif" font-weight="800">' +
+          '<rect x="-32" y="-17" width="64" height="34" rx="17" fill="' + rgba(GOLD, 0.16) + '" stroke="' + rgba(GOLD, 0.55) + '" stroke-width="1.5"/>' +
+          '<text x="0" y="6" text-anchor="middle" font-size="18" fill="' + rgba(GOLD, 0.95) + '">$$</text>' +
+        '</g>' +
+        '</g>';
+      return {
+        layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
+        grade: 'grade-cyan', particles: 'motes', kb: 'kb-in'
+      };
     }
   };
 
@@ -1272,6 +1928,84 @@
     });
   }
 
+  // =====================================================================
+  // DECISION CINEMA — wires the bespoke setup/consequence beats to the first
+  // four story decisions. Each is a single ~7s, button-only-advance beat.
+  // SETUP plays right BEFORE the modal; its onDone opens the modal. CONSEQUENCE
+  // plays right AFTER the choice, bespoke per CHOICE (mapped below).
+  // Everything is guarded: if a scene/key is missing it degrades to a no-op so
+  // the modal / game flow can never soft-lock.
+  // =====================================================================
+  var DECISION_SETUP = {
+    data:         { scene: 'decData',     title: 'cut_dec_data_setup_title',     body: 'cut_dec_data_setup_body' },
+    whistleblower:{ scene: 'decWhistle',  title: 'cut_dec_whistle_setup_title',  body: 'cut_dec_whistle_setup_body' },
+    investor:     { scene: 'decInvestor', title: 'cut_dec_invest_setup_title',   body: 'cut_dec_invest_setup_body' },
+    openclosed:   { scene: 'decFork',     title: 'cut_dec_open_setup_title',     body: 'cut_dec_open_setup_body' }
+  };
+  // per-decision -> per-choiceId consequence beat (bespoke fallout of the path).
+  var DECISION_CONSEQUENCE = {
+    data: {
+      license:   { scene: 'decDataClean',  title: 'cut_dec_data_clean_title',   body: 'cut_dec_data_clean_body' },
+      synthetic: { scene: 'decDataClean',  title: 'cut_dec_data_synth_title',   body: 'cut_dec_data_synth_body' },
+      scrape:    { scene: 'decDataScrape', title: 'cut_dec_data_scrape_title',  body: 'cut_dec_data_scrape_body' }
+    },
+    whistleblower: {
+      pay:    { scene: 'decWhistlePay',    title: 'cut_dec_whistle_pay_title',    body: 'cut_dec_whistle_pay_body' },
+      fire:   { scene: 'decWhistlePay',    title: 'cut_dec_whistle_fire_title',   body: 'cut_dec_whistle_fire_body' },
+      listen: { scene: 'decWhistleListen', title: 'cut_dec_whistle_listen_title', body: 'cut_dec_whistle_listen_body' }
+    },
+    investor: {
+      ship:      { scene: 'decInvestShip', title: 'cut_dec_invest_ship_title',    body: 'cut_dec_invest_ship_body' },
+      negotiate: { scene: 'decInvestShip', title: 'cut_dec_invest_negot_title',   body: 'cut_dec_invest_negot_body' },
+      refuse:    { scene: 'decInvestHold', title: 'cut_dec_invest_refuse_title',  body: 'cut_dec_invest_refuse_body' }
+    },
+    openclosed: {
+      open:   { scene: 'decOpenWorld',   title: 'cut_dec_open_open_title',   body: 'cut_dec_open_open_body' },
+      closed: { scene: 'decClosedVault', title: 'cut_dec_open_closed_title', body: 'cut_dec_open_closed_body' }
+    }
+  };
+
+  // True iff this decision id has a bespoke SETUP cutscene wired.
+  function hasDecisionSetup(decisionId) {
+    return !!(decisionId && DECISION_SETUP[decisionId] && SCENES[DECISION_SETUP[decisionId].scene]);
+  }
+  // True iff (decisionId, choiceId) has a bespoke CONSEQUENCE cutscene wired.
+  function hasDecisionConsequence(decisionId, choiceId) {
+    var d = decisionId && DECISION_CONSEQUENCE[decisionId];
+    var c = d && choiceId && d[choiceId];
+    return !!(c && SCENES[c.scene]);
+  }
+  // Play the setup beat, then call onDone (which opens the modal). If anything
+  // is missing or throws, call onDone immediately so the modal still opens.
+  function decisionSetup(decisionId, onDone) {
+    var fin = function () { if (onDone) { try { onDone(); } catch (e) {} } };
+    try {
+      if (!hasDecisionSetup(decisionId)) { fin(); return; }
+      var b = DECISION_SETUP[decisionId];
+      play({
+        kind: 'decision',
+        lastLabel: 'cut_dec_open_modal',   // the Next that opens the choice
+        beats: [{ scene: b.scene, title: b.title, body: b.body }],
+        onDone: fin
+      });
+    } catch (e) { fin(); }
+  }
+  // Play the consequence beat for the chosen path, then onDone. Guarded no-op
+  // if unwired so the caller's flow continues.
+  function decisionConsequence(decisionId, choiceId, onDone) {
+    var fin = function () { if (onDone) { try { onDone(); } catch (e) {} } };
+    try {
+      if (!hasDecisionConsequence(decisionId, choiceId)) { fin(); return; }
+      var b = DECISION_CONSEQUENCE[decisionId][choiceId];
+      play({
+        kind: 'decision',
+        lastLabel: 'cut_continue',
+        beats: [{ scene: b.scene, title: b.title, body: b.body }],
+        onDone: fin
+      });
+    } catch (e) { fin(); }
+  }
+
   window.GAME_CUTSCENE = {
     play: play,
     intro: intro,
@@ -1279,6 +2013,10 @@
     agiVictory: agiVictory,
     premiseMove: premiseMove,
     servers: servers,
+    decisionSetup: decisionSetup,
+    decisionConsequence: decisionConsequence,
+    hasDecisionSetup: hasDecisionSetup,
+    hasDecisionConsequence: hasDecisionConsequence,
     isActive: function () { return !!active; }
   };
 })();

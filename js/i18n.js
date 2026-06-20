@@ -512,6 +512,43 @@
     cut_prem_megacampus_title: 'On the threshold',
     cut_prem_megacampus_body: 'A campus of datacenters and power lines hums to the horizon. The Singularity is one step away.',
 
+    // ---- DECISION CINEMA (bespoke setup/consequence beats, first 4 decisions) ----
+    cut_dec_open_modal: 'Decide',
+    // DATA — setup + consequences
+    cut_dec_data_setup_title: 'The model is starving',
+    cut_dec_data_setup_body: 'Past midnight in the server room, your half-trained model drinks every byte you can feed it — and still it hungers. Where the next corpus comes from will follow your name. Choose how you feed it.',
+    cut_dec_data_scrape_title: 'The great scrape',
+    cut_dec_data_scrape_body: 'You loose the crawlers. Overnight they swallow the open web, unasked. The model swells. And somewhere in the dark, a red flag rises — a lawyer has started taking notes.',
+    cut_dec_data_clean_title: 'Clean and consented',
+    cut_dec_data_clean_body: 'You pay for a licensed, consented corpus. Every byte is lawful and yours. It costs more and grows slower — but no one can ever take it from you.',
+    cut_dec_data_synth_title: 'Made, not taken',
+    cut_dec_data_synth_body: 'You generate your own synthetic data. Slower, a little dearer — but it is wholly yours, and nothing about it can come back to bite you.',
+    // WHISTLEBLOWER — setup + consequences
+    cut_dec_whistle_setup_title: 'A message half-typed',
+    cut_dec_whistle_setup_body: 'The office is empty. One screen still burns: an engineer, alone, drafting a letter to the press about a safety test you never disclosed. The cursor blinks, waiting. So do you.',
+    cut_dec_whistle_pay_title: 'Buried',
+    cut_dec_whistle_pay_body: 'An envelope changes hands. The letter is never sent; the secret sinks beneath a heavy lid. It stays buried — for now — and you both know exactly what it cost.',
+    cut_dec_whistle_fire_title: 'Made an example',
+    cut_dec_whistle_fire_body: 'You fire them on the spot and the problem walks out the door. So does the team\'s trust. The room is quiet in a way it has never been before.',
+    cut_dec_whistle_listen_title: 'Pulling the brake',
+    cut_dec_whistle_listen_body: 'You halt the release and reopen the red-team. The room exhales. The work gets harder, and slower, and honest — and the flaw gets fixed for real.',
+    // INVESTOR — setup + consequences
+    cut_dec_invest_setup_title: 'The pressure at the table',
+    cut_dec_invest_setup_body: 'A glass boardroom above the sleeping city. At the head of the table a suit looms, hand flat on the wood, a fortune sliding toward you — if you ship the model raw, tonight, ahead of schedule.',
+    cut_dec_invest_ship_title: 'Shipped raw',
+    cut_dec_invest_ship_body: 'You ship it raw and the money pours in like a flood. The hype is deafening. And down in the foundations, a hairline crack runs across everything you called safe.',
+    cut_dec_invest_negot_title: 'A middle path',
+    cut_dec_invest_negot_body: 'You take the modest cheque and the modest compromise. Less money, less risk — the kind of deal that wins you no headlines and loses you no sleep.',
+    cut_dec_invest_refuse_title: 'Holding the line',
+    cut_dec_invest_refuse_body: 'You walk the money back to the door. It costs you, and it stings. But you stand there unbought, the city steady behind you, your name still your own.',
+    // OPEN OR CLOSED — setup + consequences
+    cut_dec_open_setup_title: 'A fork in the road',
+    cut_dec_open_setup_body: 'The road splits beneath your model. One way, an open lock and a warm crowd waiting to build on your work. The other, a sealed vault and fatter margins kept behind cold steel. Which way?',
+    cut_dec_open_open_title: 'Weights to the world',
+    cut_dec_open_open_body: 'You throw the lock wide and push the weights to the world. Overnight a million tinkerers light up, building on what you made. You gave up the margin — and won the people.',
+    cut_dec_open_closed_title: 'Sealed in the vault',
+    cut_dec_open_closed_body: 'You seal the model behind heavy steel. The margins stay fat and yours alone. The crowd outside the vault grows a little colder, and a little quieter.',
+
     // ---- FTUE teach-on-first popups (one-time, dismissable) ----
     ftue_got_it: 'Got it',
     ftue_start_title: 'You start with a garage and an old laptop',
@@ -1057,6 +1094,43 @@
     cut_prem_bizpark_body: 'Целый дата-зал — ряды стоек, холодный воздух, бесконечные огни. Модель служит миллионам.',
     cut_prem_megacampus_title: 'На пороге',
     cut_prem_megacampus_body: 'Кампус из дата-центров и ЛЭП гудит до горизонта. До Сингулярности один шаг.',
+
+    // ---- КИНО-РЕШЕНИЯ (заставка/последствие для первых 4 решений) ----
+    cut_dec_open_modal: 'Решить',
+    // ДАННЫЕ — заставка + последствия
+    cut_dec_data_setup_title: 'Модель голодает',
+    cut_dec_data_setup_body: 'Глубокая ночь в серверной. Недообученная модель пьёт каждый байт, что ты ей даёшь, — и всё равно голодна. Откуда возьмётся следующий корпус — пойдёт за твоим именем. Выбери, чем её кормить.',
+    cut_dec_data_scrape_title: 'Большой скрейп',
+    cut_dec_data_scrape_body: 'Ты спускаешь краулеров. За ночь они проглатывают весь открытый веб, никого не спросив. Модель раздувается. А где-то в темноте поднимается красный флаг — юрист начал делать пометки.',
+    cut_dec_data_clean_title: 'Чисто и с согласием',
+    cut_dec_data_clean_body: 'Ты платишь за лицензированный корпус с согласием. Каждый байт легален и твой. Дороже и медленнее — но никто и никогда его у тебя не отнимет.',
+    cut_dec_data_synth_title: 'Создано, а не взято',
+    cut_dec_data_synth_body: 'Ты генерируешь собственные синтетические данные. Медленнее, чуть дороже — но они целиком твои, и ничто в них не вернётся, чтобы укусить тебя.',
+    // ОСВЕДОМИТЕЛЬ — заставка + последствия
+    cut_dec_whistle_setup_title: 'Письмо на полуслове',
+    cut_dec_whistle_setup_body: 'Офис пуст. Горит лишь один экран: инженер в одиночку пишет письмо прессе о тесте безопасности, который ты так и не раскрыл. Курсор мигает, выжидая. Ты — тоже.',
+    cut_dec_whistle_pay_title: 'Похоронено',
+    cut_dec_whistle_pay_body: 'Из рук в руки переходит конверт. Письмо так и не отправлено; тайна тонет под тяжёлой крышкой. Она похоронена — пока что, — и вы оба знаете, во что это обошлось.',
+    cut_dec_whistle_fire_title: 'В назидание остальным',
+    cut_dec_whistle_fire_body: 'Ты увольняешь его на месте, и проблема выходит за дверь. Вместе с доверием команды. В комнате повисает тишина, какой здесь ещё не бывало.',
+    cut_dec_whistle_listen_title: 'Жмёшь на тормоз',
+    cut_dec_whistle_listen_body: 'Ты останавливаешь релиз и снова собираешь ред-тим. Комната выдыхает. Работа становится тяжелее, медленнее и честнее — а изъян чинят по-настоящему.',
+    // ИНВЕСТОРЫ — заставка + последствия
+    cut_dec_invest_setup_title: 'Давление за столом',
+    cut_dec_invest_setup_body: 'Стеклянный зал совета над спящим городом. Во главе стола нависает костюм, ладонь плашмя на дереве, и к тебе скользит состояние — если выпустишь модель сырой, сегодня, раньше срока.',
+    cut_dec_invest_ship_title: 'Выпущено сырым',
+    cut_dec_invest_ship_body: 'Ты выпускаешь сырое, и деньги хлынули потоком. Хайп оглушает. А там, в фундаменте, по всему, что ты звал безопасным, бежит тонкая трещина.',
+    cut_dec_invest_negot_title: 'Средний путь',
+    cut_dec_invest_negot_body: 'Ты берёшь скромный чек и скромный компромисс. Меньше денег, меньше риска — сделка, что не принесёт тебе заголовков и не отнимет сна.',
+    cut_dec_invest_refuse_title: 'Держишь черту',
+    cut_dec_invest_refuse_body: 'Ты провожаешь деньги обратно к двери. Это стоит тебе дорого и жжёт. Но ты стоишь некупленным, город спокоен за спиной, а имя по-прежнему твоё.',
+    // ОТКРЫТО ИЛИ ЗАКРЫТО — заставка + последствия
+    cut_dec_open_setup_title: 'Развилка',
+    cut_dec_open_setup_body: 'Дорога раздваивается под твоей моделью. Один путь — открытый замок и тёплая толпа, готовая строить на твоей работе. Другой — запечатанный сейф и жирная маржа за холодной сталью. Куда?',
+    cut_dec_open_open_title: 'Веса — всему миру',
+    cut_dec_open_open_body: 'Ты распахиваешь замок и отдаёшь веса миру. За ночь вспыхивает миллион энтузиастов, достраивая то, что ты создал. Ты отдал маржу — и завоевал людей.',
+    cut_dec_open_closed_title: 'Запечатано в сейфе',
+    cut_dec_open_closed_body: 'Ты запираешь модель за тяжёлой сталью. Маржа остаётся жирной и только твоей. Толпа за дверью сейфа становится чуть холоднее и чуть тише.',
 
     // ---- FTUE обучающие попапы (одноразовые) ----
     ftue_got_it: 'Понятно',

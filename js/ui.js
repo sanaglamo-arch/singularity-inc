@@ -1593,6 +1593,19 @@
     if (!d) return;
     window.GAME_STORY.markSeen(st, d.id);   // fire-once + sets pendingDecision lock
     G.save();
+    // CINEMATIC FRAMING: the first four decisions get a bespoke 1-beat SETUP
+    // cutscene that plays BEFORE the modal (Detroit-style). Its Next button
+    // opens the choice. The lock (pendingDecision) is already set, so the
+    // trigger won't re-fire while the cutscene plays. Guarded: if the cutscene
+    // engine is missing/unwired or throws, the modal opens immediately so the
+    // decision can never soft-lock.
+    var C = window.GAME_CUTSCENE;
+    if (C && C.hasDecisionSetup && C.hasDecisionSetup(d.id) && C.decisionSetup && !(C.isActive && C.isActive())) {
+      try {
+        C.decisionSetup(d.id, function () { try { showDecisionModal(d); } catch (e) {} });
+        return;
+      } catch (e) { /* fall through to the bare modal */ }
+    }
     showDecisionModal(d);
   }
 
@@ -1650,8 +1663,19 @@
             update();
             if (choice) {
               toast(t('decision_made'), 'good');
-              if (choice.beat && window.GAME_CUTSCENE && window.GAME_CUTSCENE.play && !window.GAME_CUTSCENE.isActive()) {
-                window.GAME_CUTSCENE.play({
+              var C = window.GAME_CUTSCENE;
+              var choiceId = node.getAttribute('data-choice');
+              // CINEMATIC FALLOUT: the first four decisions get a bespoke
+              // CONSEQUENCE cutscene reflecting the path taken (replacing the
+              // generic reused beat for these). The other six keep their
+              // lightweight single beat. All guarded so a failure can't lock.
+              if (C && C.hasDecisionConsequence && C.hasDecisionConsequence(d.id, choiceId) &&
+                  C.decisionConsequence && !(C.isActive && C.isActive())) {
+                try {
+                  C.decisionConsequence(d.id, choiceId, function () { try { update(); } catch (e) {} });
+                } catch (e) { try { update(); } catch (e2) {} }
+              } else if (choice.beat && C && C.play && !C.isActive()) {
+                C.play({
                   kind: 'decision',
                   lastLabel: 'cut_continue',
                   beats: [{ scene: choice.beat.scene, title: choice.beat.title, body: choice.beat.body }],
