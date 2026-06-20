@@ -907,8 +907,12 @@
     if (youRank === 0) { msg = t('race_ahead'); scol = 'var(--green)'; }
     else if (youRank === rows.length - 1) { msg = t('race_behind'); scol = 'var(--rose)'; }
     else { msg = t('race_close'); scol = 'var(--gold)'; }
-    setHTML($('agiRace'), '<span style="color:' + scol + '">' + esc(msg) + '</span>' +
-      (isFinite(leaderDays) ? ' <span class="muted small">· ' + esc(t('race_eta', { t: FMT.fmtTime(leaderDays * C.DAY_SEC) })) + '</span>' : ''));
+    var _raceHtml = '<span style="color:' + scol + '">' + esc(msg) + '</span>' +
+      (isFinite(leaderDays) ? ' <span class="muted small">· ' + esc(t('race_eta', { t: FMT.fmtTime(leaderDays * C.DAY_SEC) })) + '</span>' : '');
+    // narrative identity from the choices made so far (decisions shape who you are)
+    var _pathKey = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(st.storyFlags) : null;
+    if (_pathKey) _raceHtml += '<br><span class="muted small">' + esc(t('your_path')) + ': <span style="color:var(--violet-2)">' + esc(t('path_' + _pathKey)) + '</span></span>';
+    setHTML($('agiRace'), _raceHtml);
     setText($('standingsStatus'), youRank === 0 ? t('standings_status_lead') : (youRank === rows.length - 1 ? t('standings_status_behind') : t('standings_status_close')));
     // 3 risk meters (rel-row strip)
     syncMeterStrip('relMeters', [

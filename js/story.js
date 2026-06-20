@@ -303,6 +303,23 @@
   }
 
   // Expose the public, decoupled API.
+  // Your evolving narrative IDENTITY, derived from the choices made so far (the Detroit
+  // pillar: decisions shape who you are). Returns a path key for 'path_<key>' i18n, or
+  // null before any decision is made. Shown subtly in the World tab.
+  function currentPath(flags) {
+    flags = flags || {};
+    if (!Object.keys(flags).length) return null;
+    var f = function (k) { return flag(flags, k); };
+    var dark = f('ruthless') + f('coverup');
+    var light = f('careful') + f('responsible') + f('principled');
+    if (f('coverup') >= 2 && f('coverup') >= f('principled')) return 'shadow';
+    if (dark >= 2 && dark > light) return 'ruthless';
+    if (light >= 2 && light > dark) return 'idealist';
+    if (f('hype') >= 2) return 'hype';
+    if (f('open') >= 1 && f('open') >= f('closed')) return 'open';
+    return 'pragmatist';
+  }
+
   window.GAME_STORY = {
     DECISIONS: DECISIONS,
     findPending: findPending,
@@ -310,6 +327,7 @@
     applyChoice: applyChoice,
     applyEffects: applyEffects,
     endingVariant: endingVariant,
+    currentPath: currentPath,
     decisionById: function (id) { return DECISION_BY_ID[id] || null; }
   };
 })();
