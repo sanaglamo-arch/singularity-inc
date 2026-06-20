@@ -1167,11 +1167,15 @@
     function onResize() { if (ov && ov.classList) ov.classList.toggle('cs-portrait', isPortrait()); }
     window.addEventListener('resize', onResize);
 
-    // user-driven dismissals (stage tap-to-advance, Next, Skip) are ignored until the
-    // grace window passes — see GRACE_MS above. The auto-advance beat timer is exempt.
+    // A cutscene advances / skips ONLY via the explicit buttons (Next / Skip) — NEVER by
+    // tapping the stage. The player often mashes the orb to earn money right when a
+    // cutscene pops, and a stray tap on the art must NOT dismiss it. (We keep the grace
+    // window as a second guard on the buttons too.) The auto-advance beat timer still runs.
     nextBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!graceOver()) return; advance(); });
     skipBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!graceOver()) return; end(false); });
-    ov.querySelector('.cs-stage').addEventListener('click', function () { if (!graceOver()) return; advance(); });
+    // swallow taps on the stage so they can't fall through to the game underneath, but do
+    // NOT advance the cutscene.
+    ov.querySelector('.cs-stage').addEventListener('click', function (e) { e.stopPropagation(); });
 
     active = { end: end };
     ceiling = setTimeout(function () { end(false); }, CEILING_MS);
