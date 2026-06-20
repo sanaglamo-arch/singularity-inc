@@ -2826,3 +2826,19 @@ button:focus:not(:focus-visible) { outline: none; }
     max-width: 600px;
   }
 }
+
+/* ============================================================================
+   Tutorial-locked tab buttons read as "locked, opens soon" — not broken.
+   (Audit: dimmed tabs were indistinguishable from normal, so they looked
+   broken.) Add a small padlock badge + a touch more dimming. CSS-only,
+   additive; only affects #tabbar buttons already flagged .tut-blocked.
+   ============================================================================ */
+#tabbar button.tut-blocked { opacity: 0.34; position: relative; }
+#tabbar button.tut-blocked::after {
+  content: "\1F512";                 /* 🔒 */
+  position: absolute; top: 3px; left: 50%;
+  transform: translateX(5px);
+  font-size: 8px; line-height: 1;
+  filter: grayscale(1) brightness(1.5);
+  opacity: 0.85; pointer-events: none;
+}
