@@ -2852,3 +2852,14 @@ button:focus:not(:focus-visible) { outline: none; }
 @media (min-width: 720px) {
   .tab[data-tab="company"].active { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 }
+
+/* ============================================================================
+   FIX (owner): the cutscene "Next" button visibly jumped LEFT after appearing.
+   Its centering is transform: translateX(-50%), but its entrance reused csBodyIn,
+   whose keyframes set transform WITHOUT translateX(-50%) (from translateY(12px) →
+   to none). So during the entrance the button sat RIGHT of center, then snapped to
+   centered when the animation ended = a sideways jump. Dedicated entrance keyframe
+   that PRESERVES the centering transform → it only fades up, never shifts sideways.
+   ============================================================================ */
+@keyframes csNextIn { from { transform: translateX(-50%) translateY(12px); } to { transform: translateX(-50%); } }
+.cutscene .cs-next { animation: csNextIn 0.6s var(--ease) 0.9s backwards; }
