@@ -2482,3 +2482,190 @@ button:focus:not(:focus-visible) { outline: none; }
   #premBuyBtn:hover:not(:disabled),
   #hireBtn:hover:not(:disabled) { box-shadow: 0 10px 30px -10px var(--glow-violet), var(--inset-hi); }
 }
+
+/* =================================================================
+   v59 — SECOND PREMIUM-DESIGN PASS (ADDITIVE ONLY)
+   Elevates surfaces the v56 pass under-touched: World tab (risk meters,
+   market standings, race/path line, team rows), Hardware list rhythm,
+   the endings card, teach/decision/naming modals, and the bottom tabbar.
+   Every rule below is NEW or MORE-SPECIFIC than the base — nothing above
+   is edited or removed. All motion is gated by prefers-reduced-motion.
+   ================================================================= */
+
+/* ---- World · panel headers: a hairline accent + crisper title rhythm ---- */
+#relMetersHead, #standingsHead {
+  position: relative; padding-bottom: 9px;
+  border-bottom: 1px solid rgba(255,255,255,0.055);
+}
+#relMetersHead::after, #standingsHead::after {
+  content: ''; position: absolute; left: 0; bottom: -1px; width: 34px; height: 2px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--violet-2), transparent);
+}
+#relMetersTitle, #standingsTitle {
+  letter-spacing: 0.6px; text-transform: uppercase; font-size: 12px;
+}
+
+/* ---- World · risk meters: taller channel, inner depth + glow keyed to the
+   inline fill color, tabular value numerals. The fill colour is set inline
+   (rose/gold/green) so we layer the glow with a drop-shadow on the bar. ---- */
+#relMeters .rel-row { gap: 10px; padding: 1px 0; }
+#relMeters .rel-bar {
+  height: 9px; background: rgba(0,0,0,0.34);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.05);
+  border-color: transparent;
+}
+#relMeters .rel-fill {
+  position: relative; filter: saturate(1.12) brightness(1.04);
+  box-shadow: 0 0 9px -1px currentColor;
+}
+/* a soft top-light streak on the fill for a glassy bead */
+#relMeters .rel-fill::after {
+  content: ''; position: absolute; inset: 0 0 50% 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0));
+  pointer-events: none;
+}
+#relMeters .rel-val {
+  flex: 0 0 36px; font-variant-numeric: tabular-nums; font-size: 13px;
+  letter-spacing: 0.3px;
+}
+#relMeters .rel-name { font-size: 12px; color: var(--fg-dim); }
+
+/* ---- World · market standings: refined channel + glassy bars, tabular
+   numerals, a quiet leader highlight. Base .standrow rules stay intact. ---- */
+#standingsRows .standrow { gap: 9px; padding: 3px 0; }
+#standingsRows .sbarwrap {
+  flex-basis: 64px; height: 9px; background: rgba(0,0,0,0.32);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.045);
+}
+#standingsRows .sbar { position: relative; }
+#standingsRows .sbar::after {
+  content: ''; position: absolute; inset: 0 0 55% 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0));
+  pointer-events: none;
+}
+#standingsRows .srank {
+  flex-basis: 22px; font-size: 12px; opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+#standingsRows .sname { font-size: 12.5px; }
+#standingsRows .sshare { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+#standingsRows .standrow.you {
+  background: linear-gradient(90deg, rgba(34,211,238,0.10), rgba(34,211,238,0));
+  border-radius: 8px; padding-left: 7px; padding-right: 5px; margin: 0 -7px;
+}
+#standingsRows .standrow.you .srank { color: var(--cyan); opacity: 1; }
+#standingsRows .standrow.lead .sname { color: var(--gold); font-weight: 700; }
+
+/* ---- World · the race-status / path identity line: a quiet inset plate so
+   "leading the race · Path: …" reads as a distinct verdict, not loose text ---- */
+#agiRace {
+  margin-top: 11px; padding: 9px 11px; border-radius: 10px;
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
+  text-align: center; line-height: 1.55;
+}
+#standingsHead #standingsStatus {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.4px;
+}
+
+/* ---- World · Team hire rows live in #cardList as .card + .minibtn. Tighten
+   the staff-count line and give the hire button a confident, legible cost. ---- */
+#cardList .card .desc { color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+#cardList .card .minibtn {
+  letter-spacing: 0.3px; font-size: 12.5px; padding: 9px 14px;
+  box-shadow: 0 6px 18px -8px var(--glow-violet), var(--inset-hi);
+}
+#cardList .card .minibtn:not(:disabled):active { transform: scale(0.96); }
+#cardList .card .minibtn:disabled {
+  box-shadow: none; opacity: 0.85;
+}
+
+/* ---- Hardware list · consistent row rhythm + crisper money. The base .card
+   already carries the glass; here we refine the long 26-tier list's read. ---- */
+#upgradeList .card .cost, #genList .card .cost,
+.tab[data-tab="upgrades"] .card .cost {
+  font-variant-numeric: tabular-nums; letter-spacing: 0.2px;
+}
+.tab[data-tab="upgrades"] .card .each { font-variant-numeric: tabular-nums; }
+/* committed "powering your model" pill — read it as a calm live status chip */
+.card.committed .hwCommit {
+  background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.28);
+  border-radius: var(--radius-pill); padding: 2px 9px 2px 7px;
+}
+.card.committed { box-shadow: var(--shadow-1), var(--inset-hi), 0 0 0 1px rgba(52,211,153,0.16); }
+/* owned-count badge: a touch more weight + tabular numerals */
+.card .ownedBadge { font-variant-numeric: tabular-nums; letter-spacing: 0.3px; box-shadow: -2px 2px 8px -3px var(--glow-violet); }
+/* affordable rows: a faint left accent breathes to telegraph "buyable" */
+.tab[data-tab="upgrades"] .card.affordable .iconwrap { box-shadow: 0 0 14px -3px var(--glow-violet); }
+
+/* ---- Endings card (#goCard) · make the climax feel share-worthy. Title gets
+   weight + an animated emboss glow; stat rows get tabular alignment; the
+   punchline becomes a quoted hero block; the New Game button gets presence. ---- */
+#goCard {
+  border-radius: 24px;
+  box-shadow: 0 30px 90px -24px rgba(0,0,0,0.85), 0 0 60px -28px var(--glow-violet), var(--inset-hi);
+}
+#goCard::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(90deg, transparent, var(--violet-2), var(--cyan), transparent);
+  opacity: 0.5;
+}
+#goCard { position: relative; }
+#goTitle {
+  font-size: 30px; letter-spacing: 2.5px; font-weight: 900;
+  text-shadow: 0 0 30px rgba(251,191,36,0.45), 0 1px 0 rgba(0,0,0,0.4);
+}
+#goCompany { letter-spacing: 1px; opacity: 0.85; }
+#goFlavor { font-size: 12.5px; max-width: 300px; margin-left: auto; margin-right: auto; }
+#goSummary .statItem { padding: 10px 14px; }
+#goSummary .statItem span:first-child { color: var(--fg-dim); letter-spacing: 0.2px; }
+#goSummary .statItem span:last-child { font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
+#goPunch {
+  font-size: 13px; padding: 12px 14px; line-height: 1.55;
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+#goPunch::before { content: '\201C'; color: var(--gold); font-weight: 900; margin-right: 2px; opacity: 0.7; }
+#goPunch::after  { content: '\201D'; color: var(--gold); font-weight: 900; margin-left: 2px; opacity: 0.7; }
+#goBrag { opacity: 0.8; letter-spacing: 0.4px; }
+#goNewGame {
+  letter-spacing: 1px; min-height: 52px;
+  box-shadow: 0 12px 34px -12px var(--glow-cyan), 0 0 0 1px rgba(34,211,238,0.18), var(--inset-hi);
+}
+#goNewGame:not(:active):hover { filter: brightness(1.06); }
+
+/* ---- Modals (teach / naming / decision) · unify the glass surface with a
+   top accent hairline + a tighter heading rhythm, matching the rest. ---- */
+#modalRoot .modal { position: relative; }
+#modalRoot .modal::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-hi), transparent);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+#modalRoot .modal h3 { letter-spacing: 0.3px; }
+#modalRoot .modal .row button { letter-spacing: 0.4px; }
+#modalRoot .modal .primary {
+  box-shadow: 0 10px 28px -12px var(--glow-cyan), 0 0 0 1px rgba(34,211,238,0.16), var(--inset-hi);
+}
+#modalRoot .modal .reward {
+  box-shadow: 0 10px 28px -12px rgba(52,211,153,0.6), var(--inset-hi);
+}
+/* teach callout: keep the warm tone but soften the box into the card */
+#modalRoot .modal .teach { border-radius: 10px; line-height: 1.55; }
+
+/* ---- Bottom tabbar · refine inactive→active rhythm, label legibility and
+   a calmer active glow. Base #tabbar rules stay intact. ---- */
+#tabbar { box-shadow: 0 -1px 0 rgba(255,255,255,0.05), 0 -10px 28px -18px rgba(0,0,0,0.8); }
+#tabbar button { color: #6a719a; }
+#tabbar button .tl { letter-spacing: 0.2px; opacity: 0.9; transition: opacity 0.2s, color 0.2s; }
+#tabbar button.active { color: var(--cyan); }
+#tabbar button.active .tl { opacity: 1; font-weight: 700; text-shadow: 0 0 10px rgba(34,211,238,0.35); }
+#tabbar button.active::before {
+  width: 30px; height: 3px;
+  box-shadow: 0 0 12px var(--glow-cyan), 0 0 4px var(--glow-cyan);
+}
+#tabbar button:not(.active):not(:disabled):active { color: var(--fg-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  #goNewGame:not(:active):hover { filter: none; }
+}
