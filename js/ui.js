@@ -1097,6 +1097,12 @@
           teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
         }
       }
+      // Entering the first SOFT step: teach ONCE that the leash is off, then leave the
+      // player free (no persistent coach). The owner wanted breathing room here.
+      if (step === 'release' && !s().ftue.freedom) {
+        s().ftue.freedom = 1;
+        teachModal({ icon: ic('ic_brain'), title: t('ftue_freedom_title'), body: t('ftue_freedom_body') });
+      }
       if (!step) {                       // onboarding complete -> unlock everything
         clearTutorialChrome();
         renderStatic();
@@ -1267,27 +1273,12 @@
       if (!onHw) return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_goto_hw_title', body: 'ftue_goto_hw_server_body', hint: 'ftue_goto_hw_arrow', icon: 'gen_serverRack' };
       return { node: (hwRefs.miniserver && hwRefs.miniserver.el), dir: 'down', title: 'ftue_server_title', body: 'ftue_server_body', hint: 'ftue_server_arrow', icon: 'gen_serverRack' };
     }
-    // SOFT step: ship the first model. LIGHT coach (no heavy dim) — point at the Lab's
-    // train CTA + the "Need X Power" readout. The player freely buys hardware/clicks to
-    // accumulate Power; nothing is locked, so this can never trap.
-    if (step === 'release') {
-      // Item 7: before there's enough Power to train v1, there is NO train button to point
-      // at (the model panel is hidden). Point the player at BUYING HARDWARE instead — on
-      // Hardware highlight the gear, elsewhere point at the Hardware nav. Only once
-      // power ≥ req does the train CTA exist; then point at it.
-      var havePow = G.availablePower(), needPow = G.powerReq();
-      if (havePow < needPow) {
-        if (currentTab !== 'upgrades') return { sel: '#navUpgradesBtn', dir: 'up', title: 'ftue_release_power_title', body: 'ftue_release_power_gohw_body', hint: 'ftue_release_power_arrow', icon: 'gen_serverRack', light: true, vars: { req: fmt(needPow), have: fmt(havePow) } };
-        return { sel: '#upgradesTitle', dir: 'down', title: 'ftue_release_power_title', body: 'ftue_release_power_body', hint: 'ftue_release_power_arrow', icon: 'gen_serverRack', light: true, vars: { req: fmt(needPow), have: fmt(havePow) } };
-      }
-      if (currentTab !== 'company') return { sel: '#tabbar button[data-tab="company"]', dir: 'up', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_goto_lab_arrow', icon: 'ic_brain', light: true };
-      return { sel: '#trainBtn', dir: 'down', title: 'ftue_release_step_title', body: 'ftue_release_step_body', hint: 'ftue_release_step_arrow', icon: 'ic_brain', light: true };
-    }
-    // SOFT step: teach the HEART — the token-price slider. LIGHT coach on the slider.
-    if (step === 'price') {
-      if (currentTab !== 'research') return { sel: '#navResearchBtn', dir: 'up', title: 'ftue_price_step_title', body: 'ftue_price_step_body', hint: 'ftue_goto_model_arrow', icon: 'ic_cash', light: true };
-      return { sel: '#priceSlider', dir: 'down', title: 'ftue_price_step_title', body: 'ftue_price_step_body', hint: 'ftue_price_step_arrow', icon: 'ic_cash', light: true };
-    }
+    // SOFT steps (release / price) are FREE PLAY — the owner wants room to breathe in the
+    // gaps between the guided stages. We do NOT render a persistent coach here (the glowing
+    // "Копи Мощность" overlay nagged and got in the way). Instead each soft step teaches
+    // ONCE on entry (see the G.on('tutorial') handler) and then leaves the player alone;
+    // a single gentle toast fires when Power is finally enough to ship. No coach overlay.
+    if (step === 'release' || step === 'price') return null;
     return null;
   }
   // STABLE rect for the coach target. CSS transforms (e.g. the orb's .squash scale on
@@ -1527,6 +1518,14 @@
     try { maybeServersCut(); } catch (e) {}
     // STORY: branching cinematic dilemmas — one at a time, when the screen is free.
     try { checkStoryDecisions(); } catch (e) {}
+    // SOFT release step: a single gentle, non-blocking nudge the moment Power is finally
+    // enough to ship v1 — instead of a persistent coach nagging the whole time.
+    try {
+      if (G.tutorialStep() === 'release' && !s().ftue.powerReady && G.availablePower() >= G.powerReq()) {
+        s().ftue.powerReady = 1; G.save();
+        toast(t('ftue_power_ready'), 'good');
+      }
+    } catch (e) {}
     // cinematic guided onboarding coachmark — runs on every tab so it can point at
     // the Hardware nav (wrong tab) or the laptop/server card / orb / upgrade (right tab)
     try { syncFtueCoach(); } catch (e) {}
