@@ -195,7 +195,13 @@
     var cashEl = $('cashVal');
     setText(cashEl, fmt(st.cash));
     hudPulse(cashEl, st.cash, 'hud-pulse-gold', 0.06, 600);
-    var net = G.netPerSec();
+    // The number under the cash must match what the cash counter ACTUALLY does each
+    // second. Costs (electricity/upkeep/salary) are billed WEEKLY (deferred — see tick:
+    // they accrue, they are NOT subtracted from cash live), so second-to-second the cash
+    // only rises by income. Showing netPerSec() here made cash visibly grow while the
+    // ticker read "−$X/sec" (owner-reported bug). Show the live cash rate = income/sec;
+    // the full income · costs · NET (incl. the deferred bill) stays in the finance line below.
+    var net = G.incomePerSec();
     var rate = $('cpsVal');
     if (rate) {
       setText(rate, (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)) + '/' + ruS());
