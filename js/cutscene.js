@@ -131,6 +131,9 @@
           '<rect x="900" y="106" width="40" height="44" rx="3"/>' +
           '<rect x="956" y="116" width="30" height="34" rx="3"/>' +
         '</g>' +
+        // soft warm nebula + drifting dust give the wall atmospheric depth
+        nebula('garA', 312, 4, [GOLD, VIOLET, CYAN2], 120, 90, 960, 560) +
+        dustBand(318, 26, 0, 60, 1200, 620, GOLD) +
         // warm ambient pooling around the desk
         '<rect width="1200" height="750" fill="url(#gWarmAmb)"/>';
 
@@ -205,7 +208,12 @@
           '<path d="M572 432 q14 8 14 24" stroke="' + rgba(CYAN2, 0.5) + '" stroke-width="3"/>' +
           '<path d="M600 540 q22 8 38 22" stroke="' + rgba(CYAN2, 0.45) + '" stroke-width="3"/>' +
         '</g>' +
-        '</g></g>';
+        '</g></g>' +
+        // a warm shaft of light fanning down from the lamp bulb, and a cool
+        // counter-shaft from the screen — soft volumetric depth
+        godRays('garL', 458, 488, 5, 230, 0.9, 1.95, GOLD, 0.10, 11) +
+        // cinematic vignette + caption grade wash (keeps centred text legible)
+        vignette('gar', 0.52);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -242,7 +250,9 @@
         '<defs><radialGradient id="gDreamBg" cx="0.5" cy="0.5" r="0.62">' +
           '<stop offset="0" stop-color="#120e2e"/><stop offset="0.6" stop-color="#0a0820"/><stop offset="1" stop-color="#050410"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gDreamBg)"/>' +
-        starfield(11, 80, 0, 0, 1200, 750, rgba(VIOLET2, 1));
+        nebula('drmA', 142, 5, [VIOLET, CYAN, VIOLET2], 80, 60, 1040, 620) +
+        starfield(11, 80, 0, 0, 1200, 750, rgba(VIOLET2, 1)) +
+        starfield(112, 30, 0, 0, 1200, 750, rgba(CYAN2, 1));
 
       var mid =
         '<g fill="none">' +
@@ -260,7 +270,8 @@
         '<g filter="url(#gCore)"><circle cx="600" cy="375" r="46" fill="url(#gCoreFill)" class="cs-breathe"/></g>' +
         // a few bright synapse sparks near the core
         circle(540, 320, 3, rgba(WHITE, 0.9), ' class="cs-pulse" style="--pd:1s"') +
-        circle(672, 410, 2.6, rgba(WHITE, 0.85), ' class="cs-pulse" style="--pd:3s"');
+        circle(672, 410, 2.6, rgba(WHITE, 0.85), ' class="cs-pulse" style="--pd:3s"') +
+        vignette('drm', 0.46);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -280,7 +291,10 @@
             '<stop offset="0" stop-color="' + rgba(CYAN, 0.22) + '"/><stop offset="0.5" stop-color="' + rgba(VIOLET, 0.10) + '"/><stop offset="1" stop-color="transparent"/></radialGradient>' +
         '</defs>' +
         '<rect width="1200" height="750" fill="url(#gDawn)"/>' +
+        nebula('rivA', 253, 4, [CYAN, VIOLET, CYAN2], 60, 40, 1080, 420) +
         starfield(53, 70, 0, 0, 1200, 360, rgba(CYAN2, 1)) +
+        // cold dawn light fanning up from the horizon
+        godRays('rivD', 600, 600, 6, 540, 1.5, -1.5708, CYAN2, 0.06, 16) +
         '<rect width="1200" height="750" fill="url(#gHorizon)"/>' +
         // ground haze line
         '<rect x="0" y="560" width="1200" height="190" fill="' + rgba(INK, 0.55) + '"/>' +
@@ -334,7 +348,10 @@
           '<rect x="40" y="470" width="120" height="120" rx="4"/>' +
           '<circle cx="100" cy="452" r="20"/>' +
         '</g>' +
-        '<path d="M118 442 q10 18 6 44" stroke="' + rgba(GOLD, 0.5) + '" stroke-width="3" fill="none"/>';
+        '<path d="M118 442 q10 18 6 44" stroke="' + rgba(GOLD, 0.5) + '" stroke-width="3" fill="none"/>' +
+        // low ground haze + cinematic vignette
+        '<rect x="0" y="520" width="1200" height="120" fill="' + rgba(CYAN, 0.04) + '"/>' +
+        vignette('riv', 0.5);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -350,6 +367,7 @@
         '<defs><radialGradient id="gStkBg" cx="0.5" cy="0.46" r="0.7">' +
           '<stop offset="0" stop-color="#140f2c"/><stop offset="0.6" stop-color="#0a0820"/><stop offset="1" stop-color="#06040f"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gStkBg)"/>' +
+        nebula('stkA', 711, 4, [VIOLET, CYAN, GOLD], 120, 80, 960, 560) +
         starfield(71, 60, 0, 0, 1200, 750, rgba(VIOLET2, 1));
 
       // Triangular cluster centered on x=600 so all three orbs survive a tall
@@ -403,7 +421,8 @@
         // sizes and clipped off-screen in portrait. The caption body already names
         // Power · Price · Safety, so the labels were redundant — dropping them
         // eliminates the text overlap at every size while keeping the orb glyphs.
-        '</g>';
+        '</g>' +
+        vignette('stk', 0.5);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -425,7 +444,9 @@
         '<defs><radialGradient id="gTitBg" cx="0.5" cy="0.48" r="0.72">' +
           '<stop offset="0" stop-color="#16122f"/><stop offset="0.55" stop-color="#0a0820"/><stop offset="1" stop-color="#05040f"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gTitBg)"/>' +
-        starfield(91, 90, 0, 0, 1200, 750, rgba(WHITE, 1));
+        nebula('titA', 911, 5, [VIOLET, CYAN, VIOLET2], 60, 40, 1080, 660) +
+        starfield(91, 90, 0, 0, 1200, 750, rgba(WHITE, 1)) +
+        starfield(912, 28, 0, 0, 1200, 750, rgba(CYAN2, 1));
       var mid = '<g class="cs-spin-slow" style="transform-origin:600px 360px">' + rays + '</g>';
       var fg =
         '<defs>' + glowFilter('gTit', 18) +
@@ -437,7 +458,8 @@
           '<circle cx="600" cy="360" r="180" stroke="' + rgba(VIOLET2, 0.22) + '" stroke-width="2"/>' +
           '<circle cx="600" cy="360" r="250" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
         '</g>' +
-        '<g filter="url(#gTit)"><circle cx="600" cy="360" r="74" fill="url(#gTitCore)" class="cs-breathe"/></g>';
+        '<g filter="url(#gTit)"><circle cx="600" cy="360" r="74" fill="url(#gTitCore)" class="cs-breathe"/></g>' +
+        vignette('tit', 0.46);
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-title', particles: 'motes', kb: 'kb-zoom'
@@ -452,6 +474,7 @@
         '<defs><radialGradient id="gMdlBg" cx="0.5" cy="0.5" r="0.62">' +
           '<stop offset="0" stop-color="#12102c"/><stop offset="0.6" stop-color="#090720"/><stop offset="1" stop-color="#05040f"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gMdlBg)"/>' +
+        nebula('mdlA', 235, 5, [CYAN, VIOLET, CYAN2], 80, 50, 1040, 650) +
         starfield(23, 80, 0, 0, 1200, 750, rgba(CYAN2, 1));
 
       // a globe: latitude/longitude arcs + a scatter of user lights
@@ -493,7 +516,8 @@
           '<circle cx="600" cy="375" r="150" stroke="' + rgba(CYAN, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
           '<circle cx="600" cy="375" r="220" stroke="' + rgba(VIOLET2, 0.2) + '" stroke-width="2" class="cs-ring2"/>' +
         '</g>' +
-        '<g filter="url(#gMdl)"><circle cx="600" cy="375" r="52" fill="url(#gMdlCore)" class="cs-breathe"/></g>';
+        '<g filter="url(#gMdl)"><circle cx="600" cy="375" r="52" fill="url(#gMdlCore)" class="cs-breathe"/></g>' +
+        vignette('mdl', 0.48);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -515,7 +539,9 @@
         '<defs><radialGradient id="gSngBg" cx="0.5" cy="0.46" r="0.78">' +
           '<stop offset="0" stop-color="#0c2436"/><stop offset="0.5" stop-color="#0a0e26"/><stop offset="1" stop-color="#04040c"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gSngBg)"/>' +
-        starfield(13, 110, 0, 0, 1200, 750, rgba(WHITE, 1));
+        nebula('sngA', 137, 6, [CYAN, GOLD, VIOLET], 40, 30, 1120, 690) +
+        starfield(13, 110, 0, 0, 1200, 750, rgba(WHITE, 1)) +
+        starfield(138, 36, 0, 0, 1200, 750, rgba(GOLD, 1));
 
       var mid =
         '<g class="cs-spin-slow" style="transform-origin:600px 360px">' + rays + '</g>' +
@@ -534,7 +560,10 @@
         // transformed-world horizon glow at the base
         '<rect x="0" y="600" width="1200" height="150" fill="' + rgba(INK, 0.4) + '"/>' +
         cityline(0, 612, 1200, rng(3), rgba(CYAN2, 0.5)) +
-        '<g filter="url(#gSng)"><circle cx="600" cy="360" r="92" fill="url(#gSngCore)" class="cs-breathe"/></g>';
+        '<g filter="url(#gSng)"><circle cx="600" cy="360" r="92" fill="url(#gSngCore)" class="cs-breathe"/></g>' +
+        // radiant god-ray bloom from the core + cinematic vignette
+        godRays('sngR', 600, 360, 8, 460, 6.2832, 0, GOLD, 0.05, 18) +
+        vignette('sng', 0.44);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -581,8 +610,13 @@
           line(220, 110, 220, 184, rgba(CYAN2, 0.30), 2) +
           line(120, 147, 270, 147, rgba(CYAN2, 0.20), 2) +
         '</g>' +
+        // damp cold nebula + drifting dust for basement atmosphere
+        nebula('bsmA', 558, 3, [CYAN, VIOLET], 120, 120, 960, 420) +
+        dustBand(559, 22, 0, 120, 1200, 540, CYAN2) +
         // the caged hanging bulb, dead-center, its warm pool the only soft light
         line(600, 30, 600, 150, rgba(WHITE, 0.18), 2) +
+        // a warm shaft of bulb light fanning down over the racks
+        godRays('bsmL', 600, 162, 5, 360, 1.0, 1.5708, GOLD, 0.07, 13) +
         '<rect width="1200" height="750" fill="url(#gBsmBulb)" opacity="0.5"/>';
 
       var mid =
@@ -641,7 +675,8 @@
         '</g>' +
         // a coil of slack cable on the floor between them
         '<path d="M560 690 q40 -28 80 0 q40 28 -10 26 q-50 -2 -70 -26 z" fill="none" stroke="' + rgba(VIOLET2, 0.3) + '" stroke-width="3"/>' +
-        '</g>';
+        '</g>' +
+        vignette('bsm', 0.56);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -677,6 +712,9 @@
             line(150, 285, 1050, 285, rgba(WHITE, 0.12), 3) +
           '</g>' +
         '</g>' +
+        // shafts of daylight slanting in through the tall windows + floating dust
+        godRays('offD', 360, 120, 6, 560, 1.1, 1.18, CYAN2, 0.05, 16) +
+        dustBand(657, 26, 120, 130, 960, 460, WHITE) +
         '<rect width="1200" height="750" fill="url(#gOffSun)"/>';
 
       var mid =
@@ -732,7 +770,8 @@
         desk(360, CYAN2) +
         desk(540, VIOLET2) +
         desk(720, GOLD) +
-        '</g>';
+        '</g>' +
+        vignette('off', 0.44);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -752,6 +791,7 @@
             '<stop offset="0" stop-color="#0d1424"/><stop offset="1" stop-color="#070b14"/></linearGradient>' +
         '</defs>' +
         '<rect width="1200" height="750" fill="url(#gBizBg)"/>' +
+        nebula('bizA', 746, 3, [CYAN, VIOLET], 200, 60, 800, 320) +
         // ceiling: receding light strips toward a bright vanishing point
         '<g class="cs-g-bizceil" stroke-linecap="round">' +
           line(0, 70, 540, 250, rgba(CYAN2, 0.16), 3) +
@@ -767,6 +807,8 @@
         '<defs>' + glowFilter('gBizV', 14) + '</defs>' +
         // bright vanishing-point glow at the center horizon (the aisle's end)
         '<g class="cs-g-prem">' +
+          // light flaring out of the aisle's bright end toward the viewer
+          godRays('bizV', 600, 300, 7, 420, 2.6, 1.5708, CYAN2, 0.05, 16) +
           '<g filter="url(#gBizV)"><ellipse cx="600" cy="300" rx="60" ry="120" fill="' + rgba(CYAN2, 0.5) + '"/></g>' +
           '<ellipse cx="600" cy="300" rx="22" ry="70" fill="' + rgba(WHITE, 0.7) + '"/>' +
         '</g>';
@@ -815,7 +857,8 @@
           '<path d="M120 560 L572 318" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
           '<path d="M1080 560 L628 318" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
         '</g>' +
-        '</g>';
+        '</g>' +
+        vignette('biz', 0.5);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -836,7 +879,10 @@
             '<stop offset="0" stop-color="' + rgba(CYAN2, 0.35) + '"/><stop offset="0.5" stop-color="' + rgba(VIOLET, 0.12) + '"/><stop offset="1" stop-color="transparent"/></radialGradient>' +
         '</defs>' +
         '<rect width="1200" height="750" fill="url(#gMegSky)"/>' +
+        nebula('megA', 414, 4, [CYAN, VIOLET, GOLD], 60, 30, 1080, 320) +
         starfield(41, 60, 0, 0, 1200, 320, rgba(WHITE, 1)) +
+        // light blooming up from the rising AGI core on the horizon
+        godRays('megC', 600, 300, 7, 360, 2.4, -1.5708, CYAN2, 0.05, 16) +
         '<rect width="1200" height="750" fill="url(#gMegGlow)"/>' +
         // distant skyline haze on the horizon
         cityline(0, 360, 1200, rng(29), rgba(CYAN2, 0.4)) +
@@ -893,7 +939,8 @@
         pylon(120, 360) + pylon(1080, 360) +
         '<path d="M120 374 q480 60 960 0" fill="none" stroke="' + rgba(CYAN2, 0.22) + '" stroke-width="1.5"/>' +
         '<path d="M120 390 q480 70 960 0" fill="none" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="1.5"/>' +
-        '</g>';
+        '</g>' +
+        vignette('meg', 0.5);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -941,6 +988,8 @@
           '<rect x="884" y="134" width="32" height="34" rx="3"/>' +
           '<rect x="936" y="126" width="44" height="42" rx="3"/>' +
         '</g>' +
+        nebula('srvA', 910, 3, [CYAN, VIOLET], 120, 120, 960, 420) +
+        dustBand(911, 22, 0, 120, 1200, 520, CYAN2) +
         '<rect width="1200" height="750" fill="url(#gSrvCold)"/>';
 
       // a single short server rack of blinking units (the just-bought mini-server)
@@ -1012,7 +1061,8 @@
             '<text x="0" y="5" text-anchor="middle" font-size="15" fill="' + rgba(VIOLET2, 1) + '">' + esc(t('cut_lbl_power')) + '</text>' +
           '</g>' +
         '</g>' +
-        '</g>';
+        '</g>' +
+        vignette('srv', 0.5);
 
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -2557,6 +2607,7 @@
             '<stop offset="0" stop-color="#141436"/><stop offset="0.45" stop-color="#0b0a24"/><stop offset="1" stop-color="#040410"/></radialGradient>' +
         '</defs>' +
         '<rect width="1200" height="750" fill="url(#gAuBg)"/>' +
+        nebula('auA', 707, 6, [VIOLET, CYAN, VIOLET2], 40, 30, 1120, 690) +
         starfield(7, 90, 0, 0, 1200, 750, rgba(CYAN2, 1)) +
         starfield(97, 40, 0, 0, 1200, 400, rgba(VIOLET2, 1));
       // a wide halo of orbiting thought-rings (the vast mind, awake)
@@ -2605,7 +2656,8 @@
           '<circle cx="0" cy="0" r="11" fill="' + rgba(CYAN2, 0.95) + '"/>' +
           '<circle cx="0" cy="0" r="5" fill="#fff"/>' +
         '</g>' +
-        '</g>';
+        '</g>' +
+        vignette('au', 0.5);
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
@@ -2620,6 +2672,7 @@
         '<defs><radialGradient id="gAfBg" cx="0.5" cy="0.5" r="0.85">' +
           '<stop offset="0" stop-color="#1a1c44"/><stop offset="0.5" stop-color="#0c0c28"/><stop offset="1" stop-color="#050512"/></radialGradient></defs>' +
         '<rect width="1200" height="750" fill="url(#gAfBg)"/>' +
+        nebula('afA', 778, 6, [CYAN, VIOLET, CYAN2], 40, 30, 1120, 690) +
         starfield(7, 80, 0, 0, 1200, 750, rgba(CYAN2, 1));
       // rays of light bursting outward
       var rays = '<g stroke-linecap="round">', a;
@@ -2651,7 +2704,10 @@
           '<circle cx="600" cy="372" r="150" stroke="' + rgba(CYAN, 0.3) + '" stroke-width="2" class="cs-ring1"/>' +
           '<circle cx="600" cy="372" r="220" stroke="' + rgba(VIOLET2, 0.18) + '" stroke-width="2" class="cs-ring2"/>' +
         '</g>' +
-        '</g>';
+        '</g>' +
+        // radiant bloom flooding out of the freed core + soft vignette
+        godRays('afR', 600, 372, 8, 520, 6.2832, 0, CYAN2, 0.05, 20) +
+        vignette('af', 0.42);
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
         grade: 'grade-singularity', particles: 'embers', kb: 'kb-zoom'
@@ -2762,6 +2818,73 @@
   function ellipseRing(cx, cy, rx, ry, rot, col, w) {
     return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" stroke="' + col +
       '" stroke-width="' + (w || 1.5) + '" transform="rotate(' + rot + ' ' + cx + ' ' + cy + ')"/>';
+  }
+
+  // ============================ PREMIUM ART HELPERS ============================
+  // A reusable fan of soft volumetric god-rays emanating from a source point.
+  // `prefix` keeps the optional blur filter id unique per scene (avoids <defs>
+  // collisions). Returns inner-SVG only; safe to drop into any layer.
+  function godRays(prefix, sx, sy, count, len, spread, baseAng, col, op, blur) {
+    var s = '<defs><filter id="' + prefix + 'Ray" x="-30%" y="-30%" width="160%" height="160%">' +
+      '<feGaussianBlur stdDeviation="' + (blur || 9) + '"/></filter></defs>' +
+      '<g filter="url(#' + prefix + 'Ray)">';
+    var i, half = spread / 2;
+    for (i = 0; i < count; i++) {
+      var f = count > 1 ? i / (count - 1) : 0.5;
+      var ang = baseAng - half + spread * f;
+      var ex = sx + Math.cos(ang) * len, ey = sy + Math.sin(ang) * len;
+      // taper: a thin wedge per ray for a soft shaft look
+      var ux = -Math.sin(ang), uy = Math.cos(ang);
+      var ww = 10 + (i % 3) * 9;
+      var oo = (op || 0.12) * (0.55 + ((i + 1) % 3) * 0.22);
+      s += '<polygon points="' + sx.toFixed(0) + ',' + sy.toFixed(0) + ' ' +
+        (ex + ux * ww).toFixed(0) + ',' + (ey + uy * ww).toFixed(0) + ' ' +
+        (ex - ux * ww).toFixed(0) + ',' + (ey - uy * ww).toFixed(0) +
+        '" fill="' + rgba(col, oo) + '"/>';
+    }
+    return s + '</g>';
+  }
+  // A soft drifting nebula: a few large blurred colour blobs for atmospheric
+  // depth behind a starfield. Deterministic via seed.
+  function nebula(prefix, seed, blobs, cols, x0, y0, w, h) {
+    var r = rng(seed), s =
+      '<defs><filter id="' + prefix + 'Neb" x="-50%" y="-50%" width="200%" height="200%">' +
+      '<feGaussianBlur stdDeviation="46"/></filter></defs><g filter="url(#' + prefix + 'Neb)">', i;
+    for (i = 0; i < blobs; i++) {
+      var cx = x0 + r() * w, cy = y0 + r() * h, rx = 120 + r() * 220, ry = 80 + r() * 160;
+      var col = cols[i % cols.length], op = 0.05 + r() * 0.06;
+      s += '<ellipse cx="' + cx.toFixed(0) + '" cy="' + cy.toFixed(0) + '" rx="' + rx.toFixed(0) +
+        '" ry="' + ry.toFixed(0) + '" fill="' + rgba(col, op) + '"/>';
+    }
+    return s + '</g>';
+  }
+  // A subtle drifting dust/bokeh band — a few larger soft motes that read as
+  // foreground depth. Static (no SMIL) to keep node/animation count sane.
+  function dustBand(seed, n, x0, y0, w, h, col) {
+    var r = rng(seed), s = '', i;
+    for (i = 0; i < n; i++) {
+      var x = x0 + r() * w, y = y0 + r() * h, rr = 1.4 + r() * 3.6, op = 0.04 + r() * 0.12;
+      s += '<circle cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" r="' + rr.toFixed(1) +
+        '" fill="' + rgba(col || WHITE, op.toFixed(2)) + '"/>';
+    }
+    return s;
+  }
+  // A cinematic vignette + top/bottom grade wash for the foreground overlay.
+  // `prefix` namespaces the radial-gradient id. Keeps caption legible by
+  // darkening edges while leaving the centre clear.
+  function vignette(prefix, edge) {
+    var e = edge == null ? 0.5 : edge;
+    return '<defs><radialGradient id="' + prefix + 'Vig" cx="0.5" cy="0.48" r="0.75">' +
+      '<stop offset="0" stop-color="' + rgba(INK, 0) + '"/>' +
+      '<stop offset="0.62" stop-color="' + rgba(INK, 0) + '"/>' +
+      '<stop offset="1" stop-color="' + rgba(INK, e) + '"/></radialGradient>' +
+      '<linearGradient id="' + prefix + 'Cap" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + rgba(INK, 0.32) + '"/>' +
+      '<stop offset="0.34" stop-color="' + rgba(INK, 0) + '"/>' +
+      '<stop offset="0.7" stop-color="' + rgba(INK, 0) + '"/>' +
+      '<stop offset="1" stop-color="' + rgba(INK, 0.42) + '"/></linearGradient></defs>' +
+      '<rect width="1200" height="750" fill="url(#' + prefix + 'Cap)"/>' +
+      '<rect width="1200" height="750" fill="url(#' + prefix + 'Vig)"/>';
   }
 
   // ================================ ENGINE ================================
