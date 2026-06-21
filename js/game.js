@@ -28,6 +28,24 @@
   // ---------- state ----------
   var state = null;
 
+  // ---------- cash invariant: the balance must NEVER silently vanish ----------
+  // The previous guard zeroed cash on any non-finite value — which IS the "balance disappears"
+  // the owner reported. Instead we remember the last KNOWN-GOOD balance and restore it if cash
+  // ever goes non-finite, so money can never be lost to a corruption from any code path. If a
+  // rescue ever fires we stash the moment in localStorage so the real trigger can be diagnosed.
+  var _lastGoodCash = 0;
+  function keepCashSane() {
+    if (typeof state.cash === 'number' && isFinite(state.cash)) { _lastGoodCash = state.cash; return; }
+    try {
+      localStorage.setItem('singularity_inc_cash_rescue', JSON.stringify({
+        t: Date.now(), gameTime: state.gameTime, version: state.version,
+        restoredTo: _lastGoodCash, badCash: String(state.cash),
+        price: state.price, effPrice: state.effPrice, users: state.users, billDue: state.billDue
+      }));
+    } catch (e) {}
+    state.cash = isFinite(_lastGoodCash) ? _lastGoodCash : C.START.cash;
+  }
+
   function freshState() {
     var hw = {}; C.HARDWARE.forEach(function (h) { hw[h.id] = 0; });        // owned (idle, rentable)
     var committed = {}; C.HARDWARE.forEach(function (h) { committed[h.id] = 0; }); // committed to the model
@@ -884,7 +902,7 @@
     if (!isFinite(rev)) rev = 0;            // a bad delta must never corrupt the balance
     if (!isFinite(rent)) rent = 0;          // (owner: "balance sometimes just disappears")
     state.cash += rev + rent;
-    if (!isFinite(state.cash)) state.cash = 0;
+    keepCashSane();   // never let the balance vanish — restore last-good instead of zeroing
     var hadRent = state.lifetimeRent;
     state.lifetimeRevenue += rev;
     state.lifetimeRent += rent;
@@ -1023,6 +1041,7 @@
   function init() {
     var loaded = load();
     if (!loaded) state = freshState();
+    _lastGoodCash = (state && typeof state.cash === 'number' && isFinite(state.cash)) ? state.cash : C.START.cash;
     // Migrate existing experienced players: if the loaded save is clearly past onboarding,
     // record the one-time flag now so a later loss/restart never re-runs the forced tutorial.
     if (loaded && state && (state.boughtLaptop || (state.version || 0) >= 1 || state.tutorial == null)) markTutorialDone();
