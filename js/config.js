@@ -115,7 +115,10 @@
                              //   so approval is the lever on a model's maximum audience.
     priceMin: 0.5,
     priceMax: 40,
-    priceDefault: 6
+    priceDefault: 6,
+    priceGraceSec: 10        // free-edit window: after a price change you may freely re-adjust
+                             //   for this many seconds (fix a fumble) before the once-per-minute
+                             //   cooldown locks it. Keeps "price is a decision" without punishing learning.
   };
 
   // ---- price re-tune nudge ----

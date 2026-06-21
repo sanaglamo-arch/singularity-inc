@@ -432,12 +432,22 @@
     p = Math.max(C.ECON.priceMin, Math.min(C.ECON.priceMax, Number(p)));
     if (isNaN(p)) return false;
     // Token price is a strategic COMMITMENT — rate-limited to once per real minute
-    // (= 1 in-game day). Rejected (returns false) while on cooldown; the UI reverts the
-    // slider and shows the time left. force=true bypasses (engine-driven defaults).
-    if (!force && state.lastPriceSet >= 0 && (state.gameTime - state.lastPriceSet) < C.DAY_SEC) return false;
+    // (= 1 in-game day). BUT a free-edit window (priceGraceSec) right after a change lets the
+    // player freely re-adjust (fix a fumble / learn the curve) before the lock kicks in.
+    // Rejected (returns false) only when PAST the grace window and still within the cooldown;
+    // the UI reverts the slider then. force=true bypasses (engine-driven defaults).
+    if (!force && state.lastPriceSet >= 0) {
+      var since = state.gameTime - state.lastPriceSet;
+      if (since >= C.ECON.priceGraceSec && since < C.DAY_SEC) return false;
+    }
     state.price = p;
     state.lastPriceChange = state.gameTime;   // grace the re-tune nudge after a manual change
-    state.lastPriceSet = state.gameTime;
+    // Anchor a NEW cooldown window only when starting fresh (first change, or after the full
+    // cooldown elapsed). Edits WITHIN the grace window keep the original anchor, so the whole
+    // change→adjust→lock cycle stays ~1 real minute.
+    if (force || state.lastPriceSet < 0 || (state.gameTime - state.lastPriceSet) >= C.DAY_SEC) {
+      state.lastPriceSet = state.gameTime;
+    }
     // SOFT tutorial finale: setting a token price completes onboarding (free play)
     if (state.tutorial === 'price') setTutorial(null);
     emit('change');
@@ -445,7 +455,14 @@
   }
   function priceCooldownLeft() {
     if (!state || state.lastPriceSet < 0) return 0;
-    return Math.max(0, C.DAY_SEC - (state.gameTime - state.lastPriceSet));
+    var since = state.gameTime - state.lastPriceSet;
+    if (since < C.ECON.priceGraceSec) return 0;   // still inside the free-edit window — not locked
+    return Math.max(0, C.DAY_SEC - since);
+  }
+  // seconds left in the free-edit window (you may still re-adjust the price freely)
+  function priceGraceLeft() {
+    if (!state || state.lastPriceSet < 0) return 0;
+    return Math.max(0, C.ECON.priceGraceSec - (state.gameTime - state.lastPriceSet));
   }
   // current REALISED market share (from the eased user count) — eases on a price change
   // instead of snapping; the price-card preview still shows the instant target share.
@@ -966,7 +983,7 @@
     demand: demand, playerV: playerV, share: share, playerShare: playerShare,
     usersTarget: usersTarget, revenuePreview: revenuePreview, revenuePerSec: revenuePerSec,
     sweetSpotPrice: sweetSpotPrice, setPrice: setPrice, approvalNorm: approvalNorm,
-    priceCooldownLeft: priceCooldownLeft, currentShare: currentShare,
+    priceCooldownLeft: priceCooldownLeft, priceGraceLeft: priceGraceLeft, currentShare: currentShare,
     projectedReleaseIncomePerSec: projectedReleaseIncomePerSec,
     // costs
     elecPerSec: elecPerSec, upkeepPerSec: upkeepPerSec, salaryPerSec: salaryPerSec,

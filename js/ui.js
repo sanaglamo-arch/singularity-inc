@@ -827,9 +827,16 @@
     // (no "sweet spot" line/badge/glow — the player reads share/users/profit/approval and
     //  finds the best price themselves. The approval arrow above is a natural consequence,
     //  not a pointer to the answer.)
-    // price-change cooldown (once per real minute): show remaining time when locked
-    var cdEl = $('priceCooldown'), cd = G.priceCooldownLeft ? G.priceCooldownLeft() : 0;
-    if (cdEl) { if (cd > 0.5) { setText(cdEl, t('price_locked', { s: Math.ceil(cd) })); setClass(cdEl, 'hidden', false); } else setClass(cdEl, 'hidden', true); }
+    // price control state: a free-edit window right after a change (adjust freely), then a
+    // once-per-minute lock. Show the grace hint first (positive), then the lock countdown.
+    var cdEl = $('priceCooldown');
+    var cd = G.priceCooldownLeft ? G.priceCooldownLeft() : 0;
+    var gr = G.priceGraceLeft ? G.priceGraceLeft() : 0;
+    if (cdEl) {
+      if (gr > 0.5) { setText(cdEl, t('price_grace', { s: Math.ceil(gr) })); setClass(cdEl, 'hidden', false); }
+      else if (cd > 0.5) { setText(cdEl, t('price_locked', { s: Math.ceil(cd) })); setClass(cdEl, 'hidden', false); }
+      else setClass(cdEl, 'hidden', true);
+    }
   }
   function syncModelTab() {
     var st = s(); if (st.version < 1 || !$('priceSlider')) return;
