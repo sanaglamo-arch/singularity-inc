@@ -2880,3 +2880,7 @@ button:focus:not(:focus-visible) { outline: none; }
   --fg-dim: #c2c6e6;
   --fg-muted: #989ec2;
 }
+
+/* Income rate when actively FALLING — a subtle amber ↓ so a dropping income reads as a
+   signal, not "money silently disappearing" (blind review). Additive. */
+#cpsVal.rate-falling { color: var(--amber, #f5c842); }

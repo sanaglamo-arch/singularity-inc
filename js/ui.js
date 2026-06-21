@@ -190,6 +190,9 @@
   }
 
   // ============================== HUD ==============================
+  // income-trend tracking: a lagging reference + hysteresis so a FALLING income shows a clear
+  // signal (↓) instead of "money silently disappearing" (blind review #3). Cosmetic only.
+  var _incRef = null, _incFalling = false;
   function syncHud() {
     var st = s();
     var cashEl = $('cashVal');
@@ -204,9 +207,17 @@
     var net = G.incomePerSec();
     var rate = $('cpsVal');
     if (rate) {
-      setText(rate, (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)) + '/' + ruS());
+      // TREND: compare live income to a lagging reference (~8s). Falling >8% → ↓ amber (with
+      // hysteresis so it never flickers). Makes a dropping income a visible signal.
+      if (_incRef == null || !isFinite(_incRef)) _incRef = net;
+      if (!_incFalling && _incRef > 0.01 && net < _incRef * 0.92) _incFalling = true;
+      else if (_incFalling && (net >= _incRef * 0.99 || net <= 0)) _incFalling = false;
+      _incRef += (net - _incRef) * 0.004;   // lagging reference (cosmetic; frame-paced)
+      var arrow = _incFalling ? '↓ ' : '';
+      setText(rate, arrow + (net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(net)) + '/' + ruS());
       setClass(rate, 'rate-neg', net < 0);
       setClass(rate, 'rate-pos', net >= 0);
+      setClass(rate, 'rate-falling', _incFalling);
     }
     // day + finance line (always visible — owner's #1 rule)
     setClass($('financeWrap'), 'hidden', false);
