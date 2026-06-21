@@ -1126,6 +1126,50 @@
     else { FX.incident(); if (st.sound) A.incident(); }
   }
 
+  // A SERVED LAWSUIT → a choice with stakes (settle / fight in court / bury it). Reuses the
+  // decision card. Fighting's odds rise with your lawyer level (shown). Non-dismissable: the
+  // player must answer (mirrors the decision modal).
+  function showLawsuitModal(fine, winChance) {
+    var wc = Math.round((winChance != null ? winChance : (G.lawsuitWinChance ? G.lawsuitWinChance() : 0.5)) * 100);
+    var opts = [
+      { id: 'settle', label: t('law_settle_label'), hint: t('law_settle_hint', { v: money(fine) }) },
+      { id: 'fight',  label: t('law_fight_label'),  hint: t('law_fight_hint', { v: money(Math.round(fine * 0.4)), p: wc }) },
+      { id: 'bury',   label: t('law_bury_label'),   hint: t('law_bury_hint', { v: money(Math.round(fine * 0.3)) }) }
+    ];
+    queueModal(function () {
+      var btns = '';
+      for (var i = 0; i < opts.length; i++) {
+        btns += '<button class="decision-opt" data-choice="' + esc(opts[i].id) + '">' +
+          '<span class="decision-opt-label">' + esc(opts[i].label) + '</span>' +
+          '<span class="decision-opt-hint">' + esc(opts[i].hint) + '</span></button>';
+      }
+      showModal(
+        '<div class="decision">' +
+        '<div class="decision-tag">' + esc(t('law_eyebrow')) + '</div>' +
+        '<div class="decision-icon">' + ic('ic_risk') + '</div>' +
+        '<h3>' + esc(t('ev_lawsuit_title')) + '</h3>' +
+        '<p class="decision-body">' + esc(t('law_body', { v: money(fine) })) + '</p>' +
+        '<div class="decision-opts">' + btns + '</div></div>'
+      );
+      var nodes = document.querySelectorAll('#modalRoot .decision-opt');
+      for (var j = 0; j < nodes.length; j++) {
+        (function (node) {
+          node.onclick = function () {
+            var choice = node.getAttribute('data-choice');
+            if (s().sound) A.buy();
+            var res = G.resolveLawsuit(choice);
+            hideModal(); G.save(); renderStatic(); update();
+            if (res) {
+              if (res.choice === 'fight') toast(res.won ? t('law_won') : t('law_lost'), res.won ? 'good' : 'bad');
+              else if (res.choice === 'bury') toast(t('law_buried'), 'bad');
+              else toast(t('law_settled'), 'routine');
+            }
+          };
+        })(nodes[j]);
+      }
+    });
+  }
+
   // ============================== EVENT WIRING ==============================
   var FTUE = {
     rent: { title: 'ftue_rent_title', body: 'ftue_rent_body' },
@@ -1167,7 +1211,7 @@
       else if (e.type === 'lawWarn') toast(t('ev_law_warn', { v: Math.round(e.legality) }), 'bad');
       else if (e.type === 'boardWarn') toast(t('ev_board_warn'), 'bad');
       else if (e.type === 'fire') { teachModal({ icon: ic('ic_risk'), title: t('ev_fire_title'), body: t('ev_fire_body', { n: e.lostUnits }) }); FX.incident(); if (s().sound) A.incident(); }
-      else if (e.type === 'lawsuit') { teachModal({ icon: ic('ic_risk'), title: t('ev_lawsuit_title'), body: t('ev_lawsuit_body', { v: fmt(e.fine) }) }); FX.incident(); if (s().sound) A.incident(); }
+      else if (e.type === 'lawsuit') { showLawsuitModal(e.fine, e.winChance); FX.incident(); if (s().sound) A.incident(); }
       else if (e.type === 'boardConvene') teachModal({ icon: ic('ic_insight'), title: t('ev_board_convene_title'), body: t('ev_board_convene_body') });
       else if (e.type === 'priceNudge') {
         toast(t('ev_price_nudge'), 'bad', { routine: true });

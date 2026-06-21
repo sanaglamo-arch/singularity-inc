@@ -85,6 +85,7 @@
       boardActive: false,           // board of directors convened (after first funding round)
       lastFireWarn: 0,              // gameTime of last fire hazard warning (throttle)
       lastLawWarn: 0,
+      pendingLawsuit: null,         // a served lawsuit awaiting the player's answer (settle/fight/bury)
       lastFire: 0,                  // gameTime of last fire event (recovery cooldown)
       lastEventDay: 0,              // last in-game day events were rolled
       boardWarned: false,          // board issued its liquidity warning
@@ -734,16 +735,59 @@
     emit('event', { type: 'fire', lostUnits: lostUnits, lostPower: lostPower });
     emit('change');
   }
-  // a LAWSUIT: a fine (liquidity hit) + a legality drop
+  // a LAWSUIT — now a CHOICE with stakes (owner: "судебные иски — механика"). Instead of an
+  // automatic fine, a suit is SERVED: the player chooses how to answer it (settle / fight in
+  // court / bury it quietly). triggerLawsuit only TELEGRAPHS + stores the pending suit; the UI
+  // shows the choice and calls resolveLawsuit(). Fails open (no penalty) if never resolved, so
+  // it can never soft-lock a headless/sim run.
+  function lawsuitWinChance() {
+    // your odds in court rise with your LAWYER level (staff pillar synergy) and current legality
+    var lawyer = staffLevel('lawyer');
+    var base = 0.42 + lawyer * 0.04 + (legalityNorm() - 0.5) * 0.2;
+    return Math.max(0.1, Math.min(0.9, base));
+  }
   function triggerLawsuit() {
+    if (state.pendingLawsuit) return;   // one suit at a time
     var cfg = C.EVENTS.lawsuit;
     var fine = Math.max(cfg.fineMin, state.cash * cfg.finePctCash);
-    fine = Math.min(fine, Math.max(0, state.cash) + cfg.fineMin); // can push into the red a little
-    state.cash -= fine;
-    state.legality = Math.max(0, state.legality - cfg.legalityHit);
-    emit('event', { type: 'lawsuit', fine: fine });
+    fine = Math.min(fine, Math.max(0, state.cash) + cfg.fineMin);
+    state.pendingLawsuit = { fine: Math.round(fine) };
+    emit('event', { type: 'lawsuit', fine: state.pendingLawsuit.fine, winChance: lawsuitWinChance() });
+    emit('change');
+  }
+  // resolve the served suit. choice: 'settle' | 'fight' | 'bury'. Returns a result object the
+  // UI uses for its consequence toast/flash, or null if there's nothing pending.
+  function resolveLawsuit(choice) {
+    var pl = state.pendingLawsuit;
+    if (!pl) return null;
+    var cfg = C.EVENTS.lawsuit, fine = pl.fine, res = { choice: choice, fine: fine };
+    if (choice === 'fight') {
+      var fees = Math.round(fine * 0.4);
+      state.cash -= fees;
+      var won = Math.random() < lawsuitWinChance();
+      res.won = won; res.fees = fees;
+      if (won) {                       // vindicated: no fine, reputation up
+        state.legality = Math.min(100, state.legality + 6);
+        state.approval = Math.min(100, state.approval + 3);
+      } else {                          // lost: the full fine on top of fees + a bigger legality hit
+        state.cash -= fine;
+        state.legality = Math.max(0, state.legality - (cfg.legalityHit + 6));
+      }
+    } else if (choice === 'bury') {     // quiet payoff: cheap now, but shady (coverup) + bigger legality hit
+      var hush = Math.round(fine * 0.3);
+      state.cash -= hush; res.hush = hush;
+      state.legality = Math.max(0, state.legality - (cfg.legalityHit + 6));
+      state.storyFlags = state.storyFlags || {};
+      state.storyFlags.coverup = (state.storyFlags.coverup || 0) + 1;
+    } else {                            // settle (default): pay the fine, small legality hit, done
+      choice = 'settle'; res.choice = 'settle';
+      state.cash -= fine;
+      state.legality = Math.max(0, state.legality - cfg.legalityHit);
+    }
+    state.pendingLawsuit = null;
     emit('change');
     if (!state.over && state.legality <= C.RISK.floorLose) endGame('legality');
+    return res;
   }
 
   function updateEvents(dt) {
@@ -1043,7 +1087,7 @@
     // rivals
     standings: standings, agiLeaderDays: agiLeaderDays, rivalReachedAgi: rivalReachedAgi,
     // events (consequences)
-    triggerFire: triggerFire, triggerLawsuit: triggerLawsuit, hardwareTotalUnits: hardwareTotalUnits,
+    triggerFire: triggerFire, triggerLawsuit: triggerLawsuit, resolveLawsuit: resolveLawsuit, lawsuitWinChance: lawsuitWinChance, hardwareTotalUnits: hardwareTotalUnits,
     // meta
     endGame: endGame
   };
