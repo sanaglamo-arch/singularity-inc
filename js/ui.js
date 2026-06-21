@@ -1232,11 +1232,10 @@
           s().ftue.start = 1;
           teachModal({ icon: ic('ic_insight'), title: t('ftue_start_title'), body: t('ftue_start_body') });
         }
-        // one-time: explain WHAT a click represents (you, by hand, earning the first $)
-        if (!s().ftue.clickwhy) {
-          s().ftue.clickwhy = 1;
-          teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
-        }
+        // NOTE: the "what a click represents" teach (ftue.clickwhy) is NOT fired here — it used
+        // to STACK on top of ftue.start (blind review: a wall of modals before the first click).
+        // It's now deferred to fire after a few real clicks (see doTap), so teaches are spread
+        // across actions instead of stacked.
       }
       // Entering the first SOFT step: teach ONCE that the leash is off, then leave the
       // player free (no persistent coach). The owner wanted breathing room here.
@@ -1542,6 +1541,13 @@
       FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
       buzz(6);
       tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
+      // Deferred onboarding teach: explain WHAT a click represents AFTER the player has tapped
+      // a few times — spread across actions instead of stacked on ftue.start (blind review).
+      if (st.tutorial === 'click' && st.ftue.start && !st.ftue.clickwhy && (st.clicks - (_clickStepBase || 0)) >= 3) {
+        st.ftue.clickwhy = 1;
+        teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
+        G.save();
+      }
     }
     // MOBILE MULTI-TOUCH (item 1): register EVERY tap on `pointerdown` instead of
     // `click`. `click` carries the legacy ~300ms touch delay AND is suppressed when a
