@@ -116,9 +116,17 @@
     priceMin: 0.5,
     priceMax: 40,
     priceDefault: 6,
-    priceGraceSec: 10        // free-edit window: after a price change you may freely re-adjust
+    priceGraceSec: 10,       // free-edit window: after a price change you may freely re-adjust
                              //   for this many seconds (fix a fumble) before the once-per-minute
                              //   cooldown locks it. Keeps "price is a decision" without punishing learning.
+    // ---- MARKET-CAPTURE win (the second victory path, alongside the Singularity) ----
+    // Dominating the global AI market is HARD: you must out-power every rival combined
+    // (share = pv/(pv+rivals)) AND keep public trust high, then HOLD it while rivals keep
+    // doubling. Win when realized market share stays >= captureThreshold for captureSustainDays
+    // in-game days, once you're a serious lab (version >= captureMinVer).
+    captureThreshold: 0.98,
+    captureSustainDays: 14,
+    captureMinVer: 6
   };
 
   // ---- price re-tune nudge ----

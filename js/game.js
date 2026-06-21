@@ -91,7 +91,8 @@
       lastPriceNudge: 0,           // gameTime of last "re-check your price" nudge (throttle)
       // outcome
       over: false,
-      outcome: null,                // 'agi' | 'bankrupt' | 'approval' | 'safety' | 'legality' | 'beaten'
+      outcome: null,                // 'agi' | 'monopoly' | 'bankrupt' | 'approval' | 'safety' | 'legality' | 'beaten'
+      captureSince: 0,              // gameTime when market share first crossed the capture threshold (0 = not capturing) — for the MONOPOLY win
       // rivals snapshot (computed)
       lang: null,
       sound: true, music: true, sfxVol: 0.8, musicVol: 0.6, haptics: true,
@@ -358,15 +359,26 @@
     return base * Math.pow(C.ECON.demandGrowth, ver) * C.ECON.userScale * reach;
   }
   function approvalNorm() { return Math.max(0, Math.min(1, state.approval / 100)); }
+  function safetyNorm() { return Math.max(0, Math.min(1, state.safety / 100)); }
+  function legalityNorm() { return Math.max(0, Math.min(1, state.legality / 100)); }
+  // Safety & legality act as a TRUST multiplier on your competitive standing — an unsafe or
+  // legally-shady lab loses ground in the market (owner: market share must depend on power,
+  // users, safety, legality… not just downloads). Centered on the START meter value (75) so it
+  // is NEUTRAL (×1.0) at baseline — the economy is unchanged at the starting meters and only
+  // DEVIATIONS matter (tank a meter → lose share; keep meters high → gain share). Floor 0.4.
+  function meterMod(norm) { return Math.max(0.4, 1 + 0.4 * (norm - (C.RISK.start / 100))); }
 
-  function vOf(pw, price, approval) {
+  function vOf(pw, price, approval, safety, legality) {
     if (pw <= 0 || price <= 0) return 0;
-    return pw / Math.pow(price, C.ECON.priceExp) * (0.5 + 0.5 * approval);
+    // rivals omit safety/legality → assume the neutral START level (compliant, established)
+    var sN = (safety == null) ? (C.RISK.start / 100) : safety;
+    var lN = (legality == null) ? (C.RISK.start / 100) : legality;
+    return pw / Math.pow(price, C.ECON.priceExp) * (0.5 + 0.5 * approval) * meterMod(sN) * meterMod(lN);
   }
   function playerV(priceOverride) {
     if (state.version < 1) return 0;
     var price = (priceOverride != null) ? priceOverride : state.price;
-    return vOf(power(), price, approvalNorm());
+    return vOf(power(), price, approvalNorm(), safetyNorm(), legalityNorm());
   }
 
   // rivals: scripted power vs game-days
@@ -471,6 +483,13 @@
     var dem = demand();
     return dem > 0 ? Math.max(0, Math.min(1, state.users / dem)) : 0;
   }
+  // 0..1 progress toward the MARKET-CAPTURE (monopoly) win: how long the player has held the
+  // share threshold, as a fraction of the required sustain. 0 when not currently capturing.
+  function captureProgress() {
+    if (!state || !state.captureSince) return 0;
+    return Math.max(0, Math.min(1, (state.gameTime - state.captureSince) / (C.ECON.captureSustainDays * C.DAY_SEC)));
+  }
+  function captureEligible() { return !!(state && state.version >= C.ECON.captureMinVer); }
 
   // ---------- costs ----------
   function elecPerSec() { return totalKw() * C.BILLS.elecRateKwh / 3600; }
@@ -861,6 +880,19 @@
     }
     // rival reaches AGI first => lose the race
     if (!state.over && rivalReachedAgi() && state.version < C.AGI_VERSION) endGame('beaten');
+
+    // MARKET-CAPTURE win (the second victory path): hold a dominant share long enough, once
+    // you're a serious lab. Out-powering every rival combined (and keeping trust high) and
+    // SUSTAINING it while rivals keep doubling is its own hard goal — distinct from the race
+    // to the Singularity. Tracking the streak in captureSince; drops reset it.
+    if (!state.over) {
+      if (captureEligible() && currentShare() >= C.ECON.captureThreshold) {
+        if (!state.captureSince) state.captureSince = state.gameTime;
+        else if (state.gameTime - state.captureSince >= C.ECON.captureSustainDays * C.DAY_SEC) endGame('monopoly');
+      } else if (state.captureSince) {
+        state.captureSince = 0;
+      }
+    }
   }
 
   // ---------- offline ----------
@@ -984,6 +1016,7 @@
     usersTarget: usersTarget, revenuePreview: revenuePreview, revenuePerSec: revenuePerSec,
     sweetSpotPrice: sweetSpotPrice, setPrice: setPrice, approvalNorm: approvalNorm,
     priceCooldownLeft: priceCooldownLeft, priceGraceLeft: priceGraceLeft, currentShare: currentShare,
+    captureProgress: captureProgress, captureEligible: captureEligible,
     projectedReleaseIncomePerSec: projectedReleaseIncomePerSec,
     // costs
     elecPerSec: elecPerSec, upkeepPerSec: upkeepPerSec, salaryPerSec: salaryPerSec,

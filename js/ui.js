@@ -965,6 +965,17 @@
     // narrative identity from the choices made so far (decisions shape who you are)
     var _pathKey = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(st.storyFlags) : null;
     if (_pathKey) _raceHtml += '<br><span class="muted small">' + esc(t('your_path')) + ': <span style="color:var(--violet-2)">' + esc(t('path_' + _pathKey)) + '</span></span>';
+    // MARKET-CAPTURE goal: once you're a serious lab, surface the second victory path. Show
+    // live progress while you're holding the dominant share, or a hint when you're close.
+    if (G.captureEligible && G.captureEligible()) {
+      var capProg = G.captureProgress ? G.captureProgress() : 0;
+      var curShare = G.currentShare ? G.currentShare() : 0;
+      if (capProg > 0) {
+        _raceHtml += '<br><span class="small" style="color:var(--gold)">' + esc(t('capture_progress', { p: Math.round(capProg * 100) })) + '</span>';
+      } else if (curShare >= 0.75) {
+        _raceHtml += '<br><span class="muted small">' + esc(t('capture_hint')) + '</span>';
+      }
+    }
     setHTML($('agiRace'), _raceHtml);
     setText($('standingsStatus'), youRank === 0 ? t('standings_status_lead') : (youRank === rows.length - 1 ? t('standings_status_behind') : t('standings_status_close')));
     // 3 risk meters (rel-row strip)
@@ -1066,20 +1077,22 @@
 
   // ============================== ENDING ==============================
   function showEnding(outcome) {
-    var st = s(), win = outcome === 'agi';
+    var monopoly = outcome === 'monopoly';
+    var st = s(), win = outcome === 'agi' || monopoly;
     var go = $('gameOverScreen'); if (!go) return;
-    // STORY: on the AGI win, branch the ending by the accumulated story flags +
+    // STORY: on the Singularity win, branch the ending by the accumulated story flags +
     // the pivotal autonomy choice. Each variant has its own title/flavor/punch
-    // (go_win_<variant>_*). Falls back to the generic win copy when no variant.
+    // (go_win_<variant>_*). The MONOPOLY win is its own dedicated ending (market dominance,
+    // not the Singularity), so it bypasses the variant system.
     var variant = null;
-    if (win && window.GAME_STORY) {
+    if (outcome === 'agi' && window.GAME_STORY) {
       try { variant = window.GAME_STORY.endingVariant(st.storyFlags || {}, st); } catch (e) { variant = null; }
       if (variant === 'default') variant = null;
     }
-    var winBase = variant ? ('go_win_' + variant) : 'go_win';
+    var winBase = monopoly ? 'go_monopoly' : (variant ? ('go_win_' + variant) : 'go_win');
     var title = t(win ? (winBase + '_title') : ('go_' + outcome + '_title'));
     var flavor = t(win ? (winBase + '_flavor') : ('go_' + outcome + '_flavor'));
-    var ver = win ? t('term_singularity') : ('v' + st.version);
+    var ver = (win && !monopoly) ? t('term_singularity') : ('v' + st.version);
     setText($('goTitle'), title);
     $('goTitle').style.color = win ? 'var(--gold)' : 'var(--rose)';
     setText($('goCompany'), st.companyName || t('game_title'));
@@ -1089,7 +1102,7 @@
       '<div class="statItem"><span>' + t('go_stat_day') + '</span><span>' + G.dayNumber() + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_users') + '</span><span>' + uFmt(st.users) + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_share') + '</span><span>' + pct1(G.playerShare()) + '%</span></div>');
-    var punchKey = win ? (variant ? ('go_win_' + variant + '_punch') : 'go_punch_win') : 'go_punch_lose';
+    var punchKey = win ? (monopoly ? 'go_monopoly_punch' : (variant ? ('go_win_' + variant + '_punch') : 'go_punch_win')) : 'go_punch_lose';
     setText($('goPunch'), t(punchKey, { day: G.dayNumber(), ver: ver, users: uFmt(st.users), share: pct1(G.playerShare()) }));
     setText($('goBrag'), t('go_brag'));
     setText($('goNewGame'), t('go_new_game'));
@@ -1098,9 +1111,10 @@
     setClass(go, 'hidden', false);
     if (win) {
       if (st.sound) A.singularity();
-      // STORY: climactic AGI cutscene with a closing narrative line that branches on how
-      // safely you got there. Falls back to the ritual flash if the cutscene is unavailable.
-      if (window.GAME_CUTSCENE) window.GAME_CUTSCENE.agiVictory({ safe: st.safety >= 60, variant: variant });
+      // The Singularity win gets its climactic AGI cutscene (branches on how safely you got
+      // there). The MARKET-CAPTURE win is a different victory (you cornered the market, not the
+      // Singularity) → a gold ritual flash, not the AGI narrative.
+      if (!monopoly && window.GAME_CUTSCENE) window.GAME_CUTSCENE.agiVictory({ safe: st.safety >= 60, variant: variant });
       else FX.ritual({ title: title, subtitle: flavor, kind: 'singularity' });
     }
     else { FX.incident(); if (st.sound) A.incident(); }
