@@ -22,10 +22,10 @@
     },
     accel: 0.04,             // a click during training adds this fraction of a "tick" of progress
     // --- overclock / разгон combo ---
-    comboBonus: 1.0,         // heat=1 → ×2 click value — rewards engaged fast-clicking during the early grind (does NOT touch base, so completability is unaffected)
+    comboBonus: 1.8,         // heat=1 → ×2.8 click value — engaged fast-clicking cuts the early tap-count hard (persistent #1 review finding). Does NOT touch base, so the completability sim (base-only) is unaffected.
     comboWindow: 0.6,        // clicks < 600ms apart build heat
-    comboStep: 0.11,         // heat added per fast click (≈9 fast clicks to redline — reach the bonus sooner)
-    comboDecay: 0.65         // heat lost per second when you stop clicking
+    comboStep: 0.14,         // heat added per fast click (≈7 fast clicks to redline — reach the bonus faster)
+    comboDecay: 0.55         // heat lost per second when you stop clicking (slightly slower → easier to hold the overclock)
   };
 
   // ---- hardware tiers (buy with money). idle => rent/s; committed => power ----
