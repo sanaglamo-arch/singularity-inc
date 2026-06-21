@@ -2870,3 +2870,13 @@ button:focus:not(:focus-visible) { outline: none; }
    ============================================================================ */
 .bills-split { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 2px 10px 4px; }
 .bills-split .bill-seg { white-space: nowrap; }
+
+/* ============================================================================
+   CONTRAST PASS (blind review: small muted text read as low-contrast gray-on-dark).
+   Additive token override — lift the muted/dim text one notch for legibility while
+   keeping the clear hierarchy (fg > dim > muted). Last :root wins the cascade.
+   ============================================================================ */
+:root {
+  --fg-dim: #c2c6e6;
+  --fg-muted: #989ec2;
+}
