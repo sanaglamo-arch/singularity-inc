@@ -1659,7 +1659,6 @@
   // a dangerously low risk meter. Throttled so the music only re-voices on meaningful change.
   // Audio-only and a no-op when music is off — cannot affect gameplay/layout.
   function syncMusicIntensity() {
-    if (!M || !s().music) return;
     var st = s();
     var era = Math.min(1, (st.version || 0) / C.AGI_VERSION);
     var danger = 0;
@@ -1667,7 +1666,14 @@
     var minMeter = Math.min(st.safety, st.approval, st.legality) / 100;
     if (minMeter < 0.5) danger += (0.5 - minMeter) * 0.8;
     var target = Math.max(0, Math.min(1, 0.15 + era * 0.6 + danger));
-    if (_lastMusicI === null || Math.abs(target - _lastMusicI) > 0.04) { _lastMusicI = target; try { M.setIntensity(target); } catch (e) {} }
+    if (_lastMusicI === null || Math.abs(target - _lastMusicI) > 0.04) {
+      _lastMusicI = target;
+      // Drive the ERA-REACTIVE ambient BACKGROUND (the #app blobs + grid read var(--intensity)).
+      // This was dormant — nothing set --intensity, so the atmosphere never built toward the
+      // Singularity. Set it regardless of sound (it's purely visual); music follows if enabled.
+      try { document.documentElement.style.setProperty('--intensity', target.toFixed(3)); } catch (e) {}
+      if (M && st.music) { try { M.setIntensity(target); } catch (e) {} }
+    }
   }
   function update() {
     syncHud();
