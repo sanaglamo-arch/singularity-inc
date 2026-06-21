@@ -2884,3 +2884,26 @@ button:focus:not(:focus-visible) { outline: none; }
 /* Income rate when actively FALLING — a subtle amber ↓ so a dropping income reads as a
    signal, not "money silently disappearing" (blind review). Additive. */
 #cpsVal.rate-falling { color: var(--amber, #f5c842); }
+
+/* ============================================================================
+   MAIN SCREEN FITS ONE VIEWPORT — no page scroll, on mobile AND desktop.
+   Blocks shrink to fit; the orb scales; nothing scrolls. (Owner directive.)
+   ============================================================================ */
+.tab[data-tab="company"].active { overflow: hidden; }
+/* mobile (single column) */
+@media (max-width: 719px) {
+  .tab[data-tab="company"].active > #facilityHero { flex: 0 1 auto; height: auto; max-height: 130px; min-height: 80px; }
+  .tab[data-tab="company"].active > #tapZone { flex: 1 1 auto; min-height: 0; justify-content: center; padding: 6px 14px 4px; }
+  .tab[data-tab="company"].active #tapBtn { width: min(168px, 40vw); height: min(168px, 40vw); }
+  .tab[data-tab="company"].active > #labMain { flex: 0 0 auto; min-height: 0; }
+  .tab[data-tab="company"].active #genList { max-height: 64px; overflow: hidden; }
+}
+/* desktop (two columns: keep the layout, just make it fit vertically) */
+@media (min-width: 720px) {
+  .tab[data-tab="company"].active > .facility-hero { height: 120px; }
+  .tab[data-tab="company"].active #tapBtn { width: 168px; height: 168px; }
+  .tab[data-tab="company"].active #labMain { overflow: hidden; }
+  .tab[data-tab="company"].active #genList { max-height: 90px; overflow: hidden; }
+  .tab[data-tab="company"].active #modelPanel,
+  .tab[data-tab="company"].active #billsPanel { padding-top: 10px; padding-bottom: 10px; }
+}
