@@ -881,7 +881,15 @@
       });
       C.STAFF.forEach(function (st2) {
         var b = document.getElementById('staffhire-' + st2.id);
-        if (b) b.onclick = function () { if (G.hire(st2.id)) { if (s().sound) A.hireDone(); } else if (s().sound) A.error(); buzz(10); syncWorldTab(); syncHud(); };
+        if (b) b.onclick = function () {
+          if (G.hire(st2.id)) {
+            if (s().sound) A.hireDone();
+            // juice the hire/level-up (meaningful investment toward lvl 10) — mirror the
+            // hardware-purchase feedback: card flash + a burst at the button (фил pillar).
+            try { var card = b.closest('.card'); if (card) FX.cardFlash(card); var r = b.getBoundingClientRect(); FX.buyBurst(r.left + r.width / 2, r.top + r.height / 2); } catch (e) {}
+          } else if (s().sound) A.error();
+          buzz(10); syncWorldTab(); syncHud();
+        };
       });
     }
     syncWorldTab();
