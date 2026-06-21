@@ -277,6 +277,15 @@
     decision_eyebrow: 'A DECISION',
     decision_made: 'The die is cast.',
     decision_cant_afford: "Can't afford",
+    // 0 — the first buyer (~v1, opening moral fork)
+    dec_first_title: 'The First Buyer',
+    dec_first_body: 'Your model is barely live and the first serious offer is already on the doorstep. A private client wants a quiet deployment, no questions asked — and they pay far more than tokens ever will. What you take in these first days becomes the story of what you were built on.',
+    dec_first_a_label: 'Take the contract, no questions',
+    dec_first_a_hint: 'Real money now — but the use is grey, and the public has a long memory.',
+    dec_first_b_label: 'Refuse — keep your hands clean',
+    dec_first_b_hint: 'No cash today. But your name stays yours, and people notice.',
+    dec_first_c_label: 'Take it — on your terms',
+    dec_first_c_hint: 'Less money, hard limits on use. Slower, but you sleep at night.',
     // 1 — data for the next model
     dec_data_title: 'Feeding the Next Model',
     dec_data_body: 'v2 is starving for data. Your researchers need a corpus big enough to make the next leap — and how you get it will follow you.',
@@ -921,6 +930,15 @@
     decision_eyebrow: 'РЕШЕНИЕ',
     decision_made: 'Жребий брошен.',
     decision_cant_afford: 'Не хватает денег',
+    // 0 — первый покупатель (~v1, первая моральная развилка)
+    dec_first_title: 'Первый покупатель',
+    dec_first_body: 'Модель едва запущена, а первое серьёзное предложение уже на пороге. Частный клиент хочет тихое развёртывание без лишних вопросов — и платит куда больше, чем когда-либо принесут токены. То, что ты возьмёшь в эти первые дни, и станет историей о том, на чём ты построен.',
+    dec_first_a_label: 'Взять контракт, без вопросов',
+    dec_first_a_hint: 'Деньги сразу — но применение серое, а у публики долгая память.',
+    dec_first_b_label: 'Отказаться — руки чистые',
+    dec_first_b_hint: 'Сегодня без денег. Зато имя остаётся твоим, и это замечают.',
+    dec_first_c_label: 'Взять — но на своих условиях',
+    dec_first_c_hint: 'Меньше денег, жёсткие рамки применения. Медленнее, зато спишь спокойно.',
     // 1 — данные для следующей модели
     dec_data_title: 'Топливо для новой модели',
     dec_data_body: 'v2 голодает по данным. Исследователям нужен корпус, способный дать следующий скачок, — и то, как вы его добудете, вас не отпустит.',

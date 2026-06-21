@@ -55,6 +55,26 @@
   //  Cash deltas scale with progress where it matters; meter deltas are bounded.
   // =====================================================================
   var DECISIONS = [
+    // 0) THE FIRST BUYER  (~v1) — the very first moral fork, right after the
+    //    first model goes live. Surfaces the Detroit pillar in the opening
+    //    minutes (before the v2 data dilemma). Cash deltas are intentionally
+    //    SMALL (sim-safe, never a skip past the v2 grind); the weight is in the
+    //    meters + the path flag it plants. No setup cutscene → modal opens directly.
+    {
+      id: 'firstbuyer',
+      icon: 'ic_cash',
+      title: 'dec_first_title', body: 'dec_first_body',
+      when: function (s) { return s.version >= 1; },
+      choices: [
+        { id: 'take',   label: 'dec_first_a_label', hint: 'dec_first_a_hint',
+          effects: { cash: +500, legality: -10, approval: -8, flag: 'ruthless' } },
+        { id: 'refuse', label: 'dec_first_b_label', hint: 'dec_first_b_hint',
+          effects: { approval: +10, flag: 'principled' } },
+        { id: 'limits', label: 'dec_first_c_label', hint: 'dec_first_c_hint',
+          effects: { cash: +200, safety: +8, approval: +2, flag: 'careful' } }
+      ]
+    },
+
     // 1) DATA FOR THE NEXT MODEL  (~v2)
     {
       id: 'data',
