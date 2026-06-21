@@ -65,7 +65,8 @@
       gameTime: 0,                  // seconds elapsed in-game
       // bills
       elecAccrued: 0,               // $ accrued since last bill cut
-      billDue: 0,                   // $ amount of the current outstanding weekly bill
+      billDue: 0,                   // $ amount of the current outstanding bill (electricity + folded-in tax)
+      billTaxPart: 0,               // of billDue, how much is TAX (the rest is electricity/upkeep) — shown split in the UI
       billDueAt: 0,                 // gameTime by which it must be paid (deadline)
       lastBillCut: 0,               // gameTime of last weekly cut
       overdue: false,
@@ -622,15 +623,19 @@
   function payBill() {
     if (state.billDue <= 0) return false;
     if (state.cash < state.billDue) {
-      // partial pay allowed: pay what you can, rest stays due
+      // partial pay allowed: pay what you can, rest stays due. Shrink the tax part
+      // proportionally so the electricity/tax split stays honest.
       var pay = Math.max(0, state.cash);
+      var before = state.billDue;
       state.cash -= pay;
       state.billDue -= pay;
+      if (before > 0) state.billTaxPart = Math.max(0, Math.min(state.billDue, state.billTaxPart * (state.billDue / before)));
       emit('change');
       return state.billDue <= 0.001;
     }
     state.cash -= state.billDue;
     state.billDue = 0;
+    state.billTaxPart = 0;
     state.overdue = false;
     state.overdueSince = 0;
     emit('change');
@@ -641,11 +646,16 @@
     state.taxDue = tax;
     state.monthRevenue = 0;
     state.lastTaxCut = state.gameTime;
-    // tax just adds to outstanding bill due immediately (folded into cash on settle)
+    // tax folds into the outstanding bill immediately, but we remember how much of the bill is
+    // tax (vs electricity) so the UI can show the split clearly (owner).
     state.billDue += tax;
+    state.billTaxPart = (state.billTaxPart || 0) + tax;
     if (state.billDueAt <= state.gameTime) state.billDueAt = state.gameTime + C.BILLS.payDeadlineDays * C.DAY_SEC;
     emit('change');
   }
+  // outstanding bill split (owner: show clearly which part is tax, which is electricity)
+  function billTaxOutstanding() { return state ? Math.max(0, Math.min(state.billDue, state.billTaxPart || 0)) : 0; }
+  function billElecOutstanding() { return state ? Math.max(0, state.billDue - billTaxOutstanding()) : 0; }
 
   // ---------- solvency signal ----------
   function billCovered() { return state.cash >= billForecast(); }
@@ -1027,6 +1037,7 @@
     // bills
     billForecast: billForecast, nextBillIn: nextBillIn, nextBillDay: nextBillDay,
     payBill: payBill, billCovered: billCovered,
+    billTaxOutstanding: billTaxOutstanding, billElecOutstanding: billElecOutstanding,
     // hud
     dayNumber: dayNumber, timeOfDay: timeOfDay, dateLabel: dateLabel,
     // rivals

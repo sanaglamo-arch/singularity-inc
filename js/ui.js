@@ -609,6 +609,12 @@
         '<span class="bills-amt">' + money(st.billDue) + '</span>' +
         '<span class="bills-when muted small">' + (st.overdue ? t('bill_overdue') : t('bill_due', { v: fmt(st.billDue) }).split('—')[0]) + '</span>' +
         '<button class="bills-pay" id="payBillBtn">' + t('bills_pay_now') + '</button></div>';
+      // CLEAR SPLIT (owner): how much of the outstanding bill is electricity vs tax.
+      var elecPart = G.billElecOutstanding ? G.billElecOutstanding() : st.billDue;
+      var taxPart = G.billTaxOutstanding ? G.billTaxOutstanding() : 0;
+      var split = '<span class="bill-seg">⚡ ' + esc(t('bill_part_elec')) + ' ' + money(elecPart) + '</span>';
+      if (taxPart > 0.005) split += '<span class="bill-seg">🧾 ' + esc(t('bill_part_tax')) + ' ' + money(taxPart) + '</span>';
+      rows += '<div class="bills-split muted small">' + split + '</div>';
     }
     rows += '<div class="bills-row"><span class="bills-icon">🧾</span>' +
       '<span class="bills-amt">' + money(G.billForecast()) + '</span>' +

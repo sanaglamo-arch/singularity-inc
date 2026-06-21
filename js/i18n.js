@@ -187,6 +187,8 @@
 
     // bills
     bills_title: 'Bills',
+    bill_part_elec: 'Electricity',
+    bill_part_tax: 'Tax',
     bill_next: 'Next bill in {d} days ≈ ${v}',
     bill_covered: 'covered ✓',
     bill_uncovered: 'short ⚠',
@@ -850,6 +852,8 @@
     approval_flat: '→',
 
     bills_title: 'Счета',
+    bill_part_elec: 'Электричество',
+    bill_part_tax: 'Налог',
     bill_next: 'Следующий счёт через {d} дн. ≈ ${v}',
     bill_covered: 'хватает ✓',
     bill_uncovered: 'не хватает ⚠',
