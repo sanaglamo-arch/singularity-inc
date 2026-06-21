@@ -2884,21 +2884,3 @@ button:focus:not(:focus-visible) { outline: none; }
 /* Income rate when actively FALLING — a subtle amber ↓ so a dropping income reads as a
    signal, not "money silently disappearing" (blind review). Additive. */
 #cpsVal.rate-falling { color: var(--amber, #f5c842); }
-
-/* ============================================================================
-   DESKTOP COMPANY TAB — kill the fragile two-column layout. It "scattered at
-   random moments" (owner) because a flex-wrap row of facility-hero(100%) +
-   tapZone(360px) + labMain(flex) reflows whenever a panel changes height. Use
-   ONE robust centered column (like every other tab + the well-tested mobile
-   layout). Additive + placed last so it wins; mobile (<720px) is untouched.
-   ============================================================================ */
-@media (min-width: 720px) {
-  .tab[data-tab="company"].active {
-    flex-direction: column; flex-wrap: nowrap; align-content: stretch;
-    overflow-y: auto; overflow-x: hidden;
-    max-width: 620px; margin: 0 auto;
-  }
-  .tab[data-tab="company"].active #tapZone { flex: 0 0 auto; width: 100%; border-right: none; }
-  .tab[data-tab="company"].active #labMain { flex: 0 0 auto; width: 100%; min-height: 0; }
-  .tab[data-tab="company"].active > .facility-hero { flex: 0 0 auto; width: 100%; order: 0; }
-}
