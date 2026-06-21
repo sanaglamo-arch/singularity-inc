@@ -874,7 +874,7 @@
       C.STAFF.forEach(function (st2) {
         var card = el('div', 'card');
         card.innerHTML =
-          '<div class="iconwrap">' + ic('ic_manager') + '</div>' +
+          '<div class="iconwrap">' + (ic('ic_' + st2.id) || ic('ic_manager')) + '</div>' +
           '<div class="info"><div class="name">' + esc(t('staff_name_' + st2.id)) + '</div><div class="desc" id="staffdesc-' + st2.id + '"></div></div>' +
           '<div class="right"><button class="minibtn" id="staffhire-' + st2.id + '"></button></div>';
         cl.appendChild(card);

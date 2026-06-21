@@ -204,6 +204,33 @@
     '<rect x="9" y="17" width="6" height="5" rx="1.2"/>' +
     '<line x1="9" y1="17" x2="7" y2="22" stroke-opacity="0.7"/><line x1="15" y1="17" x2="17" y2="22" stroke-opacity="0.7"/>');
 
+  // ── Team roles (one distinct icon per staffer: lawyer / security / marketer / economist) ──
+  // Scales of justice → legality.
+  G.ic_lawyer = svg('ilw',
+    '<line x1="12" y1="4" x2="12" y2="20"/>' +
+    '<circle cx="12" cy="4" r="1.1" fill="' + FF('ilw') + '"/>' +
+    '<line x1="5" y1="7" x2="19" y2="7"/>' +
+    '<path d="M5 7 L2.6 12 a2.6 2 0 0 0 4.8 0 Z" fill="' + FF('ilw') + '" stroke-opacity="0.9"/>' +
+    '<path d="M19 7 L16.6 12 a2.6 2 0 0 0 4.8 0 Z" fill="' + FF('ilw') + '" stroke-opacity="0.9"/>' +
+    '<line x1="8" y1="20" x2="16" y2="20"/>');
+  // Shield + check → safety.
+  G.ic_security = svg('isc',
+    '<path d="M12 2 L20 5 V11 C20 16 16.5 19.6 12 22 C7.5 19.6 4 16 4 11 V5 Z" fill="' + FF('isc') + '"/>' +
+    '<path d="M8.4 12 L11 14.6 L16 9" stroke-width="1.8"/>');
+  // Megaphone → public approval / marketing.
+  G.ic_marketer = svg('imk',
+    '<path d="M3 10 H6 L14 5 V19 L6 14 H3 Z" fill="' + FF('imk') + '"/>' +
+    '<path d="M6 14 V18 a1.3 1.3 0 0 0 2.4 0.7 L7.2 15.5" stroke-opacity="0.85"/>' +
+    '<path d="M17.5 9 a4.4 4.4 0 0 1 0 6" stroke-opacity="0.85"/>');
+  // Rising chart → economist / tax & money flow.
+  G.ic_economist = svg('iec',
+    '<line x1="3" y1="21" x2="21" y2="21"/>' +
+    '<rect x="5" y="14" width="3" height="5" rx="0.6" fill="' + FF('iec') + '"/>' +
+    '<rect x="10.5" y="10" width="3" height="9" rx="0.6" fill="' + FF('iec') + '"/>' +
+    '<rect x="16" y="6" width="3" height="13" rx="0.6" fill="' + FF('iec') + '"/>' +
+    '<path d="M5 9 L11 11 L19 3.5" stroke-opacity="0.85"/>' +
+    '<path d="M16 3.5 H19 V6.5" stroke-opacity="0.85"/>');
+
   G.ic_upgrade = svg('iup',
     '<polygon points="12 2 13.9 8 20 8.9 15.6 13.2 16.9 19.4 12 16.5 7.1 19.4 8.4 13.2 4 8.9 10.1 8" fill="' + FF('iup') + '"/>');
 
