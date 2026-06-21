@@ -26,8 +26,13 @@
     setTimeout(hideSplash, 3500);
 
     var offline = null;
-    try { offline = window.GAME.init(); }   // load() is internally safe (bad save -> fresh)
-    catch (e) { try { console.error('init error', e); window.GAME.reset(); offline = window.GAME.init(); } catch (e2) { console.error(e2); } }
+    // init() loads the save FIRST (load() is internally safe: a bad save just yields a
+    // fresh in-memory state) and sets window.GAME.state before any later step runs. So if a
+    // later init step ever throws, the loaded state already exists — we must NOT reset()
+    // here, because reset() ERASES the save from disk (the root cause of "progress + balance
+    // vanished and onboarding replayed on refresh"). Swallow the error and keep the save.
+    try { offline = window.GAME.init(); }
+    catch (e) { console.error('init error', e); }
     try { window.GAME_UI.init(offline); }
     catch (e) { console.error('UI init error', e); }
 

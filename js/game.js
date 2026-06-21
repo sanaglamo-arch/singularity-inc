@@ -18,6 +18,12 @@
   var TUT_DONE_KEY = 'singularity_inc_tut_done';
   function tutorialEverDone() { try { return localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) { return false; } }
   function markTutorialDone() { try { localStorage.setItem(TUT_DONE_KEY, '1'); } catch (e) {} }
+  // The company name is real data (not a flag), but it must also survive a save loss / reset
+  // so the naming prompt never re-appears for an experienced player. Mirror it into its own
+  // persistent key (written on every save) and seed a fresh state from it.
+  var NAME_KEY = 'singularity_inc_name';
+  function storedName() { try { return localStorage.getItem(NAME_KEY) || null; } catch (e) { return null; } }
+  function storeName(n) { try { if (n) localStorage.setItem(NAME_KEY, n); } catch (e) {} }
 
   // ---------- state ----------
   var state = null;
@@ -89,11 +95,12 @@
       // rivals snapshot (computed)
       lang: null,
       sound: true, music: true, sfxVol: 0.8, musicVol: 0.6, haptics: true,
-      companyName: null,
-      // story cutscenes (one-time gates)
-      seenIntro: false,             // INTRO cutscene shown (after naming, before tutorial)
-      seenFirstModel: false,        // FIRST-MODEL story flourish shown (first v1 release)
-      seenServersCut: false,        // SERVERS cutscene shown (first time cash reaches mini-server cost)
+      companyName: storedName(),    // restored from the survive-reset key so naming never re-prompts an experienced player
+      // story cutscenes (one-time gates). Default to the persistent onboarding flag so an
+      // experienced player whose save was lost/reset never replays the intro/tutorial set-pieces.
+      seenIntro: tutorialEverDone(),       // INTRO cutscene shown (after naming, before tutorial)
+      seenFirstModel: tutorialEverDone(),  // FIRST-MODEL story flourish shown (first v1 release)
+      seenServersCut: tutorialEverDone(),  // SERVERS cutscene shown (first time cash reaches mini-server cost)
       seenPremiseMove: {},          // PREMISE-MOVE chapters shown: map premiseId -> 1 (once per tier)
       // milestone celebrations: map of crossed threshold keys -> 1 (fire once per run)
       milestones: {},
@@ -864,6 +871,8 @@
       var json = JSON.stringify(state);
       localStorage.setItem(C.SETTINGS.SAVE_KEY, json);
       localStorage.setItem(C.SETTINGS.SAVE_KEY + '_t', String(Date.now()));
+      storeName(state.companyName);   // mirror the name so it survives a save loss / reset
+      if (state.companyName) markTutorialDone();   // any saved named run counts as "onboarded" — never re-run onboarding after a save loss
       if (window.GAME_SDK && window.GAME_SDK.savePlayerData) {
         var p = window.GAME_SDK.savePlayerData(json);
         if (p && p.catch) p.catch(function () {});
