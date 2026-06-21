@@ -116,9 +116,13 @@
     priceMin: 0.5,
     priceMax: 40,
     priceDefault: 6,
-    priceGraceSec: 10,       // free-edit window: after a price change you may freely re-adjust
-                             //   for this many seconds (fix a fumble) before the once-per-minute
-                             //   cooldown locks it. Keeps "price is a decision" without punishing learning.
+    priceGraceSec: 30,       // free-edit window: after a price change you may freely re-adjust
+                             //   for this many seconds before the once-per-minute cooldown locks it.
+                             //   Raised 10->30 so the window COVERS the ~25-30s it takes the market
+                             //   (effPrice easing + user inertia) to visibly settle — the player can
+                             //   SEE a bad price's result and re-tune before being locked, instead of
+                             //   being trapped in a losing state (the #1 frustration in 2 blind tests).
+                             //   Keeps the "price is a commitment" rate-limit (locked 30s after the window).
     // ---- MARKET-CAPTURE win (the second victory path, alongside the Singularity) ----
     // Dominating the global AI market is HARD: you must out-power every rival combined
     // (share = pv/(pv+rivals)) AND keep public trust high, then HOLD it while rivals keep
