@@ -1251,6 +1251,13 @@ button { font-family: var(--font-ui); color: var(--fg); }
 .name-edit { display: flex; gap: 8px; align-items: center; flex: 1 1 auto; min-width: 0; max-width: 60%; }
 .name-edit .name-input { margin: 0; font-size: 13px; padding: 9px 11px; }
 .name-save { flex: 0 0 auto; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); background: linear-gradient(100deg, var(--violet), var(--cyan)); color: #0a0a18; font-weight: 700; font-size: 12px; padding: 9px 12px; min-height: 40px; cursor: pointer; white-space: nowrap; }
+/* Settings rename row: the "Переименовать"/"Rename" button is wide and the label is
+   long, so inline they squeezed the input to ~78px and clipped the company name
+   ("NeuroForge" -> "NeuroFc", flagged by two blind testers). Stack the label above a
+   full-width input+button row so the player's chosen name reads in full. Additive,
+   scoped to the rename row only — other setting rows stay inline. */
+.setting-row.name-row { flex-direction: column; align-items: stretch; gap: 8px; }
+.setting-row.name-row .name-edit { max-width: 100%; }
 
 /* difficulty-select step (new-game) */
 .diff-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 2px; text-align: left; }
