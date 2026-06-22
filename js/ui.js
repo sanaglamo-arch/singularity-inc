@@ -674,11 +674,11 @@
       var add = np.m2 - cap;
       setText(hint, t('prem_card_hint', { add: fmt(add) }));
       setText(btn, t('prem_upgrade', { name: t('prem_name_' + np.id), c: fmt(np.cost) }) + ' · +' + fmt(add) + t('hw_m2'));
-      btn.disabled = !G.canBuyPremise(np.id);
+      btn.disabled = false; setClass(btn, 'cant-afford', !G.canBuyPremise(np.id));   // clickable when unaffordable so the tap answers (toast) instead of nothing
     } else {
       setText(hint, t('prem_card_hint_max'));
       setText(btn, t('prem_max'));
-      btn.disabled = true;
+      btn.disabled = true; setClass(btn, 'cant-afford', false);   // at max: native-disabled, "MAX" text explains the no-op
     }
   }
 
@@ -1776,7 +1776,7 @@
         FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
         tutOnUpgraded();
         update();
-      } else { if (st.sound) A.error(); }
+      } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (st.sound) A.error(); }
     });
   }
   // refresh the click-upgrade button's labels + state each render
@@ -1805,13 +1805,13 @@
     if (maxed) {
       // BASE value (no разгон heat) so the button digits never fluctuate as the combo heats
       setHTML(btn, esc(t('tap_up_max', { cur: fmt(G.baseTapValue()) })));
-      btn.disabled = true;
+      btn.disabled = true; setClass(btn, 'cant-afford', false);
     } else {
       var cur = G.baseTapValue(), next = cur * C.TAP.upgrade.gain, cost = G.tapUpgradeCost();
       setHTML(btn,
         esc(t('tap_up_btn', { cur: fmt(cur), next: fmt(next) })) +
         '<span class="tu-sub">' + esc(t('tap_up_cost', { c: fmt(cost) })) + '</span>');
-      btn.disabled = !G.canUpgradeTap();
+      btn.disabled = false; setClass(btn, 'cant-afford', !G.canUpgradeTap());   // clickable when unaffordable → tap answers (toast) instead of nothing
     }
     // tutorial highlight only during the 'upgrade' step
     setClass(btn, 'tut-glow', st.tutorial === 'upgrade');
@@ -2043,7 +2043,7 @@
     // train button
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialHardLock()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
-    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else if (s().sound) A.error(); };
+    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); } };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;

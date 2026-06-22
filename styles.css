@@ -2624,6 +2624,12 @@ button:focus:not(:focus-visible) { outline: none; }
 #cardList .card .minibtn.cant-afford {
   background: var(--surface-2); color: var(--fg-muted); box-shadow: none; opacity: 0.85; cursor: pointer;
 }
+/* Same "clickable but reads as disabled" treatment for the other affordability-gated
+   action buttons (premises upgrade, click-upgrade) — so an out-of-money tap answers
+   with a toast instead of silence. Mirrors each button's :disabled look. Additive. */
+#premBuyBtn.cant-afford, #tapUpgradeBtn.cant-afford {
+  background: var(--surface-2); color: var(--fg-muted); box-shadow: none; cursor: pointer;
+}
 
 /* ---- Hardware list · consistent row rhythm + crisper money. The base .card
    already carries the glass; here we refine the long 26-tier list's read. ---- */
