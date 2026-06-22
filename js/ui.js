@@ -141,7 +141,7 @@
   var currentTab = 'company';
   var hwRefs = {};            // hardware list row refs (Hardware tab)
   var previewPrice = null;    // price slider live preview
-  var tickerIdx = 0, tickerTimer = 0;
+  var tickerIdx = 0, tickerTimer = 0, _tickerDwell = 6;
 
   // -------- static labels (i18n) for the persistent chrome --------
   function renderStatic() {
@@ -379,17 +379,40 @@
     if (!busy) pumpMilestones();
   }
 
+  // A long satire line used to clip with an "…" (two blind testers noticed the perpetual
+  // truncation). Premium fix: when the current line overflows, scroll it like a real LIVE
+  // ticker — hold the start, glide to reveal the tail, hold the end — instead of cutting it.
+  // The scroll lives INSIDE #ticker's overflow:hidden (a transform — no page reflow / no
+  // H-overflow), and the line dwells long enough to finish before the reel advances.
+  function applyTickerScroll(tx) {
+    if (!tx) return;
+    setClass(tx, 'tk-scroll', false);
+    tx.style.removeProperty('--tk-shift'); tx.style.removeProperty('--tk-dur');
+    var over = tx.scrollWidth - tx.clientWidth;
+    if (over > 6) {
+      var shift = over + 10;                              // a touch past the end so the tail clears
+      var dur = Math.min(13, Math.max(7, shift / 28));    // ~28px/s reading pace, clamped
+      tx.style.setProperty('--tk-shift', (-shift) + 'px');
+      tx.style.setProperty('--tk-dur', dur.toFixed(1) + 's');
+      _tickerDwell = dur + 1.2;                           // keep the line up until the scroll finishes
+      void tx.offsetWidth;                                // force reflow so the animation restarts per line
+      setClass(tx, 'tk-scroll', true);
+    } else {
+      _tickerDwell = 6;
+    }
+  }
   function syncTicker(dt) {
     tickerTimer += dt || 0;
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
     if (!list.length) return;
     var tx = $('tickerText');
-    if (tickerTimer > 6 || (tx && tx.textContent === '')) {
+    if (tickerTimer > _tickerDwell || (tx && tx.textContent === '')) {
       tickerTimer = 0;
       var ico = $('ticker').querySelector('.tk-ico'); if (ico && !ico.__set) { ico.__set = 1; }
       // interleave a pending rival-move line if one is queued, else advance the satire reel
       if (_tickerQ.length) { setText(tx, t(_tickerQ.shift())); }
       else { tickerIdx = (tickerIdx + 1) % list.length; setText(tx, list[tickerIdx]); }
+      applyTickerScroll(tx);
     }
   }
 
