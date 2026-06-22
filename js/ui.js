@@ -164,7 +164,7 @@
   var currentTab = 'company';
   var hwRefs = {};            // hardware list row refs (Hardware tab)
   var previewPrice = null;    // price slider live preview
-  var tickerIdx = 0, tickerTimer = 0, _tickerDwell = 6, _tkShift = 0, _tkScrollT = 0;
+  var tickerIdx = 0, tickerTimer = 0, _tickerDwell = 6, _tkShift = 0, _tkScrollT = 0, _tickerLang = '';
 
   // -------- static labels (i18n) for the persistent chrome --------
   function renderStatic() {
@@ -451,12 +451,15 @@
     }
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
     if (!list.length) return;
-    if (tickerTimer > _tickerDwell || (tx && tx.textContent === '')) {
+    // also re-pick immediately when the UI language changes, so a switch to EN/RU swaps the
+    // ticker line at once instead of leaving the previous language up for the whole dwell.
+    if (tickerTimer > _tickerDwell || (tx && tx.textContent === '') || I.getLang() !== _tickerLang) {
       tickerTimer = 0;
       var ico = $('ticker').querySelector('.tk-ico'); if (ico && !ico.__set) { ico.__set = 1; }
       // interleave a pending rival-move line if one is queued, else advance the satire reel
       if (_tickerQ.length) { setText(tx, t(_tickerQ.shift())); }
       else { tickerIdx = (tickerIdx + 1) % list.length; setText(tx, list[tickerIdx]); }
+      _tickerLang = I.getLang();
       applyTickerScroll(tx);
     }
   }
