@@ -365,6 +365,13 @@
     if (state.tutorial === 'release' && state.version >= 1) setTutorial('price');
     emit('release', state.version);
     emit('change');
+    // Persist the release THE INSTANT it happens. The UI plays a multi-second "first model"
+    // cutscene and only saves in its callback — so a reload (or an OOM-killed tab) DURING the
+    // cutscene used to lose the freshly-incremented version and revert to v0, re-firing the
+    // release onboarding on the re-train (multiple blind tests: "model release didn't persist").
+    // Saving here closes that window: version + committed hardware + seeded users + default
+    // price all land atomically at ship time, before any cutscene.
+    save();
     if (state.version >= C.AGI_VERSION) endGame('agi');
   }
 
