@@ -226,11 +226,12 @@
     var inc = G.incomePerSec(), cost = G.costPerSec(), nm = (inc - cost);   // PER SECOND (owner: all incomes in /s, never /month)
     var fl = $('financeLine');
     if (fl) {
-      var sign = nm >= 0 ? '+' : '−';
+      var nmZero = Math.abs(nm) < 0.005;          // never render a "−$0.00" (negative zero) — blind review
+      var sign = nmZero ? '' : (nm >= 0 ? '+' : '−');
       setHTML(fl,
         '<span class="fin-in">' + t('finance_income', { y: fmt(inc) }) + '</span>' +
-        '<span class="fin-out"> · ' + t('finance_costs', { x: fmt(cost) }) + '</span>' +
-        '<span class="fin-net ' + (nm < 0 ? 'neg' : 'pos') + '"> · ' + t('finance_net', { sign: sign, z: fmt(Math.abs(nm)) }) + '</span>');
+        '<span class="fin-out"> · ' + (cost < 0.005 ? t('finance_costs_zero') : t('finance_costs', { x: fmt(cost) })) + '</span>' +
+        '<span class="fin-net ' + (nm < -0.005 ? 'neg' : 'pos') + '"> · ' + t('finance_net', { sign: sign, z: fmt(nmZero ? 0 : Math.abs(nm)) }) + '</span>');
     }
     // pre-revenue hint until first release
     setClass($('preRevHint'), 'hidden', st.version >= 1);
