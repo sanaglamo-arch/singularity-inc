@@ -1725,7 +1725,15 @@
     // 'upgrade' step ONLY; on 'click' / 'server' / 'laptop' it must not show behind the
     // coach (owner saw it at ~$22 during the click step). Free play / soft steps: normal.
     var step = G.tutorialStep();
-    if (step && G.tutorialHardLock() && step !== 'upgrade') show = false;
+    if (step && G.tutorialHardLock() && step !== 'upgrade') {
+      // EXCEPT the 'server' EARN phase: the click-upgrade is a real, already-PERMITTED
+      // intermediate action there (tutAllows('upgradeTap') is true while cash < the server
+      // price) — buying the $12/$24 upgrades lets the player click toward the $40 server
+      // FASTER instead of dead-grinding. Every blind tester flagged this $6→$40 stretch as a
+      // dead zone; surfacing the (logically allowed) button removes it. Once they can afford
+      // the server, tutAllows flips false → the button hides again so the buy stays in focus.
+      if (!(step === 'server' && tutAllows('upgradeTap'))) show = false;
+    }
     setClass(btn, 'hidden', !show);
     if (!show) return;
     var maxed = st.tapLevel >= C.TAP.upgrade.maxLevel;
