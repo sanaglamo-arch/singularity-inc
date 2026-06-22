@@ -770,11 +770,29 @@
       pre.innerHTML =
         '<h2 style="margin-top:0">' + t('model_title') + '</h2>' +
         '<p class="muted small" style="line-height:1.5">' + t('price_intro') + '</p>' +
-        '<p class="muted small" style="margin-top:10px">' + t('train_need_power', { req: fmt(G.powerReq()), label: def ? def.label : 'v1', have: fmt(G.availablePower()) }) + '</p>';
+        '<p class="muted small" style="margin-top:10px">' + (st.training
+          ? t('train_progress', { label: def ? def.label : 'v1', pct: Math.round(G.trainingProgress() * 100) })
+          : t('train_need_power', { req: fmt(G.powerReq()), label: def ? def.label : 'v1', have: fmt(G.availablePower()) })) + '</p>';
       pane.appendChild(pre);
-      var go = el('button', 'btn-primary', t('train_start', { label: def ? def.label : 'v1' }));
+      // Power-aware label: while training show progress, when ready show "Train v1".
+      var goTraining = !!st.training;
+      var go = el('button', 'btn-primary', goTraining
+        ? t('train_progress', { label: def ? def.label : 'v1', pct: Math.round(G.trainingProgress() * 100) })
+        : t('train_start', { label: def ? def.label : 'v1' }));
       go.onclick = function () {
-        // Не молчаливый редирект (перетест): объясняем, ЗАЧЕМ ведём на Лаб — набрать Мощность.
+        // Blind-playtest #1 (critical): this Model-tab button is labelled identically to the
+        // real #trainBtn but used to ALWAYS bounce to the Lab with a "need Power" toast — even
+        // when Power was already sufficient — so the core action read as broken. Now it is the
+        // SAME action: if Power is ready it actually starts training here; only when Power is
+        // genuinely short do we explain WHY we send the player to the Lab to build it.
+        if (G.tutorialHardLock()) { tutDeny(); return; }
+        if (s().training) { switchTab('company'); return; }   // already training → go watch the bar
+        if (G.canStartTraining() && G.startTraining()) {
+          if (s().sound) A.breakthrough();
+          switchTab('company');   // live progress bar lives in #modelPanel on the Lab tab
+          update();
+          return;
+        }
         try { if (s().sound) A.error(); } catch (e) {}
         toast(t('train_need_power', { req: fmt(G.powerReq()), have: fmt(G.availablePower()), label: def ? def.label : 'v1' }), 'bad');
         switchTab('company');
