@@ -851,6 +851,10 @@ h2:first-child { margin-top: 4px; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3;
 }
 #upgradeList .card .right, #managerList .card .right { flex: 0 0 auto; min-width: 92px; }
+/* Late-game hardware descs ("Мощность +96.00M · Аренда $2.20M/с · 20.0Kм²") have huge numbers
+   and overflowed the 2-line clamp, clipping the m² tail (blind-audit). Allow a 3rd line so the
+   full spec always shows; short low-tier descs stay 1-2 lines (clamp is a max). Additive. */
+#upgradeList .card .desc { -webkit-line-clamp: 3; }
 .card .each { font-size: 12.5px; color: var(--cyan); margin-top: 5px; font-weight: 700; text-shadow: 0 0 10px rgba(34,211,238,0.3); letter-spacing: 0.2px; line-height: 1.25; }
 
 /* per-tier generator identity (overridden by milestone tiers below) */
