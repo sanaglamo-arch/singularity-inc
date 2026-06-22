@@ -854,7 +854,13 @@
     slider.addEventListener('input', function () { previewPrice = parseFloat(slider.value); syncPricePreview(); });
     slider.addEventListener('change', function () {
       var applied = G.setPrice(parseFloat(slider.value));
-      if (!applied) { slider.value = s().price; if (s().sound) A.error(); }   // on cooldown → revert, keep current price
+      if (!applied) {
+        // on cooldown → revert, keep current price. Blind-test: a SILENT revert + beep read
+        // as "the slider is broken" — say WHY (the once-per-minute price lock + seconds left).
+        slider.value = s().price; if (s().sound) A.error();
+        var cdLeft = G.priceCooldownLeft ? Math.ceil(G.priceCooldownLeft()) : 0;
+        if (cdLeft > 0) toast(t('price_locked', { s: cdLeft }), 'bad');
+      }
       else if (s().sound) A.buy();
       previewPrice = null; syncPricePreview();
     });
