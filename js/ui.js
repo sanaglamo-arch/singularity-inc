@@ -1257,7 +1257,7 @@
     G.on('ftue', function (tag) {
       var f = FTUE[tag]; if (!f) return;
       var k = tag.indexOf('meter:') === 0 ? 'meter' : tag, st = s();
-      if (st.ftue[k]) return; st.ftue[k] = 1;
+      if (st.ftue[k]) return; st.ftue[k] = 1; G.save();   // persist NOW so a reload before autosave can't replay the teach
       var show = function () { teachModal({ icon: ic('ic_insight'), title: t(f.title), body: t(f.body) }); };
       // Blind-test (×2): the 'rent' (passive-income) teach fires on the first rent TICK,
       // which is the same instant the mini-server purchase advances the tutorial and pops
@@ -1278,7 +1278,7 @@
       // the teach modal over the Lab before the tab even switches.
       var firstReleaseTeach = function () {
         switchTab('research');
-        if (!s().ftue.release) { s().ftue.release = 1; teachModal({ icon: ic('ic_brain'), title: t('ftue_release_title'), body: t('ftue_release_body') }); }
+        if (!s().ftue.release) { s().ftue.release = 1; G.save(); teachModal({ icon: ic('ic_brain'), title: t('ftue_release_title'), body: t('ftue_release_body') }); }   // blind-test: this teach replayed after a browser reload — persist the flag immediately
       };
       if (!s().seenFirstModel && window.GAME_CUTSCENE) {
         s().seenFirstModel = true; G.save();
@@ -1288,7 +1288,7 @@
       }
       renderStatic(); update();
     });
-    G.on('bill', function (amount) { if (amount > 0 && !s().ftue.bill) { s().ftue.bill = 1; teachModal({ icon: ic('ic_cash'), title: t('ftue_bill_title'), body: t('ftue_bill_body') }); } });
+    G.on('bill', function (amount) { if (amount > 0 && !s().ftue.bill) { s().ftue.bill = 1; G.save(); teachModal({ icon: ic('ic_cash'), title: t('ftue_bill_title'), body: t('ftue_bill_body') }); } });
     G.on('event', function (e) {
       if (!e) return;
       if (e.type === 'fireWarn') toast(t('ev_fire_warn', { v: Math.round(e.safety) }), 'bad');
