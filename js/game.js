@@ -997,6 +997,10 @@
     if (!state) return;
     try {
       var json = JSON.stringify(state);
+      // Crash-resilience: stash the PREVIOUS good save as a backup BEFORE overwriting the
+      // main key. If a crash corrupts the in-flight main write, load() falls back to this
+      // backup — at most the last save is lost, never the whole run.
+      try { var prev = localStorage.getItem(C.SETTINGS.SAVE_KEY); if (prev) localStorage.setItem(C.SETTINGS.SAVE_KEY + '_bak', prev); } catch (e) {}
       localStorage.setItem(C.SETTINGS.SAVE_KEY, json);
       localStorage.setItem(C.SETTINGS.SAVE_KEY + '_t', String(Date.now()));
       storeName(state.companyName);   // mirror the name so it survives a save loss / reset
@@ -1007,9 +1011,15 @@
       }
     } catch (e) {}
   }
+  // Try the main save, then the crash-backup. A crash mid-write can corrupt the in-flight
+  // main key; the backup holds the PREVIOUS good save, so the run survives (owner's #1
+  // sensitivity: progress must never just "disappear" on a reload/crash).
   function load() {
+    return loadFrom(C.SETTINGS.SAVE_KEY) || loadFrom(C.SETTINGS.SAVE_KEY + '_bak');
+  }
+  function loadFrom(key) {
     try {
-      var raw = localStorage.getItem(C.SETTINGS.SAVE_KEY);
+      var raw = localStorage.getItem(key);
       if (!raw) return false;
       var s = JSON.parse(raw);
       if (!s || typeof s !== 'object') return false;
@@ -1039,7 +1049,7 @@
     } catch (e) { return false; }
   }
   function reset() {
-    try { localStorage.removeItem(C.SETTINGS.SAVE_KEY); } catch (e) {}
+    try { localStorage.removeItem(C.SETTINGS.SAVE_KEY); localStorage.removeItem(C.SETTINGS.SAVE_KEY + '_bak'); } catch (e) {}
     state = freshState();
     emit('change');
   }
