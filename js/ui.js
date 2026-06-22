@@ -467,7 +467,7 @@
     // forced tutorial: only the tabs the current step needs are reachable.
     // buy-steps (laptop/server) also unlock the Hardware tab; click/upgrade stay on Company.
     var step = G.tutorialStep();
-    if (step && !tutTabAllowed(step, tab)) { tutDeny(); return; }
+    if (step && !tutTabAllowed(step, tab)) { tutDeny(); return false; }   // blocked → tutDeny answers (toast+sfx); report no-switch so the caller skips the confirm chime
     currentTab = tab;
     var secs = document.querySelectorAll('#content .tab');
     for (var i = 0; i < secs.length; i++) setClass(secs[i], 'active', secs[i].dataset.tab === tab);
@@ -477,6 +477,7 @@
     if (tab === 'research') buildModelTab();
     if (tab === 'world') buildWorldTab();
     update();
+    return true;
   }
 
   // overclock / разгон combo: reveal #comboWrap while heat>0, label "Разгон ×1.7",
@@ -2043,7 +2044,7 @@
     // nav
     var nav = $('tabbar').children;
     for (var i = 0; i < nav.length; i++) (function (btn) {
-      btn.onclick = function () { if (btn.dataset.more) switchTab('settings'); else switchTab(btn.dataset.tab); if (s().sound) A.buy(); };
+      btn.onclick = function () { var ok = btn.dataset.more ? switchTab('settings') : switchTab(btn.dataset.tab); if (ok && s().sound) A.buy(); };   // only chime on a real switch; a blocked tap already played tutDeny's error sfx
     })(nav[i]);
     // first-run naming
     if (!s().companyName) { showNaming(); }

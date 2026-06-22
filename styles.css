@@ -2881,6 +2881,13 @@ button:focus:not(:focus-visible) { outline: none; }
   filter: grayscale(1) brightness(1.5);
   opacity: 0.85; pointer-events: none;
 }
+/* A locked tab must still ACCEPT the tap so switchTab()->tutDeny() can answer with a
+   toast + sound ("opens at step …"). The base .tut-blocked sets pointer-events:none
+   (correct for un-buyable hardware cards), which silently swallowed tab taps -> a blind
+   tester read the locked Model/World tabs as "broken, nothing happens". Re-enable taps
+   for the bottom-nav only; the tab still can't switch (switchTab returns false), it just
+   answers. Higher specificity than .tut-blocked, additive. */
+#tabbar button.tut-blocked { pointer-events: auto; cursor: pointer; }
 
 /* ============================================================================
    Main/Company screen scroll on desktop — MINIMAL. The >=720 two-column layout
