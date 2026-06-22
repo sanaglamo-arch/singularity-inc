@@ -26,7 +26,20 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
   function buzz(p) { try { if (G.state.haptics && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
-  function ic(key) { return ICON[key] || ''; }
+  var _icUid = 0;
+  function ic(key) {
+    var raw = ICON[key] || '';
+    if (!raw || raw.indexOf('id="') < 0) return raw;
+    // Icon gradient ids are static per icon-type (seeded by the key), so the SAME icon
+    // rendered twice puts duplicate <linearGradient id="…"> on the page. A stroke's
+    // url(#id) then resolves to the FIRST match in document order, whose <stop>
+    // currentColor is taken from THAT instance's context — not this one. That left the
+    // active-model brain (ic_brain, also used elsewhere) painting with another, darker
+    // instance's color → a stroke that read as an empty placeholder chip. Make every
+    // insertion's ids unique so each icon resolves its own gradients in its own context.
+    var u = '_u' + (++_icUid);
+    return raw.replace(/id="([^"]+)"/g, 'id="$1' + u + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + u + ')');
+  }
   function money(n) { return '$' + fmt(n); }
   function pct(x) { return Math.round(x * 100); }
   // market share reads as a fractional percent (e.g. 0.7%, 23.4%) — small shares matter
@@ -2048,10 +2061,16 @@
       '<div class="ob-icon">' + ic('ic_insight') + '</div>' +
       '<h3>' + t('name_lab_title') + '</h3>' +
       '<p>' + t('name_lab_body') + '</p>' +
-      '<input id="labNameInput" class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" />' +
+      '<input id="labNameInput" class="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Singularity Inc." />' +
       '<div class="row"><button class="primary" id="labNameOk">' + t('name_lab_confirm') + '</button></div></div>'
     );
-    var inp = $('labNameInput'); inp.value = s().companyName || 'Singularity Inc.';
+    // The suggested name lives in the greyed PLACEHOLDER, not in value — so the first
+    // keystroke types a fresh name instead of inserting mid-string into "Singularity Inc."
+    // (tapping a prefilled value drops the caret wherever you tap → "SingulaNexus AIrity Inc.").
+    // Empty confirm still defaults to "Singularity Inc." below. Re-naming keeps the real name editable.
+    var inp = $('labNameInput');
+    var existing = s().companyName;
+    if (existing && existing !== 'Singularity Inc.') inp.value = existing;
     function confirm() {
       var v = (inp.value || '').trim().slice(0, 24); s().companyName = v || 'Singularity Inc.'; G.save(); hideModal(); renderStatic(); update();
       // STORY: play the INTRO cutscene once, right after naming and BEFORE the forced
