@@ -149,18 +149,24 @@
         '<button class="primary" id="mOk">' + esc(opts.ok || t('ftue_got_it')) + '</button>' +
         '</div></div>'
       );
-      var okFn = function () { if (s().sound) A.buy(); hideModal(); if (opts.onOk) opts.onOk(); };
-      var cancelFn = function () { hideModal(); if (opts.onCancel) opts.onCancel(); };
+      var _dismissed = false;   // idempotent: a tap on a button bubbles to root too — fire once
+      var okFn = function () { if (_dismissed) return; _dismissed = true; if (s().sound) A.buy(); hideModal(); if (opts.onOk) opts.onOk(); };
+      var cancelFn = function () { if (_dismissed) return; _dismissed = true; hideModal(); if (opts.onCancel) opts.onCancel(); };
       $('mOk').onclick = okFn;
       if (opts.cancel) $('mCancel').onclick = cancelFn;
-      // Backdrop-dismiss (blind-test, HIGH-confidence real bug): a teach modal the player
-      // thought they'd dismissed stayed up — there was no tap-outside-to-close, so a tap that
-      // missed "Понятно" (or a backdrop tap) left the full-screen #modalRoot overlay silently
-      // eating taps on the screen behind it (it blocked the very first hardware purchase).
-      // Now a tap OUTSIDE the .modal closes it like the OK/Cancel button. Only teach modals get
-      // this; decision/confirm modals (showModal directly) keep requiring an explicit choice.
       var root = $('modalRoot');
-      root.onclick = function (e) { if (e.target === root) { (opts.cancel ? cancelFn : okFn)(); } };
+      if (opts.cancel) {
+        // A real CHOICE (has a Cancel) — only the backdrop dismisses (= cancel); the two
+        // buttons carry the decision. Prevents an accidental tap from auto-confirming.
+        root.onclick = function (e) { if (e.target === root) cancelFn(); };
+      } else {
+        // Pure INFO teach (no Cancel) — a tap ANYWHERE continues. The core verb of a clicker is
+        // rapid tapping; a blocking modal that appears mid-burst used to EAT taps that landed on
+        // its body (blind-test, measured: 40 taps -> 3 registered). Now the first such tap just
+        // dismisses the teach and the rest reach the orb — robust at ANY tap speed (time-based
+        // deferral can't help the slow CDP driver). The player can still pause and read it.
+        root.onclick = function () { okFn(); };
+      }
     });
   }
 
@@ -1003,7 +1009,7 @@
         var card = el('div', 'card');
         card.innerHTML =
           '<div class="iconwrap">' + (ic('ic_' + st2.id) || ic('ic_manager')) + '</div>' +
-          '<div class="info"><div class="name">' + esc(t('staff_name_' + st2.id)) + '</div><div class="desc" id="staffdesc-' + st2.id + '"></div></div>' +
+          '<div class="info"><div class="name" id="staffname-' + st2.id + '">' + esc(t('staff_name_' + st2.id)) + '</div><div class="desc" id="staffdesc-' + st2.id + '"></div></div>' +
           '<div class="right"><button class="minibtn" id="staffhire-' + st2.id + '"></button></div>';
         cl.appendChild(card);
       });
@@ -1129,6 +1135,10 @@
     // staff rows
     C.STAFF.forEach(function (st2) {
       var d = document.getElementById('staffdesc-' + st2.id); if (!d) return;
+      // staff ROW is built once (cl.__staffInit) so the role title was frozen in whatever
+      // language was active at first World-tab visit — a switch to EN left "Юрист" etc.
+      // (blind-test). Refresh the title here each sync so it always matches the UI language.
+      setText($('staffname-' + st2.id), t('staff_name_' + st2.id));
       var lvl = G.staffLevel(st2.id);
       var base = t('staff_desc_' + st2.id);
       if (lvl >= 1) {
