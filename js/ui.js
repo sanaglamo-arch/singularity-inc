@@ -1282,9 +1282,11 @@
   function showLawsuitModal(fine, winChance) {
     var wc = Math.round((winChance != null ? winChance : (G.lawsuitWinChance ? G.lawsuitWinChance() : 0.5)) * 100);
     var opts = [
-      { id: 'settle', label: t('law_settle_label'), hint: t('law_settle_hint', { v: money(fine) }) },
-      { id: 'fight',  label: t('law_fight_label'),  hint: t('law_fight_hint', { v: money(Math.round(fine * 0.4)), p: wc }) },
-      { id: 'bury',   label: t('law_bury_label'),   hint: t('law_bury_hint', { v: money(Math.round(fine * 0.3)) }) }
+      // the law_* templates already carry a leading "$" before {v}, so pass RAW fmt() (not
+      // money(), which adds its own "$") — otherwise the fine renders as "$$40" (blind-test).
+      { id: 'settle', label: t('law_settle_label'), hint: t('law_settle_hint', { v: fmt(fine) }) },
+      { id: 'fight',  label: t('law_fight_label'),  hint: t('law_fight_hint', { v: fmt(Math.round(fine * 0.4)), p: wc }) },
+      { id: 'bury',   label: t('law_bury_label'),   hint: t('law_bury_hint', { v: fmt(Math.round(fine * 0.3)) }) }
     ];
     queueModal(function () {
       var btns = '';
@@ -1298,7 +1300,7 @@
         '<div class="decision-tag">' + esc(t('law_eyebrow')) + '</div>' +
         '<div class="decision-icon">' + ic('ic_risk') + '</div>' +
         '<h3>' + esc(t('ev_lawsuit_title')) + '</h3>' +
-        '<p class="decision-body">' + esc(t('law_body', { v: money(fine) })) + '</p>' +
+        '<p class="decision-body">' + esc(t('law_body', { v: fmt(fine) })) + '</p>' +
         '<div class="decision-opts">' + btns + '</div></div>'
       );
       var nodes = document.querySelectorAll('#modalRoot .decision-opt');
