@@ -131,6 +131,13 @@
   function drainQueue() { if (modalOpen || !modalQueue.length) return; (modalQueue.shift())(); }
   // simple teach/confirm modal
   function teachModal(opts) {
+    // Never pop a teach modal in the MIDDLE of a tap-burst: it appears over the orb and the
+    // player's momentum taps land on its card and get eaten (3 blind testers — incl. a first
+    // EN-toggle tap swallowed by the "passive income" modal). If the player tapped <550ms ago,
+    // wait for the burst to settle, re-checking every 250ms. Non-tap contexts (bill/event/offline)
+    // see a stale _lastTapMs and show at once.
+    var _now = (window.performance && performance.now) ? performance.now() : +new Date();
+    if (_now - _lastTapMs < 550) { setTimeout(function () { teachModal(opts); }, 250); return; }
     queueModal(function () {
       showModal(
         '<div class="ob">' +
@@ -1477,6 +1484,7 @@
   var _clickStepBase = 0;     // clicks counter when the 'click' step was entered (Phase A/B pivot)
   var _redlined = false;      // overclock combo at max — fire the redline payoff once per climb
   var _clickwhyTimer = null;  // deferred "why a click earns" teach — fires after the tap-burst settles
+  var _lastTapMs = 0;         // wall-clock of the last orb tap — teach modals defer while a burst is active
   function showClickWhy() {
     _clickwhyTimer = null;
     if (s().over) return;     // context moved on (game ended) — skip the early-game lore
@@ -1699,6 +1707,7 @@
       if (st.over) return;
       if (!tutAllows('click')) { tutDeny(); return; }
       if (!st.boughtLaptop) { if (st.sound) A.error(); toast(t('tap_hint_buy_laptop'), '', { routine: true }); return; }
+      _lastTapMs = (window.performance && performance.now) ? performance.now() : +new Date();   // mark tap activity so teach modals hold off until the burst settles
       var v = G.click();
       if (v <= 0) return;
       if (st.sound) A.tap(Math.max(st.heat || 0, st.training ? 0.4 : 0));
