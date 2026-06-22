@@ -1518,7 +1518,7 @@
   // layout box from the current center ± half the layout size. The result is cached per
   // target+step and only invalidated on real layout changes (resize/scroll/step/tab), so
   // per-click renders reuse it verbatim and the coach stays perfectly still.
-  function coachHide() { if (_coach) setClass(_coach.root, 'hidden', true); liftCashBox(false); hudGoalGlow(false); }
+  function coachHide() { if (_coach) { setClass(_coach.root, 'hidden', true); _coach.root.style.pointerEvents = ''; _coach.root.onclick = null; } liftCashBox(false); hudGoalGlow(false); }
   function stableRect(target, key) {
     if (_coachRectCache && _coachRectCache.key === key) return _coachRectCache.rect;
     var r = target.getBoundingClientRect();
@@ -1593,14 +1593,27 @@
     setText(c.title, t(plan.title, plan.vars));
     setText(c.body, t(plan.body, plan.vars));
     setText(c.hint, t(plan.hint, plan.vars));
-    // The hint pill LOOKS like a button; two blind testers tapped the instruction card
-    // expecting it to act (the whole coach was pointer-events:none, so nothing happened and
-    // they had to hunt for the real target). Make the card a working shortcut: tapping it
-    // fires the SAME action as tapping the highlighted target. The spotlight ring stays
-    // click-through (only .ftue-card gets input back), so a direct tap on the target still
-    // works too. Fully additive guidance chrome.
-    setClass(c.card, 'ftue-actionable', true);
-    c.card.onclick = function () { try { if (target && typeof target.click === 'function') target.click(); } catch (e) {} };
+    // Make the guidance PERFORM the highlighted action on tap. Two modes:
+    //  • FULL-DIM steps (buy/nav, a single forced action; plan.light is falsy): 4+ blind
+    //    testers tapped the highlighted CTA, landed in the dark DEAD dim between the card and
+    //    the spotlight, and the action "felt broken". Make the WHOLE overlay capture taps so
+    //    ANY tap performs the one allowed action. Safe — these steps are single-tap, and a
+    //    forced step wants every tap funnelled to that action anyway.
+    //  • LIGHT steps (orb click / click-upgrade): keep the overlay click-THROUGH so the orb's
+    //    fast pointerdown path still fires for rapid tapping; only the instruction card is the
+    //    tappable shortcut (the original v101 behaviour).
+    var doAction = function () { try { if (target && typeof target.click === 'function') target.click(); } catch (e) {} };
+    if (!plan.light) {
+      c.root.style.pointerEvents = 'auto';
+      c.root.onclick = doAction;
+      setClass(c.card, 'ftue-actionable', false);   // root captures every tap → avoid double-fire
+      c.card.onclick = null;
+    } else {
+      c.root.style.pointerEvents = '';              // revert to CSS default (none) → orb stays directly tappable
+      c.root.onclick = null;
+      setClass(c.card, 'ftue-actionable', true);
+      c.card.onclick = doAction;
+    }
     var cw = Math.min(360, vw - 28);
     c.card.style.width = cw + 'px';
     var clx = Math.min(Math.max(14, cxv - cw / 2), vw - cw - 14);
