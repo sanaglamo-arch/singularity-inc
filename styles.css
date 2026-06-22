@@ -1574,6 +1574,13 @@ button:focus:not(:focus-visible) { outline: none; }
 }
 .cs-dot.on { background: var(--violet-2); transform: scale(1.35); box-shadow: 0 0 12px var(--glow-violet); }
 .cs-victory .cs-dot.on { background: var(--cyan); box-shadow: 0 0 12px var(--glow-cyan); }
+/* Readability (blind-test ×2: players miscounted a 5-slide intro as "3 dots"): the inactive
+   beat dots were only 25% violet on a dark cinematic backdrop — too faint to count. Lift the
+   idle dots (and give a hairline ring) so the full slide count reads at a glance, while the
+   active dot still clearly dominates (scale + glow above). Additive; targets idle dots only. */
+.cs-dots .cs-dot:not(.on) { background: rgba(167,139,250,0.5); box-shadow: 0 0 0 1px rgba(167,139,250,0.22); }
+.cs-dots .cs-dot.on { background: var(--violet-2); transform: scale(1.4); box-shadow: 0 0 12px var(--glow-violet), 0 0 0 1px rgba(255,255,255,0.28); }
+.cs-victory .cs-dots .cs-dot.on { background: var(--cyan); box-shadow: 0 0 12px var(--glow-cyan), 0 0 0 1px rgba(255,255,255,0.28); }
 
 /* skip = quiet top-right (doesn't fight the art) */
 .cs-skip {
