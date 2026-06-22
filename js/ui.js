@@ -773,7 +773,12 @@
         '<p class="muted small" style="margin-top:10px">' + t('train_need_power', { req: fmt(G.powerReq()), label: def ? def.label : 'v1', have: fmt(G.availablePower()) }) + '</p>';
       pane.appendChild(pre);
       var go = el('button', 'btn-primary', t('train_start', { label: def ? def.label : 'v1' }));
-      go.onclick = function () { switchTab('company'); };
+      go.onclick = function () {
+        // Не молчаливый редирект (перетест): объясняем, ЗАЧЕМ ведём на Лаб — набрать Мощность.
+        try { if (s().sound) A.error(); } catch (e) {}
+        toast(t('train_need_power', { req: fmt(G.powerReq()), have: fmt(G.availablePower()), label: def ? def.label : 'v1' }), 'bad');
+        switchTab('company');
+      };
       pre.appendChild(go);
       return;
     }
