@@ -2893,7 +2893,20 @@ button:focus:not(:focus-visible) { outline: none; }
    is fully visible with no scroll and NOTHING cut off. Mobile is untouched
    (phones scroll naturally; forcing a fit there would clip the hardware list).
    ============================================================================ */
-#labSummary { display: none; }
+
+/* MAIN SCREEN — desktop fits one viewport (owner: no scroll). Keep "Сводка компании"
+   WHOLE (don't remove/clip it): compact the diorama + the summary panel + trim panel
+   gaps so everything is fully visible with no scroll. Mobile untouched. */
 @media (min-width: 720px) {
-  .tab[data-tab="company"].active > .facility-hero { height: 130px; }
+  .tab[data-tab="company"].active > .facility-hero { height: 62px; }
+  .tab[data-tab="company"].active > #tapZone { padding-top: 10px; }
+  #modelPanel, #billsPanel { margin-bottom: 5px; }
+  #labSummaryHead { margin-bottom: 4px; }
+  #labSummaryTitle { font-size: 12px; }
+  #labSummary .sum-grid { gap: 5px; margin-bottom: 6px; }
+  #labSummary .sum-grid .rval { font-size: 13px; }
+  #labSummary .sum-grid .rlabel { font-size: 8.5px; }
+  #labSummary .sum-grid .res { padding: 4px 7px; }
+  #labSummaryMeters { gap: 4px; }
+  #labSummary { padding: 9px 12px; }
 }
