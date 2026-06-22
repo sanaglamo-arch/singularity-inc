@@ -2884,3 +2884,16 @@ button:focus:not(:focus-visible) { outline: none; }
 /* Income rate when actively FALLING — a subtle amber ↓ so a dropping income reads as a
    signal, not "money silently disappearing" (blind review). Additive. */
 #cpsVal.rate-falling { color: var(--amber, #f5c842); }
+
+/* ============================================================================
+   MAIN SCREEN — desktop fits one viewport (owner: no scroll on the main page).
+   The #labSummary "Сводка компании" is a desktop-only DUPLICATE of the World tab
+   (rank/share/risk meters) and was the panel overflowing/clipping the right
+   column. Drop it from the main screen (it stays in World), so everything else
+   is fully visible with no scroll and NOTHING cut off. Mobile is untouched
+   (phones scroll naturally; forcing a fit there would clip the hardware list).
+   ============================================================================ */
+#labSummary { display: none; }
+@media (min-width: 720px) {
+  .tab[data-tab="company"].active > .facility-hero { height: 130px; }
+}
