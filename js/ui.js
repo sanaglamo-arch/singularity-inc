@@ -1476,6 +1476,12 @@
   var _coachRO = null;        // reposition hook (resize/scroll)
   var _clickStepBase = 0;     // clicks counter when the 'click' step was entered (Phase A/B pivot)
   var _redlined = false;      // overclock combo at max — fire the redline payoff once per climb
+  var _clickwhyTimer = null;  // deferred "why a click earns" teach — fires after the tap-burst settles
+  function showClickWhy() {
+    _clickwhyTimer = null;
+    if (s().over) return;     // context moved on (game ended) — skip the early-game lore
+    teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
+  }
   var _coachRectCache = null; // { key, rect } — stable target rect, only recomputed on layout change
   function buildCoach() {
     if (_coach) return _coach;
@@ -1710,9 +1716,15 @@
       // Deferred onboarding teach: explain WHAT a click represents AFTER the player has tapped
       // a few times — spread across actions instead of stacked on ftue.start (blind review).
       if (st.tutorial === 'click' && st.ftue.start && !st.ftue.clickwhy && (st.clicks - (_clickStepBase || 0)) >= 3) {
-        st.ftue.clickwhy = 1;
-        teachModal({ icon: ic('ic_cash'), title: t('ftue_clickwhy_title'), body: t('ftue_clickwhy_body') });
-        G.save();
+        st.ftue.clickwhy = 1; G.save();
+        // Defer the lore modal until the tap-burst SETTLES — firing it mid-burst made the
+        // player's momentum taps land on the modal backdrop and get eaten (blind-test ×2:
+        // "~12 rapid taps lost to the popup"). Re-armed below on every tap, so it only
+        // surfaces ~0.6s after the LAST click — never interrupting an active burst.
+        _clickwhyTimer = setTimeout(showClickWhy, 600);
+      } else if (_clickwhyTimer) {
+        // still tapping → push the teach later so it waits for a pause
+        clearTimeout(_clickwhyTimer); _clickwhyTimer = setTimeout(showClickWhy, 600);
       }
     }
     // MOBILE MULTI-TOUCH (item 1): register EVERY tap on `pointerdown` instead of
