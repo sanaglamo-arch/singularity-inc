@@ -2995,3 +2995,16 @@ button:focus:not(:focus-visible) { outline: none; }
    button always stays on-screen; the note wraps to a 2nd line instead of clipping. Additive. */
 .bills-row { grid-template-columns: auto auto minmax(0, 1fr) auto; }
 .bills-row .bills-when { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+
+/* Denied-action shake: a brief horizontal nudge on a button when a buy/hire/move can't be
+   afforded (pairs with the error sfx + "can't afford" toast). Small amplitude, button-scale
+   (the bigger screen-shakeFx is for incidents). Additive; respects reduced-motion below. */
+@keyframes denyShake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-5px); }
+  38% { transform: translateX(4px); }
+  58% { transform: translateX(-3px); }
+  78% { transform: translateX(2px); }
+}
+.deny-shake { animation: denyShake 0.30s ease both; }
+@media (prefers-reduced-motion: reduce) { .deny-shake { animation: none; } }

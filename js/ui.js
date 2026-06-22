@@ -41,6 +41,10 @@
     return raw.replace(/id="([^"]+)"/g, 'id="$1' + u + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + u + ')');
   }
   function money(n) { return '$' + fmt(n); }
+  // brief horizontal shake on a button when an action is DENIED (can't afford / no space) —
+  // pairs with the existing error sfx + toast so the rejection is unmistakable (the "сочный"
+  // feel the night calls for). Remove+reflow+add re-fires it on repeated denials.
+  function denyShake(el) { if (!el) return; try { el.classList.remove('deny-shake'); void el.offsetWidth; el.classList.add('deny-shake'); } catch (e) {} }
   function pct(x) { return Math.round(x * 100); }
   // market share reads as a fractional percent (e.g. 0.7%, 23.4%) — small shares matter
   // and shouldn't round up to a misleading whole number.
@@ -792,6 +796,7 @@
           // a silent no-op that reads as a dead button (blind-playtest finding).
           if (s().sound) A.error();
           toast(s().cash < G.hwCost(h.id) ? t('decision_cant_afford') : t('hw_no_space'), 'bad');
+          denyShake(card);
         }
       });
       pane.appendChild(card);
@@ -1021,7 +1026,7 @@
             // juice the hire/level-up (meaningful investment toward lvl 10) — mirror the
             // hardware-purchase feedback: card flash + a burst at the button (фил pillar).
             try { var card = b.closest('.card'); if (card) FX.cardFlash(card); var r = b.getBoundingClientRect(); FX.buyBurst(r.left + r.width / 2, r.top + r.height / 2); } catch (e) {}
-          } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); }   // unaffordable tap now answers (toast+error sfx) instead of nothing
+          } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); denyShake(b); }   // unaffordable tap now answers (toast+error sfx+shake) instead of nothing
           buzz(10); syncWorldTab(); syncHud();
         };
       });
@@ -1815,7 +1820,7 @@
         FX.buyBurst(e.clientX || (r.left + r.width / 2), e.clientY || (r.top + r.height / 2));
         tutOnUpgraded();
         update();
-      } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (st.sound) A.error(); }
+      } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (st.sound) A.error(); denyShake(btn); }
     });
   }
   // refresh the click-upgrade button's labels + state each render
@@ -2082,7 +2087,7 @@
     // train button
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialHardLock()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
-    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); } };
+    $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); denyShake($('premBuyBtn')); } };
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;
