@@ -2988,3 +2988,10 @@ button:focus:not(:focus-visible) { outline: none; }
   #labSummaryMeters { gap: 4px; }
   #labSummary { padding: 9px 12px; }
 }
+
+/* Pay-bill row: the overdue "when" note (ПРОСРОЧКА — выработка −30% до оплаты / OVERDUE…) is a
+   long nowrap string in an `auto` grid track, so it pushed the "Оплатить/Pay" button off the
+   390 edge (blind-test: clipped at x≈411, R459). Make the note column shrink+wrap so the Pay
+   button always stays on-screen; the note wraps to a 2nd line instead of clipping. Additive. */
+.bills-row { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+.bills-row .bills-when { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
