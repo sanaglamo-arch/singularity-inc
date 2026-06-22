@@ -1442,6 +1442,7 @@
   var _coach = null;          // { root, spot, card, title, body, arrow, hint }
   var _coachRO = null;        // reposition hook (resize/scroll)
   var _clickStepBase = 0;     // clicks counter when the 'click' step was entered (Phase A/B pivot)
+  var _redlined = false;      // overclock combo at max — fire the redline payoff once per climb
   var _coachRectCache = null; // { key, rect } — stable target rect, only recomputed on layout change
   function buildCoach() {
     if (_coach) return _coach;
@@ -1662,6 +1663,12 @@
       var v = G.click();
       if (v <= 0) return;
       if (st.sound) A.tap(Math.max(st.heat || 0, st.training ? 0.4 : 0));
+      // Overclock REDLINE payoff: the tap that first drives heat to max gets a distinct sparkle
+      // + a firmer buzz — the AUDIO half of the orb's heat glow (v108), so hitting full разгон
+      // feels earned. Fires ONCE per climb; re-arms only after the combo cools well below max
+      // (so a sustained redline doesn't spam). Activates the premium-but-unused A.insight cue.
+      if ((st.heat || 0) >= 0.985) { if (!_redlined) { _redlined = true; if (st.sound && A.insight) A.insight(); buzz(18); } }
+      else if ((st.heat || 0) < 0.6) { _redlined = false; }
       if (x == null) { var r = tapBtn.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
       floatText(x, y, '+' + money(v), st.training ? 'big' : 'crit');
       FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
