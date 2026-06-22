@@ -1043,8 +1043,10 @@
         // a stream of rent coins arcing from the rack toward the open door
         '<path d="M512 400 q-120 -36 -150 36" fill="none" stroke="' + rgba(GOLD, 0.18) + '" stroke-width="2" stroke-dasharray="3 7"/>' +
         coin(460, 384, 0) + coin(420, 402, 2) + coin(384, 432, 4) +
-        // RENT badge near the door (money leaving to other companies)
-        '<g transform="translate(366,470)" font-family="system-ui,sans-serif" font-weight="800">' +
+        // RENT badge on the coin stream (money leaving to other companies). Kept inside the
+        // portrait-safe band (x≈477-724) like the area/power pills — at x=366 it was cropped off
+        // the narrow portrait viewport, leaving an ugly "…НА" fragment at the left edge (blind-test).
+        '<g transform="translate(500,470)" font-family="system-ui,sans-serif" font-weight="800">' +
           '<rect x="-50" y="-17" width="100" height="34" rx="17" fill="' + rgba(GOLD, 0.16) + '" stroke="' + rgba(GOLD, 0.6) + '" stroke-width="1.5"/>' +
           '<text x="0" y="5" text-anchor="middle" font-size="16" fill="' + rgba(GOLD, 0.98) + '">' + esc(t('cut_lbl_rent')) + '</text>' +
         '</g>' +
