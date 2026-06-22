@@ -438,6 +438,7 @@
     credits: 'Singularity Inc. v2 — phase 1 base.',
 
     common_free: 'free',
+    hw_no_rent: 'no rent',
     common_max: 'max',
 
     // ---- chrome (kept from the premium design) ----
@@ -1111,6 +1112,7 @@
     credits: 'Singularity Inc. v2 — база фазы 1.',
 
     common_free: 'бесплатно',
+    hw_no_rent: 'без аренды',
     common_max: 'макс',
 
     // ---- chrome (kept from the premium design) ----

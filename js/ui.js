@@ -735,7 +735,7 @@
       // genuinely buyable — canBuyHw(id) === enough cash AND fits m². An item you can't
       // afford must read as locked, never highlighted.
       var isTarget = !!tut && allowed && can;   // the single item the tutorial points at
-      setText(r.desc, t('hw_power') + ' +' + fmt(h.power) + ' · ' + (h.rent > 0 ? t('hw_rent') + ' $' + fmt(h.rent) + '/' + ruS() : t('common_free')) + ' · ' + fmt(h.m2) + t('hw_m2'));
+      setText(r.desc, t('hw_power') + ' +' + fmt(h.power) + ' · ' + (h.rent > 0 ? t('hw_rent') + ' $' + fmt(h.rent) + '/' + ruS() : t('hw_no_rent')) + ' · ' + fmt(h.m2) + t('hw_m2'));
       var ownTxt = [];
       if (idle > 0) ownTxt.push(t('hw_owned', { n: idle }));
       if (comm > 0) ownTxt.push(t('hw_committed', { n: comm }));
