@@ -151,7 +151,7 @@
   var currentTab = 'company';
   var hwRefs = {};            // hardware list row refs (Hardware tab)
   var previewPrice = null;    // price slider live preview
-  var tickerIdx = 0, tickerTimer = 0, _tickerDwell = 6;
+  var tickerIdx = 0, tickerTimer = 0, _tickerDwell = 6, _tkShift = 0, _tkScrollT = 0;
 
   // -------- static labels (i18n) for the persistent chrome --------
   function renderStatic() {
@@ -407,25 +407,37 @@
   function applyTickerScroll(tx) {
     if (!tx) return;
     setClass(tx, 'tk-scroll', false);
-    tx.style.removeProperty('--tk-shift'); tx.style.removeProperty('--tk-dur');
+    tx.style.transform = ''; tx.style.animation = '';
+    _tkShift = 0; _tkScrollT = 0;
+    var reduce = false; try { reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
     var over = tx.scrollWidth - tx.clientWidth;
-    if (over > 6) {
-      var shift = over + 10;                              // a touch past the end so the tail clears
-      var dur = Math.min(13, Math.max(7, shift / 28));    // ~28px/s reading pace, clamped
-      tx.style.setProperty('--tk-shift', (-shift) + 'px');
-      tx.style.setProperty('--tk-dur', dur.toFixed(1) + 's');
-      _tickerDwell = dur + 1.2;                           // keep the line up until the scroll finishes
-      void tx.offsetWidth;                                // force reflow so the animation restarts per line
-      setClass(tx, 'tk-scroll', true);
+    if (over > 6 && !reduce) {
+      _tkShift = over + 10;                               // a touch past the end so the tail clears
+      var dur = Math.min(13, Math.max(7, _tkShift / 28)); // ~28px/s reading pace, clamped
+      _tickerDwell = dur + 1.4;                           // keep the line up until the scroll finishes
+      setClass(tx, 'tk-scroll', true);                   // .tk-scroll gives text-overflow:clip
+      tx.style.animation = 'none';                       // kill the CSS keyframe (its var(--tk-shift) transform
+                                                         // never interpolated — left the text stuck/truncated);
+                                                         // the scroll is now JS-driven (transform set per-frame below)
     } else {
-      _tickerDwell = 6;
+      _tickerDwell = reduce ? 8 : 6;                     // reduced-motion: no scroll, but linger a touch longer to read
     }
   }
   function syncTicker(dt) {
     tickerTimer += dt || 0;
+    var tx = $('tickerText');
+    // JS-driven marquee: advance the scroll every frame. The earlier CSS keyframe with a
+    // var(--tk-shift) transform never actually moved the text (blind-test: the LIVE headline
+    // stayed truncated, never scrolling) — driving the transform from the game loop is reliable
+    // and testable. Profile: hold the start, glide left to reveal the tail, hold the end.
+    if (tx && _tkShift > 0) {
+      _tkScrollT += dt || 0;
+      var HOLD = 1.1, scrollDur = Math.max(0.1, _tickerDwell - HOLD * 2);
+      var p = (_tkScrollT - HOLD) / scrollDur; p = p < 0 ? 0 : (p > 1 ? 1 : p);
+      tx.style.transform = 'translateX(' + (-_tkShift * p).toFixed(1) + 'px)';
+    }
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
     if (!list.length) return;
-    var tx = $('tickerText');
     if (tickerTimer > _tickerDwell || (tx && tx.textContent === '')) {
       tickerTimer = 0;
       var ico = $('ticker').querySelector('.tk-ico'); if (ico && !ico.__set) { ico.__set = 1; }
