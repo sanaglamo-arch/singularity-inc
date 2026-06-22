@@ -1988,6 +1988,14 @@ button:focus:not(:focus-visible) { outline: none; }
   background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);
   padding: 6px 14px; border-radius: 999px;
 }
+/* The coach instruction card is a working shortcut (blind-test ×2: the gold hint pill reads
+   as a button, players tapped it). The `.ftue-coach *` rule above kills input on everything;
+   re-enable it on JUST the card so a tap fires the same action as the highlighted target.
+   The spotlight ring stays click-through, so a direct tap on the target also still works. */
+.ftue-coach .ftue-card.ftue-actionable,
+.ftue-coach .ftue-card.ftue-actionable * { pointer-events: auto; }
+.ftue-coach .ftue-card.ftue-actionable { cursor: pointer; }
+.ftue-coach .ftue-card.ftue-actionable:active .ftue-hint { background: rgba(251,191,36,0.26); }
 
 @media (prefers-reduced-motion: reduce) {
   .ftue-spot, .ftue-arrow, .ftue-card { animation: none !important; }

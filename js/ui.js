@@ -1554,6 +1554,14 @@
     setText(c.title, t(plan.title, plan.vars));
     setText(c.body, t(plan.body, plan.vars));
     setText(c.hint, t(plan.hint, plan.vars));
+    // The hint pill LOOKS like a button; two blind testers tapped the instruction card
+    // expecting it to act (the whole coach was pointer-events:none, so nothing happened and
+    // they had to hunt for the real target). Make the card a working shortcut: tapping it
+    // fires the SAME action as tapping the highlighted target. The spotlight ring stays
+    // click-through (only .ftue-card gets input back), so a direct tap on the target still
+    // works too. Fully additive guidance chrome.
+    setClass(c.card, 'ftue-actionable', true);
+    c.card.onclick = function () { try { if (target && typeof target.click === 'function') target.click(); } catch (e) {} };
     var cw = Math.min(360, vw - 28);
     c.card.style.width = cw + 'px';
     var clx = Math.min(Math.max(14, cxv - cw / 2), vw - cw - 14);
