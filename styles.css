@@ -2600,6 +2600,11 @@ button:focus:not(:focus-visible) { outline: none; }
 /* ---- World · Team hire rows live in #cardList as .card + .minibtn. Tighten
    the staff-count line and give the hire button a confident, legible cost. ---- */
 #cardList .card .desc { color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+/* Team role names (Юрист/Безопасник/Маркетолог/Экономист) wrapped to 2 awkward lines next to
+   the wide upgrade button (blind-test). Give the name room with a slightly smaller name font so
+   the 10-char names fit on ONE line. No clipping — if a name ever doesn't fit it wraps (full
+   text), never an ellipsis. Additive — staff rows only. */
+#cardList .card .name { font-size: 13px; letter-spacing: 0; }
 #cardList .card .minibtn {
   letter-spacing: 0.3px; font-size: 12.5px; padding: 9px 14px;
   box-shadow: 0 6px 18px -8px var(--glow-violet), var(--inset-hi);
