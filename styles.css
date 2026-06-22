@@ -2734,6 +2734,18 @@ button:focus:not(:focus-visible) { outline: none; }
   text-overflow: clip;
   line-height: 1.12;
 }
+/* Same QA fix for the premise-card meter strip (legality + safety): the base 92px
+   .rel-name ellipsis-clipped "Государство и закон" (scrollWidth 131 > clientWidth 92,
+   flagged by a blind tester). Let it wrap like #relMeters instead of truncating; the
+   bar still flexes for the rest. Additive, more-specific override. */
+#premCardMeters .rel-name {
+  flex: 0 1 auto;
+  max-width: 54%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.12;
+}
 /* And the staff-hire effect line ("↑ Государство и закон" в RU) wrapped instead of
    truncating — must out-specify `.card .desc { white-space:nowrap }` (0,2,0). */
 .card .desc[id^="staffdesc-"] {
