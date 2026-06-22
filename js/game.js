@@ -1068,6 +1068,10 @@
     // audio prefs
     try {
       if (window.GAME_AUDIO) { window.GAME_AUDIO.setEnabled(state.sound); window.GAME_AUDIO.setVolume(state.sfxVol); }
+      // MUSIC was missing this mirror — its engine was never enabled on load, so the
+      // procedural soundtrack stayed silent for every player who didn't toggle it in
+      // Settings (state.music defaults ON). Enable + set volume like SFX above.
+      if (window.GAME_MUSIC) { window.GAME_MUSIC.setEnabled(state.music); if (window.GAME_MUSIC.setVolume) window.GAME_MUSIC.setVolume(state.musicVol); }
     } catch (e) {}
     // offline credit
     var off = null;

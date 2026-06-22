@@ -524,6 +524,9 @@ window.GAME_MUSIC = (function () {
     isEnabled: function () { return enabled; },
     start: function () { if (enabled) startPlayback(); },
     stop: function () { stopPlayback(); },
+    // Resume a context that was created off-gesture (browser autoplay policy leaves it
+    // suspended). Call from the first real user gesture so the soundtrack becomes audible.
+    resume: function () { if (!enabled) return; if (!playing) startPlayback(); else ensureContext(); },
     setVolume: function (v) {
       musicVol = Math.max(0, Math.min(1, Number(v)));
       if (isNaN(musicVol)) musicVol = 1;

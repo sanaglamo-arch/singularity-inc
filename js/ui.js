@@ -2083,6 +2083,17 @@
     syncTicker(99);
     if (offline && offline.earned > 0) { G.applyOffline(offline.earned, offline); teachModal({ icon: ic('ic_cash'), title: t('offline_title'), body: '+' + money(offline.earned) + ' · ' + FMT.fmtTime(offline.t) }); }
     try { if (M && s().music) M.start(); } catch (e) {}
+    // Web Audio autoplay unlock: contexts created during load start SUSPENDED until a user
+    // gesture, so the procedural soundtrack + SFX were inaudible until the player toggled a
+    // setting. Resume BOTH engines on the first real interaction (one-shot), then detach.
+    var _audioUnlocked = false;
+    function _unlockAudio() {
+      if (_audioUnlocked) return; _audioUnlocked = true;
+      try { if (A && A.resume) A.resume(); } catch (e) {}
+      try { if (M && M.resume) M.resume(); } catch (e) {}
+      ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (ev) { document.removeEventListener(ev, _unlockAudio, true); });
+    }
+    ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (ev) { document.addEventListener(ev, _unlockAudio, true); });
   }
   function showNaming() {
     showModal(
