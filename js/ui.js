@@ -112,8 +112,8 @@
 
   // ---------------- modals (reuse #modalRoot + .modal) ----------------
   var modalOpen = false, modalQueue = [];
-  function showModal(html) { var root = $('modalRoot'); root.innerHTML = '<div class="modal">' + html + '</div>'; root.classList.remove('hidden'); modalOpen = true; }
-  function hideModal() { $('modalRoot').classList.add('hidden'); $('modalRoot').innerHTML = ''; modalOpen = false; setTimeout(drainQueue, 60); }
+  function showModal(html) { var root = $('modalRoot'); root.onclick = null; root.innerHTML = '<div class="modal">' + html + '</div>'; root.classList.remove('hidden'); modalOpen = true; }
+  function hideModal() { var root = $('modalRoot'); root.onclick = null; root.classList.add('hidden'); root.innerHTML = ''; modalOpen = false; setTimeout(drainQueue, 60); }
   function queueModal(fn) { modalQueue.push(fn); drainQueue(); }
   function drainQueue() { if (modalOpen || !modalQueue.length) return; (modalQueue.shift())(); }
   // simple teach/confirm modal
@@ -129,8 +129,18 @@
         '<button class="primary" id="mOk">' + esc(opts.ok || t('ftue_got_it')) + '</button>' +
         '</div></div>'
       );
-      $('mOk').onclick = function () { if (s().sound) A.buy(); hideModal(); if (opts.onOk) opts.onOk(); };
-      if (opts.cancel) $('mCancel').onclick = function () { hideModal(); if (opts.onCancel) opts.onCancel(); };
+      var okFn = function () { if (s().sound) A.buy(); hideModal(); if (opts.onOk) opts.onOk(); };
+      var cancelFn = function () { hideModal(); if (opts.onCancel) opts.onCancel(); };
+      $('mOk').onclick = okFn;
+      if (opts.cancel) $('mCancel').onclick = cancelFn;
+      // Backdrop-dismiss (blind-test, HIGH-confidence real bug): a teach modal the player
+      // thought they'd dismissed stayed up — there was no tap-outside-to-close, so a tap that
+      // missed "Понятно" (or a backdrop tap) left the full-screen #modalRoot overlay silently
+      // eating taps on the screen behind it (it blocked the very first hardware purchase).
+      // Now a tap OUTSIDE the .modal closes it like the OK/Cancel button. Only teach modals get
+      // this; decision/confirm modals (showModal directly) keep requiring an explicit choice.
+      var root = $('modalRoot');
+      root.onclick = function (e) { if (e.target === root) { (opts.cancel ? cancelFn : okFn)(); } };
     });
   }
 
