@@ -2617,6 +2617,13 @@ button:focus:not(:focus-visible) { outline: none; }
 #cardList .card .minibtn:disabled {
   box-shadow: none; opacity: 0.85;
 }
+/* An unaffordable hire/upgrade button stays CLICKABLE (so the tap answers with a
+   "can't afford" toast instead of feeling dead, like the locked-tab fix) but still
+   READS as disabled. Mirrors the :disabled look; the base :not(:disabled):active
+   rule above keeps its press-scale. Additive, higher specificity than the gradient. */
+#cardList .card .minibtn.cant-afford {
+  background: var(--surface-2); color: var(--fg-muted); box-shadow: none; opacity: 0.85; cursor: pointer;
+}
 
 /* ---- Hardware list · consistent row rhythm + crisper money. The base .card
    already carries the glass; here we refine the long 26-tier list's read. ---- */

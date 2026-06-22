@@ -1002,7 +1002,7 @@
             // juice the hire/level-up (meaningful investment toward lvl 10) — mirror the
             // hardware-purchase feedback: card flash + a burst at the button (фил pillar).
             try { var card = b.closest('.card'); if (card) FX.cardFlash(card); var r = b.getBoundingClientRect(); FX.buyBurst(r.left + r.width / 2, r.top + r.height / 2); } catch (e) {}
-          } else if (s().sound) A.error();
+          } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); }   // unaffordable tap now answers (toast+error sfx) instead of nothing
           buzz(10); syncWorldTab(); syncHud();
         };
       });
@@ -1128,9 +1128,13 @@
       d.textContent = base;
       var b = document.getElementById('staffhire-' + st2.id);
       if (b) {
-        if (lvl >= C.STAFF_CFG.maxLevel) { b.textContent = t('staff_max'); b.disabled = true; }
-        else if (lvl >= 1) { b.textContent = t('staff_upgrade', { n: lvl + 1, c: fmt(G.staffHireCost(st2.id)) }); b.disabled = !G.canHire(st2.id); }
-        else { b.textContent = t('staff_hire', { c: fmt(G.staffHireCost(st2.id)) }); b.disabled = !G.canHire(st2.id); }
+        // Keep hire/upgrade buttons CLICKABLE even when unaffordable — a native :disabled
+        // button swallows the tap, so an out-of-money player got ZERO feedback (read as
+        // "broken"). Grey them via .cant-afford instead; the onclick answers with a toast.
+        // maxLevel stays natively disabled (its "MAX" text already explains the no-op).
+        if (lvl >= C.STAFF_CFG.maxLevel) { b.textContent = t('staff_max'); b.disabled = true; setClass(b, 'cant-afford', false); }
+        else if (lvl >= 1) { b.textContent = t('staff_upgrade', { n: lvl + 1, c: fmt(G.staffHireCost(st2.id)) }); b.disabled = false; setClass(b, 'cant-afford', !G.canHire(st2.id)); }
+        else { b.textContent = t('staff_hire', { c: fmt(G.staffHireCost(st2.id)) }); b.disabled = false; setClass(b, 'cant-afford', !G.canHire(st2.id)); }
       }
     });
   }
