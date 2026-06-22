@@ -1225,7 +1225,15 @@
       var f = FTUE[tag]; if (!f) return;
       var k = tag.indexOf('meter:') === 0 ? 'meter' : tag, st = s();
       if (st.ftue[k]) return; st.ftue[k] = 1;
-      teachModal({ icon: ic('ic_insight'), title: t(f.title), body: t(f.body) });
+      var show = function () { teachModal({ icon: ic('ic_insight'), title: t(f.title), body: t(f.body) }); };
+      // Blind-test (×2): the 'rent' (passive-income) teach fires on the first rent TICK,
+      // which is the same instant the mini-server purchase advances the tutorial and pops
+      // the freedom teach — two modals back-to-back ("Понятно" wall). Defer the rent teach
+      // a few seconds so it lands ALONE, after the freedom modal is dismissed and rent is
+      // visibly ticking in. (Strictly ≥ current behaviour: queueModal already serialises;
+      // this only adds breathing room.) Flag is already set above, so it fires exactly once.
+      if (tag === 'rent') { setTimeout(show, 4500); return; }
+      show();
     });
     G.on('release', function (v) {
       if (s().sound) A.release ? A.release() : A.breakthrough();
