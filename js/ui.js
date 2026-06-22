@@ -449,6 +449,11 @@
   function syncCombo(st) {
     var wrap = $('comboWrap'); if (!wrap) return;
     var heat = st && st.heat > 0 ? (st.heat > 1 ? 1 : st.heat) : 0;
+    // Light the orb's overclock glow. #tapBtn::after scales its ring/halo by var(--heat),
+    // but nothing ever set --heat, so the heat ring was dormant — the orb never visibly
+    // intensified as a combo built. Drive it now: fast-clicking makes the sphere glow hotter
+    // (juice on the single most-tapped element; the CSS was already wired, we just feed it).
+    var orb = $('tapBtn'); if (orb) orb.style.setProperty('--heat', heat.toFixed(3));
     var on = heat > 0.001;
     setClass(wrap, 'on', on);
     if (!on) { setStyleP($('comboFill'), 'width', '0%'); return; }
