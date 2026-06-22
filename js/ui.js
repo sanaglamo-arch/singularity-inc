@@ -502,9 +502,12 @@
     var orb = $('tapBtn'); if (orb) orb.style.setProperty('--heat', heat.toFixed(3));
     var on = heat > 0.001;
     setClass(wrap, 'on', on);
+    // Keep the label in the current language even while the chip is HIDDEN (heat=0): otherwise
+    // it kept the last-active language's text and a switch to EN left a stale "Разгон" in the
+    // DOM (blind-test: the only Cyrillic leftover in EN mode). comboMult is '×{m}' in both langs.
+    setText($('comboName'), t('combo_name'));
     if (!on) { setStyleP($('comboFill'), 'width', '0%'); return; }
     var mult = G.comboMult();   // 1 .. 1.7
-    setText($('comboName'), t('combo_name'));
     setText($('comboMult'), t('combo_mult', { m: mult.toFixed(1) }));
     setStyleP($('comboFill'), 'width', (heat * 100).toFixed(0) + '%');
   }
