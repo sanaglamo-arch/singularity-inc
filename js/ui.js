@@ -205,6 +205,16 @@
   var _incRef = null, _incFalling = false;
   function syncHud() {
     var st = s();
+    // Pre-v1 anticipation: a breathing screen-edge glow (#v1Glow) that builds as you approach
+    // the first model release. The element (#v1Glow) and its CSS hook existed but nothing ever
+    // set --v1, so the glow never lit — drive it now from progress toward the power needed to
+    // train v1, capped so it stays atmospheric. Off once v1 ships (the hook is pre-product).
+    var v1g = $('v1Glow');
+    if (v1g) {
+      var v1p = 0;
+      if (st.version < 1) { var v1req = G.powerReq(); if (v1req && isFinite(v1req) && v1req > 0) v1p = Math.min(1, G.availablePower() / v1req); }
+      v1g.style.setProperty('--v1', (v1p * 0.7).toFixed(3));
+    }
     var cashEl = $('cashVal');
     setText(cashEl, fmt(st.cash));
     hudPulse(cashEl, st.cash, 'hud-pulse-gold', 0.06, 600);
