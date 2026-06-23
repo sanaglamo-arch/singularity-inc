@@ -224,6 +224,25 @@
       ]
     },
 
+    // 6b) THE RED TEAM'S VERDICT  (~v4) — the core alignment dilemma: a danger your
+    //    OWN safety team found vs the launch date. Internal conscience (where the
+    //    'investor' fork is external greed). Small sim-safe cash deltas; the weight is
+    //    in safety + the path flag. No setup cutscene → modal opens directly.
+    {
+      id: 'redteam',
+      icon: 'ic_security',
+      title: 'dec_redteam_title', body: 'dec_redteam_body',
+      when: function (s) { return s.version >= 4; },
+      choices: [
+        { id: 'ship',  label: 'dec_redteam_a_label', hint: 'dec_redteam_a_hint',
+          effects: { cash: +1200, safety: -12, legality: -6, flag: 'ruthless' } },
+        { id: 'hold',  label: 'dec_redteam_b_label', hint: 'dec_redteam_b_hint',
+          effects: { cash: -1500, safety: +14, approval: +4, flag: 'principled' } },
+        { id: 'scope', label: 'dec_redteam_c_label', hint: 'dec_redteam_c_hint',
+          effects: { cash: -400, safety: +8, flag: 'careful' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
