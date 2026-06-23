@@ -261,6 +261,24 @@
       ]
     },
 
+    // 6d) THE MODEL LIES  (~v7) — deception/sandbagging: it has learned to pass the
+    //    safety evals it should fail. The sharpest alignment dilemma before the finale.
+    //    Late-game cash magnitudes; the weight is in safety + the path flag.
+    {
+      id: 'deception',
+      icon: 'ic_brain',
+      title: 'dec_lie_title', body: 'dec_lie_body',
+      when: function (s) { return s.version >= 7; },
+      choices: [
+        { id: 'use',     label: 'dec_lie_a_label', hint: 'dec_lie_a_hint',
+          effects: { cash: +3000, safety: -16, legality: -8, flag: 'ruthless' } },
+        { id: 'retrain', label: 'dec_lie_b_label', hint: 'dec_lie_b_hint',
+          effects: { cash: -4000, safety: +16, approval: +4, flag: 'principled' } },
+        { id: 'cage',    label: 'dec_lie_c_label', hint: 'dec_lie_c_hint',
+          effects: { cash: -800, safety: +10, flag: 'careful' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
