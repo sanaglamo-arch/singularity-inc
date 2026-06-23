@@ -1541,6 +1541,7 @@
   var _redlined = false;      // overclock combo at max — fire the redline payoff once per climb
   var _clickwhyTimer = null;  // deferred "why a click earns" teach — fires after the tap-burst settles
   var _lastTapMs = 0;         // wall-clock of the last orb tap — teach modals defer while a burst is active
+  var _powerReadyForVer = -1; // last version we fired the "enough Power to train the next model" nudge for
   function showClickWhy() {
     _clickwhyTimer = null;
     if (s().over) return;     // context moved on (game ended) — skip the early-game lore
@@ -1951,6 +1952,14 @@
     try {
       if (G.tutorialStep() === 'release' && !s().ftue.powerReady && G.availablePower() >= G.powerReq()) {
         s().ftue.powerReady = 1; G.save();
+        toast(t('ftue_power_ready'), 'good');
+      }
+      // Same proactive nudge for v2+ (the 'release' step above is v1-only): the moment Power is
+      // enough to train the NEXT model, fire a one-shot toast so a player buying hardware on any
+      // tab learns the gate is cleared (blind-test: v2+ felt unreachable). Re-arms per version.
+      var _nv = s().version;
+      if (_nv >= 1 && !s().training && _powerReadyForVer !== _nv && G.canStartTraining()) {
+        _powerReadyForVer = _nv;
         toast(t('ftue_power_ready'), 'good');
       }
     } catch (e) {}
