@@ -37,6 +37,7 @@ window.GAME_MUSIC = (function () {
   // ── Audio graph (created lazily on first enable) ──────────────────────────
   var ctx             = null;
   var masterGain      = null;   // output node, kept modest
+  var masterLimiter   = null;   // peak limiter on the music bus (anti-clip)
   var padBus          = null;   // GainNode for pad oscillators
   var padFilter       = null;   // LowpassBiquad on pad bus
   var bellBus         = null;   // GainNode for bell/arp tones
@@ -125,7 +126,24 @@ window.GAME_MUSIC = (function () {
 
       masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(0, ctx.currentTime);
-      masterGain.connect(ctx.destination);
+      // Master peak limiter: at high intensity all layers (pad + bell + arp +
+      // tick + reverb return) bloom into masterGain together and can clip the
+      // output. A gentle compressor here is transparent at normal levels and
+      // only catches peaks — the same proven design the SFX engine uses. Guarded:
+      // falls back to a direct connection if DynamicsCompressor is unavailable.
+      try {
+        masterLimiter = ctx.createDynamicsCompressor();
+        masterLimiter.threshold.setValueAtTime(-8, ctx.currentTime);
+        masterLimiter.knee.setValueAtTime(12, ctx.currentTime);
+        masterLimiter.ratio.setValueAtTime(4, ctx.currentTime);
+        masterLimiter.attack.setValueAtTime(0.005, ctx.currentTime);
+        masterLimiter.release.setValueAtTime(0.15, ctx.currentTime);
+        masterGain.connect(masterLimiter);
+        masterLimiter.connect(ctx.destination);
+      } catch (e) {
+        masterLimiter = null;
+        masterGain.connect(ctx.destination);
+      }
 
       // Reverb send -> convolver -> return -> master
       try {

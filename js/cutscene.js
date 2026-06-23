@@ -212,6 +212,8 @@
         // a warm shaft of light fanning down from the lamp bulb, and a cool
         // counter-shaft from the screen — soft volumetric depth
         godRays('garL', 458, 488, 5, 230, 0.9, 1.95, GOLD, 0.10, 11) +
+        // tighter, brighter bloom core right at the lamp bulb (volumetric halo)
+        godRays('garL2', 458, 488, 5, 150, 0.42, 1.95, GOLD, 0.20, 7) +
         // cinematic vignette + caption grade wash (keeps centred text legible)
         vignette('gar', 0.52);
 
@@ -271,6 +273,8 @@
         // a few bright synapse sparks near the core
         circle(540, 320, 3, rgba(WHITE, 0.9), ' class="cs-pulse" style="--pd:1s"') +
         circle(672, 410, 2.6, rgba(WHITE, 0.85), ' class="cs-pulse" style="--pd:3s"') +
+        // tight radiant bloom halo at the breathing core (volumetric depth)
+        godRays('drmR', 600, 375, 8, 150, 6.2832, 0, CYAN2, 0.18, 12) +
         vignette('drm', 0.46);
 
       return {
@@ -422,6 +426,8 @@
         // Power · Price · Safety, so the labels were redundant — dropping them
         // eliminates the text overlap at every size while keeping the orb glyphs.
         '</g>' +
+        // tight bloom halo around the central price orb (volumetric depth)
+        godRays('stkR', 600, 190, 8, 130, 6.2832, 0, GOLD, 0.17, 11) +
         vignette('stk', 0.5);
 
       return {
@@ -459,6 +465,8 @@
           '<circle cx="600" cy="360" r="250" stroke="' + rgba(CYAN, 0.12) + '" stroke-width="2"/>' +
         '</g>' +
         '<g filter="url(#gTit)"><circle cx="600" cy="360" r="74" fill="url(#gTitCore)" class="cs-breathe"/></g>' +
+        // tight radiant bloom halo at the brand core (volumetric depth)
+        godRays('titR', 600, 360, 8, 200, 6.2832, 0, CYAN2, 0.18, 14) +
         vignette('tit', 0.46);
       return {
         layers: [svg('cs-bg', bg), svg('cs-mid', mid), svg('cs-fg', fg)],
@@ -563,6 +571,8 @@
         '<g filter="url(#gSng)"><circle cx="600" cy="360" r="92" fill="url(#gSngCore)" class="cs-breathe"/></g>' +
         // radiant god-ray bloom from the core + cinematic vignette
         godRays('sngR', 600, 360, 8, 460, 6.2832, 0, GOLD, 0.05, 18) +
+        // tighter, brighter bloom core right at the central core (volumetric halo)
+        godRays('sngR2', 600, 360, 8, 200, 6.2832, 0, CYAN2, 0.22, 13) +
         vignette('sng', 0.44);
 
       return {

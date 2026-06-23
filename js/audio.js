@@ -258,7 +258,11 @@
     },
 
     // ── ERROR ── soft "can't": short low double-blip (no harsh buzzer).
+    // A very soft low-passed body under the first blip gives it tactile weight
+    // (body + tail) without turning it into a harsh buzzer — keeps the gentle
+    // "can't" semantic, just less of a bare beep.
     error: function () {
+      noise(0.12, 0.022, 'thud', 200, 0.06);
       voice(220, 0.09, 'sine', 0.04, { attack: 0.004, send: 0.08 });
       setTimeout(function () { voice(160, 0.11, 'sine', 0.035, { attack: 0.004, send: 0.08 }); }, 70);
     },
