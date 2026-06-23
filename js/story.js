@@ -313,6 +313,25 @@
       ]
     },
 
+    // 5g) THE DEFENSE CONTRACT  (~v4)  — a ministry wants your model for autonomous
+    //     targeting. The dual-use fork: take the fortune and the body count, refuse on
+    //     principle, or sign with a (paper-thin) civilian-only clause. Feeds path/ending.
+    {
+      id: 'defense',
+      icon: 'ic_security',
+      title: 'dec_defense_title', body: 'dec_defense_body',
+      when: function (s) { return s.version >= 4; },
+      choices: [
+        { id: 'sign',     label: 'dec_defense_a_label', hint: 'dec_defense_a_hint',
+          effects: { cash: +6000, safety: -16, approval: -10, legality: -6, flag: 'ruthless' },
+          beat: { scene: 'rivals', title: 'dec_defense_a_beat_title', body: 'dec_defense_a_beat_body' } },
+        { id: 'refuse',   label: 'dec_defense_b_label', hint: 'dec_defense_b_hint',
+          effects: { cash: -3500, approval: +12, safety: +8, flag: 'principled' } },
+        { id: 'restrict', label: 'dec_defense_c_label', hint: 'dec_defense_c_hint',
+          effects: { cash: +1500, safety: -4, legality: +4, flag: 'careful' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
