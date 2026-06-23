@@ -1810,6 +1810,15 @@
       // (so a sustained redline doesn't spam). Activates the premium-but-unused A.insight cue.
       if ((st.heat || 0) >= 0.985) { if (!_redlined) { _redlined = true; if (st.sound && A.insight) A.insight(); buzz(18); } }
       else if ((st.heat || 0) < 0.6) { _redlined = false; }
+      // Surface the OVERCLOCK combo the first time the player taps fast enough to heat it up.
+      // It's the existing mechanic that directly shortens the early grind (faster taps → up to
+      // ×1.7 per click), but a fresh player doesn't know to lean into it (blind-test, recurring:
+      // "click value never scaled / ~190-tap slog"). One gentle, non-blocking toast, once, fired
+      // during the grind (laptop bought, not mid hard-lock tutorial) so it teaches at the moment
+      // it pays off — no balance change, just discoverability of a system already in the economy.
+      if ((st.heat || 0) >= 0.5 && st.ftue && !st.ftue.combo && st.boughtLaptop && !G.tutorialHardLock()) {
+        st.ftue.combo = 1; G.save(); toast(t('ftue_combo'), 'good');
+      }
       if (x == null) { var r = tapBtn.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
       buzz(6);
       // Throttle the VISUAL fx to ~26/s. Every human tap (≤~10/s) still pops its "+$"
