@@ -2214,6 +2214,19 @@
     $('trainBtn').onclick = function () { var st = s(); if (G.tutorialHardLock()) { tutDeny(); return; } if (st.training) return; if (G.startTraining()) { if (st.sound) A.breakthrough(); update(); } else if (st.sound) A.error(); };
     // premises (primary card on the Hardware tab)
     $('premBuyBtn').onclick = function (e) { if (G.tutorialHardLock()) { tutDeny(); return; } var np = G.nextPremise(); if (np && G.buyPremise(np.id)) { if (s().sound) A.funding(); var pc = $('premCard'); FX.cardFlash(pc); var b = $('premBuyBtn'), br = b.getBoundingClientRect(); FX.buyBurst((e && e.clientX) || (br.left + br.width / 2), (e && e.clientY) || (br.top + br.height / 2)); update(); maybePremiseMove(np.id); } else { toast(t('decision_cant_afford'), 'bad', { routine: true }); if (s().sound) A.error(); denyShake($('premBuyBtn')); } };
+    // Debt banner → route to where you actually PAY. Blind-test: the OVERDUE (−30% output)
+    // banner showed the penalty but had no pay affordance — it carries role="button" yet had
+    // NO handler, so tapping it did nothing ("the pay affordance wasn't obvious"). Now a tap
+    // jumps to the Lab tab and scrolls the bills panel (with its "Pay now" button) into view.
+    (function () {
+      var _debtB = $('debtBanner'); if (!_debtB) return;
+      var _gotoPay = function () {
+        switchTab('company');
+        setTimeout(function () { try { var bp = $('billsPanel'); if (bp && !bp.classList.contains('hidden')) bp.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }, 70);
+      };
+      _debtB.onclick = _gotoPay;
+      _debtB.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ' || e.keyCode === 13 || e.keyCode === 32) { e.preventDefault(); _gotoPay(); } });
+    })();
     bindTapUpgrade();
     // nav
     var nav = $('tabbar').children;
