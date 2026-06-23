@@ -600,7 +600,10 @@
         } else {
           setText(trainBtn, t('train_need_power', { req: fmt(need), label: def.label, have: fmt(have) }));
           trainBtn.disabled = true;
-          setClass(trainHint, 'hidden', true);
+          // Discoverability (blind-test #1 quit reason): players hit "Need 60 Power (have 10)"
+          // and don't realise buying hardware — even idle gear — raises it. State it plainly.
+          setText(trainHint, t('train_build_power'));
+          setClass(trainHint, 'hidden', false);
         }
         // First-release onboarding: on a phone the Train button can sit below the fold /
         // behind the navbar, so a new player can't see the key progression action the
