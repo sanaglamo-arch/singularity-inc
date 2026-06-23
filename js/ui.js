@@ -2151,6 +2151,9 @@
             if (node.disabled || node.classList.contains('cant')) { var stx = s(); if (stx.sound) A.error(); return; }
             var st = s();
             if (st.sound) A.buy();
+            // capture the moral archetype BEFORE the choice mutates storyFlags, so we can
+            // announce it if this decision tips you into a NEW identity (the Detroit beat).
+            var _oldPath = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(st.storyFlags) : null;
             var choice = window.GAME_STORY.applyChoice(st, d.id, node.getAttribute('data-choice'));
             hideModal();
             G.save();
@@ -2159,7 +2162,16 @@
             if (choice) {
               toast(t('decision_made'), 'good');
               var _dd = decisionDeltaText(choice.effects);
-              var _showDelta = function () { try { update(); } catch (e) {} if (_dd) { try { toast(_dd); } catch (e2) {} } };
+              var _showDelta = function () {
+                try { update(); } catch (e) {}
+                if (_dd) { try { toast(_dd); } catch (e2) {} }
+                // "You've become someone": if accumulated morality just crossed into a NEW
+                // archetype, announce the shift — choices visibly reshape who you are.
+                try {
+                  var _np = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(s().storyFlags) : null;
+                  if (_np && _oldPath && _np !== _oldPath) { toast(t('path_shift', { path: t('path_' + _np) }), 'good'); }
+                } catch (e3) {}
+              };
               var C = window.GAME_CUTSCENE;
               var choiceId = node.getAttribute('data-choice');
               // CINEMATIC FALLOUT: the first four decisions get a bespoke
