@@ -434,50 +434,48 @@
   // ticker — hold the start, glide to reveal the tail, hold the end — instead of cutting it.
   // The scroll lives INSIDE #ticker's overflow:hidden (a transform — no page reflow / no
   // H-overflow), and the line dwells long enough to finish before the reel advances.
-  function applyTickerScroll(tx) {
-    if (!tx) return;
-    setClass(tx, 'tk-scroll', false);
-    tx.style.transform = ''; tx.style.animation = '';
-    _tkShift = 0; _tkScrollT = 0;
+  // Two-element marquee: #tickerInner holds the text and is what TRANSLATES; #tickerText is the
+  // fixed-width viewport (overflow:hidden, starts after the LIVE icon) that CLIPS it. The old
+  // single-element version transformed an overflow:hidden element, so its own content stayed
+  // clipped and the tail never scrolled into view (blind-test ×4: "cut off mid-word, unfinished").
+  function applyTickerScroll() {
+    var tx = $('tickerText'), inner = $('tickerInner');
+    if (!tx || !inner) return;
+    inner.style.transform = ''; _tkShift = 0; _tkScrollT = 0;
     var reduce = false; try { reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-    var over = tx.scrollWidth - tx.clientWidth;
+    var over = inner.scrollWidth - tx.clientWidth;       // full text width vs the viewport width
     if (over > 6 && !reduce) {
-      _tkShift = over + 10;                               // a touch past the end so the tail clears
+      _tkShift = over + 12;                               // a touch past the end so the tail clears the edge fade
       var dur = Math.min(13, Math.max(7, _tkShift / 28)); // ~28px/s reading pace, clamped
       _tickerDwell = dur + 1.4;                           // keep the line up until the scroll finishes
-      setClass(tx, 'tk-scroll', true);                   // .tk-scroll gives text-overflow:clip
-      tx.style.animation = 'none';                       // kill the CSS keyframe (its var(--tk-shift) transform
-                                                         // never interpolated — left the text stuck/truncated);
-                                                         // the scroll is now JS-driven (transform set per-frame below)
     } else {
-      _tickerDwell = reduce ? 8 : 6;                     // reduced-motion: no scroll, but linger a touch longer to read
+      _tickerDwell = reduce ? 8 : 6;                     // fits (or reduced-motion): no scroll
     }
   }
   function syncTicker(dt) {
     tickerTimer += dt || 0;
-    var tx = $('tickerText');
-    // JS-driven marquee: advance the scroll every frame. The earlier CSS keyframe with a
-    // var(--tk-shift) transform never actually moved the text (blind-test: the LIVE headline
-    // stayed truncated, never scrolling) — driving the transform from the game loop is reliable
-    // and testable. Profile: hold the start, glide left to reveal the tail, hold the end.
-    if (tx && _tkShift > 0) {
+    var inner = $('tickerInner');
+    // advance the scroll every frame off the game-loop dt. Profile: hold the start, glide left
+    // to reveal the tail, hold the end. The translate is on #tickerInner (clipped by #tickerText),
+    // so the text genuinely scrolls through the viewport instead of clipping itself.
+    if (inner && _tkShift > 0) {
       _tkScrollT += dt || 0;
       var HOLD = 1.1, scrollDur = Math.max(0.1, _tickerDwell - HOLD * 2);
       var p = (_tkScrollT - HOLD) / scrollDur; p = p < 0 ? 0 : (p > 1 ? 1 : p);
-      tx.style.transform = 'translateX(' + (-_tkShift * p).toFixed(1) + 'px)';
+      inner.style.transform = 'translateX(' + (-_tkShift * p).toFixed(1) + 'px)';
     }
     var list = (I.DICTS[I.getLang()] || {}).news_ticker || [];
     if (!list.length) return;
     // also re-pick immediately when the UI language changes, so a switch to EN/RU swaps the
     // ticker line at once instead of leaving the previous language up for the whole dwell.
-    if (tickerTimer > _tickerDwell || (tx && tx.textContent === '') || I.getLang() !== _tickerLang) {
+    if (tickerTimer > _tickerDwell || (inner && inner.textContent === '') || I.getLang() !== _tickerLang) {
       tickerTimer = 0;
       var ico = $('ticker').querySelector('.tk-ico'); if (ico && !ico.__set) { ico.__set = 1; }
       // interleave a pending rival-move line if one is queued, else advance the satire reel
-      if (_tickerQ.length) { setText(tx, t(_tickerQ.shift())); }
-      else { tickerIdx = (tickerIdx + 1) % list.length; setText(tx, list[tickerIdx]); }
+      if (_tickerQ.length) { setText(inner, t(_tickerQ.shift())); }
+      else { tickerIdx = (tickerIdx + 1) % list.length; setText(inner, list[tickerIdx]); }
       _tickerLang = I.getLang();
-      applyTickerScroll(tx);
+      applyTickerScroll();
     }
   }
 

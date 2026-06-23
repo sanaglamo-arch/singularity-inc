@@ -426,6 +426,12 @@ img, button, a { -webkit-user-drag: none; user-select: none; -webkit-user-select
   #tickerText.tk-scroll { animation: none; transform: none; }
 }
 @keyframes tickerFade { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; } }
+/* Two-element marquee (blind-test ×4: the LIVE line was cut off mid-word, looked unfinished).
+   #tickerInner is the text that translates; #tickerText is the fixed viewport (overflow:hidden
+   above) that clips it AFTER the icon — so the tail scrolls into view and never overlaps the
+   LIVE badge. A soft right-edge fade makes the clip read as premium, not broken. Additive. */
+#tickerInner { display: inline-block; white-space: nowrap; will-change: transform; }
+#tickerText { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent); }
 
 /* ---------- live news-feed panel (tap the ticker) ---------- */
 .nf-title { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; }
