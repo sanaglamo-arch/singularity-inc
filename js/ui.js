@@ -1576,6 +1576,7 @@
   var _redlined = false;      // overclock combo at max — fire the redline payoff once per climb
   var _clickwhyTimer = null;  // deferred "why a click earns" teach — fires after the tap-burst settles
   var _lastTapMs = 0;         // wall-clock of the last orb tap — teach modals defer while a burst is active
+  var _lastFxMs = 0;          // wall-clock of the last orb tap that spawned VISUAL fx (throttle vs floods)
   var _powerReadyForVer = -1; // last version we fired the "enough Power to train the next model" nudge for
   function showClickWhy() {
     _clickwhyTimer = null;
@@ -1810,10 +1811,19 @@
       if ((st.heat || 0) >= 0.985) { if (!_redlined) { _redlined = true; if (st.sound && A.insight) A.insight(); buzz(18); } }
       else if ((st.heat || 0) < 0.6) { _redlined = false; }
       if (x == null) { var r = tapBtn.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
-      floatText(x, y, '+' + money(v), st.training ? 'big' : 'crit');
-      FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
       buzz(6);
-      tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
+      // Throttle the VISUAL fx to ~26/s. Every human tap (≤~10/s) still pops its "+$"
+      // float + burst + squash; only an inhuman flood (autoclicker / synthetic test
+      // driver firing hundreds of taps/sec) is capped — so hundreds of float DOM nodes
+      // and their removal timers can't pile up and briefly hang the renderer (blind-test:
+      // "page went blank after long tap bursts"). Cash, sound, heat, vibration and the
+      // combo above are UNTHROTTLED — every tap still earns and feels responsive.
+      if (_lastTapMs - _lastFxMs > 38) {
+        _lastFxMs = _lastTapMs;
+        floatText(x, y, '+' + money(v), st.training ? 'big' : 'crit');
+        FX.tapBurst(x, y, st.heat || 0); FX.ripple(x, y, 130);
+        tapBtn.classList.remove('squash'); void tapBtn.offsetWidth; tapBtn.classList.add('squash');
+      }
       // Deferred onboarding teach: explain WHAT a click represents AFTER the player has tapped
       // a few times — spread across actions instead of stacked on ftue.start (blind review).
       if (st.tutorial === 'click' && st.ftue.start && !st.ftue.clickwhy && (st.clicks - (_clickStepBase || 0)) >= 3) {
