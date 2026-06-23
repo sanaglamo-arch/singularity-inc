@@ -279,6 +279,23 @@
       ]
     },
 
+    // 6e) THE TEAM IS BREAKING  (~v5) — the human cost of the race. Your people, not
+    //    a rival's, are burning out. Fills the 'сотрудники' pillar in the decision layer.
+    {
+      id: 'burnout',
+      icon: 'ic_manager',
+      title: 'dec_burn_title', body: 'dec_burn_body',
+      when: function (s) { return s.version >= 5; },
+      choices: [
+        { id: 'push',  label: 'dec_burn_a_label', hint: 'dec_burn_a_hint',
+          effects: { cash: +1500, approval: -8, safety: -6, flag: 'ruthless' } },
+        { id: 'rest',  label: 'dec_burn_b_label', hint: 'dec_burn_b_hint',
+          effects: { cash: -2000, approval: +10, safety: +6, flag: 'principled' } },
+        { id: 'hire',  label: 'dec_burn_c_label', hint: 'dec_burn_c_hint',
+          effects: { cash: -2500, approval: +6, flag: 'careful' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
