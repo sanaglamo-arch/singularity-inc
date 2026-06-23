@@ -341,7 +341,10 @@
       if (g > _rivalGen[r.id]) {
         _rivalGen[r.id] = g;
         if (_rivalGenInit) {           // skip the very first tick (baseline only)
-          var key = 'rival_move_' + r.id;
+          // Rivals have VOICE now — each ships with a distinct satirical personality
+          // (OpenMind smug, DeepCore cold, Nebula unhinged) and two rotating lines, so the
+          // race reads as living characters reacting to you, not a static leaderboard.
+          var key = 'rival_move_' + r.id + (Math.random() < 0.5 ? '_a' : '_b');
           if (_tickerQ.indexOf(key) < 0 && _tickerQ.length < 3) _tickerQ.push(key);
         }
       } else if (g < _rivalGen[r.id]) { _rivalGen[r.id] = g; }   // never announce regressions

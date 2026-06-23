@@ -253,9 +253,12 @@
     // market-share RACE feedback (rank-change toasts + rival ticker moves)
     rank_up: '🏆 You overtook {rival} — now #{rank}!',
     rank_down: '⚠ {rival} overtook you — you are #{rank}.',
-    rival_move_openmind: '⚡ OpenMind shipped a stronger model — its share is climbing.',
-    rival_move_deepcore: '⚡ DeepCore scaled its datacenter — power surging past rivals.',
-    rival_move_nebula: '⚡ Nebula closed a round to outrun everyone — watch your share.',
+    rival_move_openmind_a: '📣 OpenMind: "New model, new record. Yours is adorable — keep at it."',
+    rival_move_openmind_b: '📣 OpenMind held a keynote to thank its rivals "for the warm-up laps."',
+    rival_move_deepcore_a: '📣 DeepCore shipped in silence. Its only statement: a benchmark with your name dead last.',
+    rival_move_deepcore_b: '📣 DeepCore doubled its datacenter overnight. No press release — just more of it.',
+    rival_move_nebula_a: '📣 Nebula raised a deranged round and livestreamed it. Your share dipped on vibes alone.',
+    rival_move_nebula_b: '📣 Nebula\'s CEO tweeted a single rocket emoji. The market lost its mind — and so did your share.',
     // milestone celebrations (cash / users / market-share thresholds)
     ms_cash: '💰 {v} in the bank!',
     ms_users: '🌍 {v} users!',
@@ -986,9 +989,12 @@
     // market-share RACE feedback (rank-change toasts + rival ticker moves)
     rank_up: '🏆 Ты обогнал {rival} — теперь #{rank} на рынке!',
     rank_down: '⚠ {rival} обошла тебя — ты #{rank}.',
-    rival_move_openmind: '⚡ OpenMind выпустила модель мощнее — её доля растёт.',
-    rival_move_deepcore: '⚡ DeepCore нарастила дата-центр — мощность рвётся вперёд.',
-    rival_move_nebula: '⚡ Nebula привлекла раунд, чтобы обогнать всех — следи за долей.',
+    rival_move_openmind_a: '📣 OpenMind: «Новая модель, новый рекорд. Твоя — милая, продолжай.»',
+    rival_move_openmind_b: '📣 OpenMind созвала презентацию — поблагодарить соперников «за разминку».',
+    rival_move_deepcore_a: '📣 DeepCore выпустила модель молча. Единственное заявление — бенчмарк, и ты в самом низу.',
+    rival_move_deepcore_b: '📣 DeepCore за ночь удвоила дата-центр. Без пресс-релиза — просто стало больше.',
+    rival_move_nebula_a: '📣 Nebula подняла безумный раунд и устроила стрим. Твоя доля просела на одних вайбах.',
+    rival_move_nebula_b: '📣 CEO Nebula твитнул одну ракету. Рынок сошёл с ума — и твоя доля вместе с ним.',
     // milestone celebrations (cash / users / market-share thresholds)
     ms_cash: '💰 {v} в банке!',
     ms_users: '🌍 {v} пользователей!',
