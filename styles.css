@@ -2634,7 +2634,7 @@ button:focus:not(:focus-visible) { outline: none; }
 /* Same "clickable but reads as disabled" treatment for the other affordability-gated
    action buttons (premises upgrade, click-upgrade) — so an out-of-money tap answers
    with a toast instead of silence. Mirrors each button's :disabled look. Additive. */
-#premBuyBtn.cant-afford, #tapUpgradeBtn.cant-afford {
+#premBuyBtn.cant-afford, #tapUpgradeBtn.cant-afford, #modelTrainCta.cant-afford {
   background: var(--surface-2); color: var(--fg-muted); box-shadow: none; cursor: pointer;
 }
 

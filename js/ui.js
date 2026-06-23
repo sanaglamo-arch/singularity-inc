@@ -940,6 +940,39 @@
       '<div class="iconwrap">' + ic('ic_brain') + '</div>' +
       '<div class="info"><div class="name" id="modelVer"></div><div class="desc" id="modelStats" style="white-space:normal"></div></div>';
     pane.appendChild(mc);
+    // Next-model TRAIN CTA on the Model tab — mirrors the pre-v1 placement. After v1 the
+    // train button lived only on the Lab tab (under the clicker), but players look for the
+    // next model HERE and got stuck (blind-test #1 quit reason). Also fills the Model-tab
+    // dead space below the cards. Built per tab-entry (like the pre-v1 CTA).
+    var nDef = G.currentVersionDef();
+    if (nDef && !st.training) {
+      var nm = el('div', 'glass-panel');
+      nm.innerHTML =
+        '<h2 style="margin-top:0">' + esc(t('next_model_title', { label: nDef.label })) + '</h2>' +
+        '<button id="modelTrainCta" class="btn-primary"></button>' +
+        '<div id="modelTrainHint" class="muted small" style="margin-top:8px;line-height:1.3"></div>';
+      pane.appendChild(nm);
+      var cta = $('modelTrainCta'), cHint = $('modelTrainHint');
+      if (G.canStartTraining()) {
+        setText(cta, t('train_start', { label: nDef.label })); cta.disabled = false;
+        setClass(cta, 'cant-afford', false); setClass(cHint, 'hidden', true);
+      } else {
+        setText(cta, t('train_need_power', { req: fmt(G.powerReq()), label: nDef.label, have: fmt(G.availablePower()) }));
+        cta.disabled = false; setClass(cta, 'cant-afford', true);   // clickable→answers; greyed
+        setText(cHint, t('train_build_power')); setClass(cHint, 'hidden', false);
+      }
+      cta.onclick = function () {
+        if (G.tutorialHardLock()) { tutDeny(); return; }
+        if (s().training) { switchTab('company'); return; }
+        if (G.canStartTraining() && G.startTraining()) {
+          if (s().sound) A.breakthrough();
+          switchTab('company'); update(); return;   // watch the bar on the Lab tab
+        }
+        if (s().sound) A.error();
+        toast(t('train_need_power', { req: fmt(G.powerReq()), have: fmt(G.availablePower()), label: nDef.label }), 'bad');
+        denyShake(cta);
+      };
+    }
     syncPricePreview();
   }
   function pvTile(k, id) {
