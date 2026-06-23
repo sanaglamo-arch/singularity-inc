@@ -605,12 +605,12 @@
           setText(trainHint, t('train_build_power'));
           setClass(trainHint, 'hidden', false);
         }
-        // First-release onboarding: on a phone the Train button can sit below the fold /
-        // behind the navbar, so a new player can't see the key progression action the
-        // tutorial steers them to (blind-playtest blocker). When training FIRST becomes
-        // available (version 0, on the Lab tab), gently scroll it into view — once, and
-        // re-arm if power later drops below the requirement.
-        if (st.version === 0 && currentTab === 'company') {
+        // The Train button sits below the orb and can fall below the fold / behind the navbar,
+        // so a player can't see the key progression action (blind-test: players hit the v2/v3
+        // Power gate, never scroll down to the Train button, and believe the next model is
+        // unreachable → quit). When training becomes available for ANY version, gently scroll
+        // it into CENTER view — once per ready-transition (re-armed when power drops below req).
+        if (currentTab === 'company') {
           if (G.canStartTraining()) {
             if (!trainBtn._autoScrolled) {
               trainBtn._autoScrolled = true;
