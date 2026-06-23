@@ -2063,13 +2063,21 @@
     if (G.tutorialHardLock && G.tutorialHardLock()) return true;
     return false;
   }
+  var DEC_COOLDOWN_SEC = 45;   // in-game-time gap between auto-popped decisions (~0.75 day)
   function checkStoryDecisions() {
     if (!window.GAME_STORY) return;
     if (storyBusy()) return;
     var st = s();
+    // DECISION PACING (blind-test ×2: after a model ship, several decisions became
+    // eligible at once and fired back-to-back — "a wall of 3–4 dilemmas" that buried
+    // the upgrade's payoff). Space the auto-popups out by a short in-game-time cooldown
+    // so the player enjoys the moment between dilemmas; queued ones still surface one
+    // at a time as the cooldown elapses. The first decision is never delayed (null).
+    if (st.lastDecisionTime != null && (st.gameTime - st.lastDecisionTime) < DEC_COOLDOWN_SEC) return;
     var d = window.GAME_STORY.findPending(st);
     if (!d) return;
     window.GAME_STORY.markSeen(st, d.id);   // fire-once + sets pendingDecision lock
+    st.lastDecisionTime = st.gameTime;       // start the spacing cooldown
     G.save();
     // CINEMATIC FRAMING: the first four decisions get a bespoke 1-beat SETUP
     // cutscene that plays BEFORE the modal (Detroit-style). Its Next button
