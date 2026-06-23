@@ -205,6 +205,9 @@
     meter_safety: 'Safety',
     meter_approval: 'Public approval',
     meter_legality: 'State & law',
+    dec_dlt_safety: 'Safety',
+    dec_dlt_approval: 'Approval',
+    dec_dlt_legality: 'Law',
 
     // staff
     staff_title: 'Team',
@@ -925,6 +928,9 @@
     meter_safety: 'Безопасность',
     meter_approval: 'Одобрение общества',
     meter_legality: 'Государство и закон',
+    dec_dlt_safety: 'Безопасность',
+    dec_dlt_approval: 'Одобрение',
+    dec_dlt_legality: 'Закон',
 
     staff_title: 'Команда',
     staff_intro: 'Сотрудники поднимают метрики и режут налоги. Каждого покупаешь один раз, дальше прокачиваешь — без зарплат.',

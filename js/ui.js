@@ -126,6 +126,21 @@
     $('fxRoot').appendChild(e);
     setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 1100);
   }
+  // Compact "what your choice did" summary. Decision consequences play a
+  // cutscene that narrates the fallout but hides the exact numbers; testers
+  // had to open the World tab to see meters move. This surfaces the deltas as
+  // a toast the moment the cutscene closes, at the spot the player is looking.
+  function decisionDeltaText(eff) {
+    if (!eff) return '';
+    var parts = [];
+    if (eff.cash) parts.push((eff.cash >= 0 ? '+' : '−') + '$' + fmt(Math.abs(eff.cash)));
+    var rows = [['safety', 'dec_dlt_safety'], ['approval', 'dec_dlt_approval'], ['legality', 'dec_dlt_legality']];
+    for (var i = 0; i < rows.length; i++) {
+      var v = eff[rows[i][0]];
+      if (v) parts.push(t(rows[i][1]) + ' ' + (v >= 0 ? '+' : '−') + Math.abs(v));
+    }
+    return parts.join('   ·   ');
+  }
 
   // ---------------- modals (reuse #modalRoot + .modal) ----------------
   var modalOpen = false, modalQueue = [];
@@ -2094,6 +2109,8 @@
             update();
             if (choice) {
               toast(t('decision_made'), 'good');
+              var _dd = decisionDeltaText(choice.effects);
+              var _showDelta = function () { try { update(); } catch (e) {} if (_dd) { try { toast(_dd); } catch (e2) {} } };
               var C = window.GAME_CUTSCENE;
               var choiceId = node.getAttribute('data-choice');
               // CINEMATIC FALLOUT: the first four decisions get a bespoke
@@ -2103,15 +2120,17 @@
               if (C && C.hasDecisionConsequence && C.hasDecisionConsequence(d.id, choiceId) &&
                   C.decisionConsequence && !(C.isActive && C.isActive())) {
                 try {
-                  C.decisionConsequence(d.id, choiceId, function () { try { update(); } catch (e) {} });
-                } catch (e) { try { update(); } catch (e2) {} }
+                  C.decisionConsequence(d.id, choiceId, _showDelta);
+                } catch (e) { _showDelta(); }
               } else if (choice.beat && C && C.play && !C.isActive()) {
                 C.play({
                   kind: 'decision',
                   lastLabel: 'cut_continue',
                   beats: [{ scene: choice.beat.scene, title: choice.beat.title, body: choice.beat.body }],
-                  onDone: function () { try { update(); } catch (e) {} }
+                  onDone: _showDelta
                 });
+              } else {
+                _showDelta();
               }
             }
           };
