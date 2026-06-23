@@ -243,6 +243,24 @@
       ]
     },
 
+    // 6c) THE TOWN'S GRID  (~v5) — the environmental/energy cost of scale. Your
+    //    datacenter outdraws a whole town; press + regulators watch. Small sim-safe
+    //    cash deltas; the weight is in approval + the path flag.
+    {
+      id: 'grid',
+      icon: 'ic_bolt',
+      title: 'dec_grid_title', body: 'dec_grid_body',
+      when: function (s) { return s.version >= 5; },
+      choices: [
+        { id: 'cheap', label: 'dec_grid_a_label', hint: 'dec_grid_a_hint',
+          effects: { cash: +2000, approval: -10, legality: -6, flag: 'ruthless' } },
+        { id: 'clean', label: 'dec_grid_b_label', hint: 'dec_grid_b_hint',
+          effects: { cash: -2500, approval: +12, legality: +6, flag: 'principled' } },
+        { id: 'lean',  label: 'dec_grid_c_label', hint: 'dec_grid_c_hint',
+          effects: { cash: -600, approval: +5, safety: +4, flag: 'careful' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
