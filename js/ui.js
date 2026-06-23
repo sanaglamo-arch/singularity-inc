@@ -1322,7 +1322,14 @@
     $('goTitle').style.color = win ? 'var(--gold)' : 'var(--rose)';
     setText($('goCompany'), st.companyName || t('game_title'));
     setText($('goFlavor'), flavor);
+    // The ending should reflect WHO you became, not just the stats (DESIGN: "earned
+    // endings that mirror the whole path"). Surface the accumulated moral archetype
+    // (Ruthless mogul / Careful idealist / …) as the first summary row, in the same
+    // violet the World tab uses. Only shown once a path has formed (after decisions).
+    var _endPathKey = (window.GAME_STORY && window.GAME_STORY.currentPath) ? window.GAME_STORY.currentPath(st.storyFlags) : null;
+    var _endPathRow = _endPathKey ? ('<div class="statItem"><span>' + t('your_path') + '</span><span style="color:var(--violet-2)">' + esc(t('path_' + _endPathKey)) + '</span></div>') : '';
     setHTML($('goSummary'),
+      _endPathRow +
       '<div class="statItem"><span>' + t('go_stat_version') + '</span><span>' + ver + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_day') + '</span><span>' + G.dayNumber() + '</span></div>' +
       '<div class="statItem"><span>' + t('go_stat_users') + '</span><span>' + uFmt(st.users) + '</span></div>' +
