@@ -398,7 +398,7 @@
     var now = performance.now();
     if (now < _msNextAt) return;          // throttle: one celebration per ~1.5s
     var c = _msQ.shift();
-    toast(c.msg, 'good');
+    toast(t(c.tkey, c.tparams), 'good');   // translate at display time (survives a lang switch while queued)
     var st = s();
     if (st.sound) { if (c.big) { if (A.achievement) A.achievement(); } else if (A.milestone) A.milestone(); }
     // tiny sparkle near the top-center stat row (won't clutter the orb/controls)
@@ -413,16 +413,16 @@
     var crossed = [];
     var i, v, key;
     for (i = 0; i < MS_CASH.length; i++) {
-      v = MS_CASH[i]; if (st.cash >= v) { key = _msKey('cash', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_cash', { v: money(v) }), big: v >= MS_BIG_CASH }); }
+      v = MS_CASH[i]; if (st.cash >= v) { key = _msKey('cash', v); if (!_msHas(key)) crossed.push({ key: key, tkey: 'ms_cash', tparams: { v: money(v) }, big: v >= MS_BIG_CASH }); }
     }
     for (i = 0; i < MS_USERS.length; i++) {
-      v = MS_USERS[i]; if (st.users >= v) { key = _msKey('users', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_users', { v: fmt(v) }), big: v >= MS_BIG_USERS }); }
+      v = MS_USERS[i]; if (st.users >= v) { key = _msKey('users', v); if (!_msHas(key)) crossed.push({ key: key, tkey: 'ms_users', tparams: { v: fmt(v) }, big: v >= MS_BIG_USERS }); }
     }
     // market share only meaningful once a model has shipped
     if (st.version >= 1) {
       var sh = G.playerShare();
       for (i = 0; i < MS_SHARE.length; i++) {
-        v = MS_SHARE[i]; if (sh >= v) { key = _msKey('share', v); if (!_msHas(key)) crossed.push({ key: key, msg: t('ms_share', { v: Math.round(v * 100) }), big: true }); }
+        v = MS_SHARE[i]; if (sh >= v) { key = _msKey('share', v); if (!_msHas(key)) crossed.push({ key: key, tkey: 'ms_share', tparams: { v: Math.round(v * 100) }, big: true }); }
       }
     }
 
@@ -437,7 +437,11 @@
       // crossed is already in natural ascending order (arrays ascending; cash→users→share)
       for (i = 0; i < crossed.length; i++) {
         _msMark(crossed[i].key);          // mark immediately so it never re-queues
-        if (!busy) _msQ.push({ msg: crossed[i].msg, big: crossed[i].big });
+        // store the translation KEY + (language-neutral) params, not the rendered
+        // string — the toast can sit in the queue across a language switch, so it
+        // must be translated at DISPLAY time (blind-test: EN run showed a RU
+        // "$10.00K в банке!" because the line was rendered at queue time).
+        if (!busy) _msQ.push({ tkey: crossed[i].tkey, tparams: crossed[i].tparams, big: crossed[i].big });
       }
       G.save();
     }
