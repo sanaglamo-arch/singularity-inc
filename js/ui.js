@@ -358,12 +358,16 @@
       var below = rows[idx + 1];
       var upName = below && !below.isPlayer ? t('rival_name_' + below.id) : '';
       toast(t('rank_up', { rival: upName, rank: rank }), 'good'); if (s().sound && A.milestone) A.milestone();
+      // the rival you just passed REACTS, in character (the race feels alive, not static)
+      if (below && !below.isPlayer) { var ck = 'rival_cope_' + below.id; if (_tickerQ.indexOf(ck) < 0 && _tickerQ.length < 3) _tickerQ.push(ck); }
       _pulseRank = true;
     } else if (rank > _lastRank) {
       // dropped: the rival now directly ABOVE the player is the one who overtook
       var above = rows[idx - 1];
       var dnName = above && !above.isPlayer ? t('rival_name_' + above.id) : '';
       toast(t('rank_down', { rival: dnName, rank: rank }), 'bad');
+      // the rival that just overtook you GLOATS, in character — the sting of the comeback
+      if (above && !above.isPlayer) { var gk = 'rival_gloat_' + above.id; if (_tickerQ.indexOf(gk) < 0 && _tickerQ.length < 3) _tickerQ.push(gk); }
       _pulseRank = true;
     }
     _lastRank = rank;
