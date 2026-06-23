@@ -3033,3 +3033,19 @@ button:focus:not(:focus-visible) { outline: none; }
    (1200×750) or facility-diorama SVG scenes, so it adds zero per-frame cost on
    weak hardware (icons are static — the filter is computed once, not per frame). */
 svg[viewBox="0 0 24 24"] { filter: drop-shadow(0 0 1.6px currentColor); }
+
+/* Lower-third legibility scrim behind cutscene captions (blind-test ×2: intro
+   titles "Мечта"/"Гонка" read low-contrast). Two causes: the busy/bright scene
+   regions sit right under the caption (e.g. the rivals neon skyline fills the
+   lower frame under "Гонка"), and the intro titles use a TRANSPARENT gradient
+   text-fill so their text-shadow can't darken them. A soft radial scrim gently
+   dims ONLY the text area — a standard cinematic lower-third — lifting contrast
+   without muddying the surrounding art. It sits behind the caption's text
+   (z-index:-1 within the caption, which is itself above the scene), additive,
+   pointer-events:none, no per-frame cost (static gradient). */
+.cs-caption::before {
+  content: "";
+  position: absolute; left: -8px; right: -8px; top: -12px; bottom: -12px;
+  z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 80% 130% at 50% 55%, rgba(0,0,0,0.52), rgba(0,0,0,0.30) 45%, rgba(0,0,0,0) 76%);
+}
