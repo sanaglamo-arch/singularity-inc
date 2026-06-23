@@ -296,6 +296,23 @@
       ]
     },
 
+    // 6f) THE CALL FOR A PAUSE  (~v6) — moratorium / race-vs-caution. An open letter (rivals
+    //    included) demands you halt. The 'гонка' pillar's sharpest fork: blink, or be the villain.
+    {
+      id: 'moratorium',
+      icon: 'ic_insight',
+      title: 'dec_pause_title', body: 'dec_pause_body',
+      when: function (s) { return s.version >= 6; },
+      choices: [
+        { id: 'refuse', label: 'dec_pause_a_label', hint: 'dec_pause_a_hint',
+          effects: { cash: +4000, approval: -10, flag: 'ruthless' } },
+        { id: 'sign',   label: 'dec_pause_b_label', hint: 'dec_pause_b_hint',
+          effects: { cash: -3500, approval: +14, safety: +8, flag: 'principled' } },
+        { id: 'twoface',label: 'dec_pause_c_label', hint: 'dec_pause_c_hint',
+          effects: { approval: +6, legality: -10, flag: 'coverup' } }
+      ]
+    },
+
     // 6) THE MODEL ASKS FOR AUTONOMY  (near v8, pre-Singularity) — PIVOTAL.
     //    The primary driver of the ending variant.
     {
