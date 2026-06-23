@@ -589,6 +589,8 @@
 
     var have = G.availablePower(), need = G.powerReq();
     var trainBtn = $('trainBtn'), trainProg = $('trainProg'), trainFill = $('trainFill'), trainHint = $('trainHint');
+    var powerGateProg = $('powerGateProg'), powerGateFill = $('powerGateFill'), powerGateLbl = $('powerGateLbl');
+    setClass(powerGateProg, 'hidden', true); // default hidden; shown only while Power-gated below
     if (def) {
       if (st.training) {
         setClass(trainProg, 'hidden', false);
@@ -617,6 +619,15 @@
           // and don't realise buying hardware — even idle gear — raises it. State it plainly.
           setText(trainHint, t('train_build_power'));
           setClass(trainHint, 'hidden', false);
+          // Visible progress toward the gate: the 7→60 Power climb read as a void
+          // with "no intermediate reward" (recurring #1 quit). A filling bar makes
+          // it purposeful. Pure display of the existing have/need ratio — no balance.
+          if (need > 0 && isFinite(need)) {
+            setClass(powerGateProg, 'hidden', false);
+            var pct = Math.max(0, Math.min(1, have / need));
+            setStyleP(powerGateFill, 'width', (pct * 100).toFixed(1) + '%');
+            setText(powerGateLbl, fmt(have) + ' / ' + fmt(need) + ' ⚡');
+          }
         }
         // The Train button sits below the orb and can fall below the fold / behind the navbar,
         // so a player can't see the key progression action (blind-test: players hit the v2/v3

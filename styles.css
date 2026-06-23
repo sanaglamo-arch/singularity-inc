@@ -3014,3 +3014,13 @@ button:focus:not(:focus-visible) { outline: none; }
 }
 .deny-shake { animation: denyShake 0.30s ease both; }
 @media (prefers-reduced-motion: reduce) { .deny-shake { animation: none; } }
+
+/* Power-to-next-model gate progress: a visible "you ARE getting closer" bar
+   under the Train button while you're below the Power requirement. Makes the
+   v2/v3 climb feel purposeful instead of a void (recurring #1 quit reason was
+   the 7→60 Power jump shown only as text). cyan→gold = climbing toward unlock
+   (distinct from #trainFill's cyan→green training progress). Display only. */
+#powerGateProg { margin-top: 8px; }
+#powerGateProg .bar { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+#powerGateFill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--gold)); box-shadow: 0 0 10px var(--glow-gold); transition: width 0.45s ease; }
+#powerGateLbl { text-align: center; margin-top: 3px; letter-spacing: 0.04em; }
