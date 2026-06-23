@@ -143,7 +143,10 @@
   // One self-contained server rack of blinking units. glow=true => committed
   // (cyan power glow); glow=false => idle (dimmer, "for rent" tint).
   // Adds a thin 2.5D side face for depth + a soft floor reflection.
-  function rack(x, y, w, h, glow, seed) {
+  // `density` (default 1) scales how many LED slats read "on" + their brightness,
+  // so higher tiers (bizpark/megacampus) render busier, denser racks than a garage.
+  function rack(x, y, w, h, glow, seed, density) {
+    var den = density == null ? 1 : density;          // ~0.85 garage .. ~1.35 megacampus
     var top = y - h, rr = rng(seed || (x * 7 + y)), s = '';
     var edge = glow ? CYAN2 : VIOLET2;
     var edgeA = glow ? 0.6 : 0.24;
@@ -169,10 +172,16 @@
     for (uy = top + 6; uy < y - 5; uy += step) {
       s += '<rect x="' + (x + 4) + '" y="' + uy.toFixed(1) + '" width="' + (w - 8) + '" height="' + (step - 4).toFixed(1) + '" rx="1.5" fill="' + (glow ? '#0e1726' : '#0d1320') + '"/>';
       var lx, cy = uy + (step - 4) / 2;
+      // denser tiers light up MORE slats: shift the on-threshold down by (den-1).
+      var onThr = (glow ? 0.28 : 0.62) - (den - 1) * 0.34;
+      if (onThr < 0.06) onThr = 0.06;
+      // a touch more lit brightness in dense halls (capped at 1)
+      var onA = (glow ? 0.95 : 0.45) + (den - 1) * 0.12;
+      if (onA > 1) onA = 1;
       for (lx = x + 8; lx < x + w - 6; lx += 9) {
-        var on = rr() > (glow ? 0.28 : 0.62);
+        var on = rr() > onThr;
         var col = glow ? (rr() > 0.5 ? CYAN2 : CYAN) : (rr() > 0.6 ? VIOLET2 : GOLD);
-        s += circle(lx, cy, 1.5, rgba(col, on ? (glow ? 0.95 : 0.45) : 0.14),
+        s += circle(lx, cy, 1.5, rgba(col, on ? onA : 0.14),
           on ? ' class="fac-pulse" style="--pd:' + (k % 6) + 's"' : '');
         k++;
       }
@@ -390,6 +399,20 @@
         // glossy aisle reflection running back to the vanishing point
         '<polygon points="540,' + FLOOR + ' 660,' + FLOOR + ' 620,178 580,178" fill="' + rgba(CYAN2, 0.06) + '"/>' +
         '<ellipse cx="600" cy="' + (FLOOR + 14) + '" rx="440" ry="24" fill="' + rgba(CYAN, 0.07) + '"/>' +
+        // faint power/cooling conduit mesh tracing the back wall (static depth)
+        '<g stroke="' + rgba(CYAN, 0.05) + '" stroke-width="0.7" fill="none" stroke-linecap="round">' +
+          line(40, 214, 1160, 214, rgba(CYAN, 0.05), 0.7) + line(40, 226, 1160, 226, rgba(CYAN, 0.045), 0.7) +
+          line(40, 238, 1160, 238, rgba(CYAN, 0.04), 0.6) +
+          line(220, 206, 220, 248, rgba(CYAN, 0.05), 0.7) + line(480, 206, 480, 248, rgba(CYAN, 0.05), 0.7) +
+          line(720, 206, 720, 248, rgba(CYAN, 0.05), 0.7) + line(980, 206, 980, 248, rgba(CYAN, 0.05), 0.7) +
+        '</g>' +
+        // denser low far-row silhouette behind the flanking racks (a bigger hall)
+        '<g opacity="0.4">' +
+          '<rect x="120" y="234" width="86" height="20" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="0.8"/>' +
+          '<rect x="430" y="234" width="86" height="20" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="0.8"/>' +
+          '<rect x="690" y="234" width="86" height="20" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="0.8"/>' +
+          '<rect x="1000" y="234" width="86" height="20" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.16) + '" stroke-width="0.8"/>' +
+        '</g>' +
         // distant racks flanking the aisle (depth before the player's near racks)
         '<g opacity="0.55">' +
           '<rect x="300" y="250" width="120" height="62" rx="3" fill="#0a1322" stroke="' + rgba(CYAN2, 0.2) + '" stroke-width="1.2"/>' +
@@ -432,6 +455,20 @@
       var mid =
         '<rect x="0" y="' + FLOOR + '" width="' + VBW + '" height="' + (VBH - FLOOR) + '" fill="#070b16"/>' +
         line(0, FLOOR, VBW, FLOOR, rgba(CYAN2, 0.1), 2) +
+        // faint power/cooling conduit mesh across the hall (static, deep depth)
+        '<g stroke="' + rgba(CYAN, 0.05) + '" stroke-width="0.7" fill="none" stroke-linecap="round">' +
+          line(20, 230, 1180, 230, rgba(CYAN, 0.05), 0.7) + line(20, 242, 1180, 242, rgba(CYAN, 0.045), 0.7) +
+          line(150, 224, 150, 250, rgba(CYAN, 0.045), 0.7) + line(420, 224, 420, 250, rgba(CYAN, 0.045), 0.7) +
+          line(690, 224, 690, 250, rgba(CYAN, 0.045), 0.7) + line(960, 224, 960, 250, rgba(CYAN, 0.045), 0.7) +
+        '</g>' +
+        // a fainter far-far silhouette row implying a hall beyond the halls
+        '<g opacity="0.34">' +
+          '<rect x="40" y="232" width="130" height="16" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.14) + '" stroke-width="0.8"/>' +
+          '<rect x="250" y="232" width="110" height="16" rx="2" fill="#0a1120" stroke="' + rgba(VIOLET2, 0.12) + '" stroke-width="0.8"/>' +
+          '<rect x="440" y="232" width="150" height="16" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.14) + '" stroke-width="0.8"/>' +
+          '<rect x="680" y="232" width="120" height="16" rx="2" fill="#0a1120" stroke="' + rgba(VIOLET2, 0.12) + '" stroke-width="0.8"/>' +
+          '<rect x="880" y="232" width="140" height="16" rx="2" fill="#0a1120" stroke="' + rgba(CYAN2, 0.14) + '" stroke-width="0.8"/>' +
+        '</g>' +
         // distant low halls behind the racks (the campus extends past view)
         '<g opacity="0.5">' +
           '<rect x="80" y="248" width="180" height="26" rx="3" fill="#0b1322" stroke="' + rgba(CYAN2, 0.25) + '" stroke-width="1.2"/>' +
@@ -453,7 +490,9 @@
   // first, then the NEAR (committed) row in front, so committed glow reads on top.
   var CAP = 30;          // max visible rack units (keeps it fast on thousands)
 
-  function layRacks(committed, idle) {
+  // `density` (default 1) is forwarded to rack() so the LED look scales with tier.
+  function layRacks(committed, idle, density) {
+    var den = density == null ? 1 : density;
     var total = committed + idle;
     if (total <= 0) return { svg: '', more: 0 };
     // how many we actually draw (cap), preserving the committed/idle ratio
@@ -482,7 +521,7 @@
     var fx0 = (VBW - farTotalW) / 2;
     for (i = 0; i < farCount; i++) {
       var fglow = list[nearCount + i];
-      s += '<g opacity="0.82">' + rack(fx0 + i * (fw + fgap), fy, fw, fh, fglow, 1000 + i) + '</g>';
+      s += '<g opacity="0.82">' + rack(fx0 + i * (fw + fgap), fy, fw, fh, fglow, 1000 + i, den) + '</g>';
     }
     // NEAR row (front): larger racks sitting on the floor line
     var ny = FLOOR + 2, nh = 118, nw = 40, ngap = 11;
@@ -490,7 +529,7 @@
     var nx0 = (VBW - nearTotalW) / 2;
     for (i = 0; i < nearCount; i++) {
       var nglow = list[i];
-      s += rack(nx0 + i * (nw + ngap), ny, nw, nh, nglow, 2000 + i);
+      s += rack(nx0 + i * (nw + ngap), ny, nw, nh, nglow, 2000 + i, den);
     }
     return { svg: s, more: more };
   }
@@ -541,13 +580,21 @@
 
       var make = BACKDROPS[st.premise] || BACKDROPS.garage;
       var scene = make();
-      var laid = layRacks(committed, idle);
+      // tier density: startups stay sparse, data halls read busy/alive.
+      var DENS = { garage: 0.85, basement: 0.95, office: 1.05, bizpark: 1.2, megacampus: 1.35 };
+      var dens = DENS[st.premise] != null ? DENS[st.premise] : 1;
+      var laid = layRacks(committed, idle, dens);
 
       // defs shared by the rack drawer (glow filter) live in the rack layer
       var rackDefs = '<defs>' + glowFilter('facGlow', 5) + '</defs>';
       // a subtle model-core glow once version >= 1
       var coreGlow = (st.version >= 1)
         ? '<ellipse cx="600" cy="' + (FLOOR - 30) + '" rx="300" ry="60" fill="' + rgba(CYAN, 0.06) + '" class="fac-coreglow"/>'
+        : '';
+      // high-tier powered halls get a faint extra floor underglow when racks are committed
+      var hallGlow = (dens >= 1.15 && committed > 0)
+        ? '<ellipse cx="600" cy="' + (FLOOR + 16) + '" rx="' + (380 + (dens - 1) * 160).toFixed(0) +
+            '" ry="26" fill="' + rgba(CYAN2, (0.05 + (dens - 1) * 0.04).toFixed(3)) + '"/>'
         : '';
 
       // header line: premise name + m² used/cap
@@ -572,7 +619,7 @@
       var html =
         '<div class="facility-stage">' +
           svgLayer('facility-bg', '', scene.bg) +
-          svgLayer('facility-mid', '', scene.mid + coreGlow) +
+          svgLayer('facility-mid', '', scene.mid + hallGlow + coreGlow) +
           svgLayer('facility-fg', rackDefs, laid.svg + scene.fg) +
         '</div>' +
         '<div class="facility-head">' +

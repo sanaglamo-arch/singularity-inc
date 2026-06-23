@@ -30,7 +30,8 @@ window.GAME_MUSIC = (function () {
       stop:       function () {},
       setIntensity: function () {},
       setVolume:  function () {},
-      getVolume:  function () { return 1; }
+      getVolume:  function () { return 1; },
+      duck:       function () {}
     };
   }
 
@@ -38,6 +39,7 @@ window.GAME_MUSIC = (function () {
   var ctx             = null;
   var masterGain      = null;   // output node, kept modest
   var masterLimiter   = null;   // peak limiter on the music bus (anti-clip)
+  var duckGain        = null;   // sidechain duck: music steps back under big SFX
   var padBus          = null;   // GainNode for pad oscillators
   var padFilter       = null;   // LowpassBiquad on pad bus
   var bellBus         = null;   // GainNode for bell/arp tones
@@ -126,6 +128,12 @@ window.GAME_MUSIC = (function () {
 
       masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(0, ctx.currentTime);
+      // Sidechain duck node: normally 1.0; momentarily lowered by duck() when a
+      // big celebratory SFX fires (release / milestone / singularity) so the
+      // music politely steps back and the moment punches through. Sits between
+      // the bus sum and the limiter — a master-level gentle duck.
+      duckGain = ctx.createGain();
+      duckGain.gain.setValueAtTime(1, ctx.currentTime);
       // Master peak limiter: at high intensity all layers (pad + bell + arp +
       // tick + reverb return) bloom into masterGain together and can clip the
       // output. A gentle compressor here is transparent at normal levels and
@@ -138,11 +146,13 @@ window.GAME_MUSIC = (function () {
         masterLimiter.ratio.setValueAtTime(4, ctx.currentTime);
         masterLimiter.attack.setValueAtTime(0.005, ctx.currentTime);
         masterLimiter.release.setValueAtTime(0.15, ctx.currentTime);
-        masterGain.connect(masterLimiter);
+        masterGain.connect(duckGain);
+        duckGain.connect(masterLimiter);
         masterLimiter.connect(ctx.destination);
       } catch (e) {
         masterLimiter = null;
-        masterGain.connect(ctx.destination);
+        masterGain.connect(duckGain);
+        duckGain.connect(ctx.destination);
       }
 
       // Reverb send -> convolver -> return -> master
@@ -561,6 +571,22 @@ window.GAME_MUSIC = (function () {
     setIntensity: function (n) {
       intensity = Math.max(0, Math.min(1, Number(n) || 0));
       applyIntensity();
+    },
+    // Sidechain duck: momentarily lower the whole music bus so a big SFX moment
+    // (release / milestone / singularity) punches through, then smoothly recover.
+    // Called from the celebratory SFX in the audio engine. Guarded — a no-op
+    // until the graph exists / while not playing, so it can never throw.
+    duck: function (depth, dur) {
+      if (!ctx || !duckGain || !playing) return;
+      try {
+        var now = ctx.currentTime;
+        var d = depth == null ? 0.35 : Math.max(0, Math.min(0.7, depth));
+        var t = Math.max(0.2, dur || 0.6);
+        duckGain.gain.cancelScheduledValues(now);
+        duckGain.gain.setValueAtTime(duckGain.gain.value, now);
+        duckGain.gain.linearRampToValueAtTime(1 - d, now + 0.05); // quick dip
+        duckGain.gain.setTargetAtTime(1, now + 0.10, t * 0.4);    // smooth recover
+      } catch (e) {}
     }
   };
 }());

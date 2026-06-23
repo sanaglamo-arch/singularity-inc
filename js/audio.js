@@ -132,6 +132,11 @@
 
   function seq(notes, step, build) { notes.forEach(function (n, i) { setTimeout(function () { build(n, i); }, i * step); }); }
 
+  // Ask the music engine to gently duck under a big SFX moment so it punches
+  // through (separate AudioContexts, so this is a JS-level sidechain). Guarded:
+  // a no-op if music is absent/muted — can never throw or block the SFX.
+  function mduck(depth, dur) { try { if (enabled && window.GAME_MUSIC && GAME_MUSIC.duck) GAME_MUSIC.duck(depth, dur); } catch (e) {} }
+
   window.GAME_AUDIO = {
     setEnabled: function (b) { enabled = !!b; if (enabled) ensure(); },
     isEnabled: function () { return enabled; },
@@ -185,6 +190,7 @@
 
     // ── MILESTONE / THRESHOLD ── bright chord stab (triad together) + air sparkle.
     milestone: function () {
+      mduck(0.30, 0.5);
       [523, 659, 784].forEach(function (f) {
         voice(f, 0.26, 'triangle', 0.05, { attack: 0.004, send: 0.22 });
         voice(f * 2, 0.16, 'sine', 0.015, { attack: 0.003, send: 0.24 });
@@ -212,6 +218,7 @@
 
     // ── FUNDING ── positive sparkle: rising celebratory jingle + air shimmer.
     funding: function () {
+      mduck(0.30, 0.6);
       seq([523, 659, 784, 1047], 68, function (f, i) {
         voice(f, 0.28, 'triangle', 0.05, { attack: 0.005, send: 0.24 });
         voice(f * 1.5, 0.18, 'sine', 0.02, { attack: 0.004, send: 0.22 });
@@ -227,6 +234,7 @@
 
     // ── BREAKTHROUGH / RELEASE ── rising shimmer: glide swell → confirming chord + air.
     breakthrough: function () {
+      mduck(0.45, 0.9);
       voice(220, 0.5, 'sawtooth', 0.05, { glide: 660, attack: 0.02, send: 0.26 });
       voice(110, 0.5, 'sine', 0.03, { glide: 330, attack: 0.03, send: 0.14 });
       setTimeout(function () {
@@ -241,6 +249,7 @@
 
     // ── SINGULARITY / WIN ── climactic swell: deep rising sub + glowing chord cascade + air bloom.
     singularity: function () {
+      mduck(0.6, 1.4);
       voice(110, 1.2, 'sine', 0.06, { glide: 440, attack: 0.08, send: 0.2 });
       voice(165, 1.2, 'triangle', 0.03, { glide: 660, attack: 0.08, send: 0.2 });
       seq([523, 659, 784, 1047, 1319], 130, function (f, i) {
@@ -252,6 +261,7 @@
 
     // ── INCIDENT / EVENT ── dark thud: low filtered noise body + descending growl.
     incident: function () {
+      mduck(0.4, 0.7);
       noise(0.22, 0.06, 'thud', 220, 0.18);
       voice(160, 0.42, 'sawtooth', 0.055, { glide: 80, attack: 0.006, send: 0.16 });
       setTimeout(function () { voice(120, 0.5, 'sawtooth', 0.045, { glide: 60, send: 0.18 }); noise(0.18, 0.04, 'thud', 160, 0.2); }, 100);
