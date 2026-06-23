@@ -3049,3 +3049,16 @@ svg[viewBox="0 0 24 24"] { filter: drop-shadow(0 0 1.6px currentColor); }
   z-index: -1; pointer-events: none;
   background: radial-gradient(ellipse 80% 130% at 50% 55%, rgba(0,0,0,0.52), rgba(0,0,0,0.30) 45%, rgba(0,0,0,0) 76%);
 }
+
+/* News-ticker SYMMETRIC edge fade (recurring blind-test ×6: "ticker clips mid-word,
+   looks unfinished on every screen"). The marquee genuinely scrolls in a real browser,
+   but any instant shows a partial line; the old mask faded only the RIGHT edge, so when
+   the text scrolled left the BEGINNING hard-cut at the viewport's left edge ("...cs board
+   resigns") — reading as a broken clip. Fading BOTH edges makes every scroll frame look
+   intentional (text softly entering/leaving) instead of chopped. Overrides the one-sided
+   mask additively (later rule, same selector wins). Left fade is narrow so a fitting/static
+   headline's start stays legible. */
+#tickerText {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 13px, #000 calc(100% - 16px), transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 13px, #000 calc(100% - 16px), transparent 100%);
+}
