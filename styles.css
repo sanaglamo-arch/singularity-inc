@@ -3024,3 +3024,12 @@ button:focus:not(:focus-visible) { outline: none; }
 #powerGateProg .bar { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
 #powerGateFill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--gold)); box-shadow: 0 0 10px var(--glow-gold); transition: width 0.45s ease; }
 #powerGateLbl { text-align: center; margin-top: 3px; letter-spacing: 0.04em; }
+
+/* Soft neon lighting on the whole icon set (night priority: premium icons /
+   "освещение, мягкие тени"). An un-coloured drop-shadow uses currentColor, so
+   the glow auto-matches each icon's theme tint — cyan when active, grey when
+   idle, gold/amber on the cash/risk/bolt accents — keeping it cohesive without
+   per-icon CSS. Scoped to the 24×24 ICON viewBox ONLY, never the big cutscene
+   (1200×750) or facility-diorama SVG scenes, so it adds zero per-frame cost on
+   weak hardware (icons are static — the filter is computed once, not per frame). */
+svg[viewBox="0 0 24 24"] { filter: drop-shadow(0 0 1.6px currentColor); }
